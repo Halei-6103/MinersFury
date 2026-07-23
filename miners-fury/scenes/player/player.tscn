@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://bnlgkx1nc0ra2"]
+
+[ext_resource type="Script" uid="uid://bpcvq1ax4p585" path="res://scenes/player/player.gd" id="1_8afob"]
+[ext_resource type="Texture2D" uid="uid://dadxc4adon2xi" path="res://assets/sprites/stardew_scavenger_sprite_48.png" id="2_dovo2"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_x7p2l"]
+size = Vector2(32, 32)
+
+[node name="Player" type="CharacterBody2D" unique_id=1076072738]
+script = ExtResource("1_8afob")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1816564675]
+texture = ExtResource("2_dovo2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1660360362]
+position = Vector2(0, 0.5)
+shape = SubResource("RectangleShape2D_x7p2l")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1634722276]
