@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bpcvq1ax4p585" path="res://scenes/player/player.gd" id="1_8afob"]
 [ext_resource type="Texture2D" uid="uid://dadxc4adon2xi" path="res://assets/sprites/stardew_scavenger_sprite_48.png" id="2_dovo2"]
+[ext_resource type="Script" uid="uid://tlmi3228q2ix" path="res://scenes/player/aim_indicator.gd" id="3_gmlin"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7p2l"]
 size = Vector2(32, 32)
@@ -19,3 +20,6 @@ shape = SubResource("RectangleShape2D_x7p2l")
 [node name="Camera2D" type="Camera2D" parent="." unique_id=1634722276]
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=1964062319]
+
+[node name="AimIndicator" type="Node2D" parent="." unique_id=1719139940]
+script = ExtResource("3_gmlin")
