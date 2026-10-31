@@ -1,15 +1,61 @@
 extends CharacterBody2D
 
-@export var speed: float = 120.0
+signal health_changed(health: int, max_health: int)
+signal died
+
+const Juice = preload("res://scenes/effects/juice.gd")
+
+@export var speed: float = 216.0
 @export var roll_speed: float = 400.0
 @export var roll_duration: float = 0.18
 @export var roll_cooldown: float = 0.6
-@export var acceleration: float = 800.0
-@export var friction: float = 900.0
+@export var acceleration: float = 1440.0
+@export var friction: float = 1620.0
+## how much you can still drift while swinging (0 = planted, 1 = full speed)
+@export var attack_move_factor: float = 0.25
+
+## how long a dodge makes you untargetable: no damage, and enemies lose track of you.
+## Starts when the roll starts and lasts a bit past the roll itself.
+@export var dodge_untargetable_time: float = 0.4
+
+@export_group("Roll Effect")
+## tint while phased out during a roll
+@export var phase_color: Color = Color(0.55, 1.0, 1.0, 0.45)
+## color of the afterimages left behind
+@export var ghost_color: Color = Color(0.15, 0.6, 1.0, 0.6)
+## seconds between afterimages (smaller = denser trail)
+@export var ghost_interval: float = 0.045
+## how long each afterimage takes to fade
+@export var ghost_fade_time: float = 0.3
+
+@export_group("Feel")
+## press attack/dodge slightly early and it still happens when you're able to
+@export var input_buffer_time: float = 0.18
+## little step forward on each swing (pixels/sec burst)
+@export var attack_lunge: float = 190.0
+@export var finisher_lunge: float = 255.0
+## freeze frames (seconds): normal hit / combo finisher / killing blow / getting hurt
+@export var hit_stop_light: float = 0.11
+@export var hit_stop_heavy: float = 0.18
+@export var hit_stop_kill: float = 0.28
+@export var hit_stop_hurt: float = 0.12
+## how long the combo counter stays up without a hit
+@export var combo_timeout: float = 2.5
+
+@export_group("Combat")
+@export var max_health: int = 5
+@export var sword_damage: int = 1
+@export var invincible_time: float = 1.0
+@export var knockback_strength: float = 260.0
+## scene to go back to when you die
+@export_file("*.tscn") var respawn_scene: String = "res://scenes/levels/hub/hub.tscn"
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
+@onready var aim_indicator: Node2D = $AimIndicator
+@onready var sword_hitbox: Area2D = $SwordHitbox
+@onready var hud = $HUD/Hearts
 
-enum State { MOVE, ROLL }
+enum State { MOVE, ROLL, ATTACK, HURT, DEAD }
 var state: State = State.MOVE
 
 var last_direction: Vector2 = Vector2.DOWN
@@ -18,25 +64,177 @@ var roll_timer: float = 0.0
 var roll_cooldown_timer: float = 0.0
 var can_roll: bool = true
 
+# the swordsman sprite is drawn facing right, we flip it for left
+var facing_right: bool = true
+
+# combo: attack1 (slash) -> click again during it -> attack2 (spin + stab finisher)
+var combo_queued: bool = false
+# which animation frames deal damage. Each [first, last] pair is one strike;
+# an enemy can only be hit once per strike.
+const HIT_WINDOWS := {
+	"attack1": [[2, 4]],
+	"attack2": [[2, 4], [6, 8], [11, 13]],
+}
+## how far in front of you (toward the aim marker) the sword reaches
+@export var sword_reach: float = 30.0
+var _strike_index: int = -1
+var _hit_this_strike: Array = []
+
+var health: int
+var invincible_timer: float = 0.0
+var untargetable_timer: float = 0.0
+var ghost_timer: float = 0.0
+var _ghost_material := CanvasItemMaterial.new()
+var knockback: Vector2 = Vector2.ZERO
+var _buffered: String = ""
+var _buffer_timer: float = 0.0
+var _hurt_flash: TextureRect
+var _combo_label: Label
+var combo_count: int = 0
+var _combo_timer: float = 0.0
+var _slash_flip: bool = false
+
+func _ready() -> void:
+	add_to_group("player")
+	health = max_health
+	_ghost_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD  # afterimages glow
+	animated_sprite.animation_finished.connect(_on_animation_finished)
+	animated_sprite.frame_changed.connect(_on_frame_changed)
+	health_changed.connect(hud.set_health)
+	health_changed.emit(health, max_health)
+	_build_hurt_flash()
+	_build_combo_label()
+	Engine.time_scale = 1.0  # in case a scene change happened mid hit stop
+
+## "12 HITS" counter on the right side of the screen
+func _build_combo_label() -> void:
+	_combo_label = Label.new()
+	_combo_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_combo_label.offset_left = -260
+	_combo_label.offset_right = -24
+	_combo_label.offset_top = 90
+	_combo_label.offset_bottom = 150
+	_combo_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_combo_label.add_theme_font_size_override("font_size", 40)
+	_combo_label.add_theme_constant_override("outline_size", 12)
+	_combo_label.add_theme_color_override("font_outline_color", Color(0.08, 0.02, 0.06))
+	_combo_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_combo_label.visible = false
+	$HUD.add_child(_combo_label)
+
+func _bump_combo() -> void:
+	combo_count += 1
+	_combo_timer = combo_timeout
+	if combo_count < 2:
+		return
+	_combo_label.visible = true
+	_combo_label.modulate.a = 1.0
+	_combo_label.text = "%d HITS" % combo_count
+	# hotter colors as the combo climbs
+	var heat: float = clamp((combo_count - 2) / 18.0, 0.0, 1.0)
+	var col := Color(1, 0.95, 0.4).lerp(Color(1, 0.45, 0.1), clamp(heat * 2.0, 0.0, 1.0))
+	if heat > 0.5:
+		col = col.lerp(Color(1, 0.15, 0.55), (heat - 0.5) * 2.0)
+	_combo_label.add_theme_color_override("font_color", col)
+	_combo_label.pivot_offset = Vector2(_combo_label.size.x, _combo_label.size.y / 2.0)
+	_combo_label.scale = Vector2(1.7, 1.7)
+	_combo_label.rotation = randf_range(-0.12, 0.12)
+	var tw := _combo_label.create_tween()
+	tw.set_ignore_time_scale(true)
+	tw.tween_property(_combo_label, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(_combo_label, "rotation", 0.0, 0.22)
+
+func _update_combo(delta: float) -> void:
+	if combo_count == 0:
+		return
+	_combo_timer -= delta
+	if _combo_timer <= 0.0:
+		combo_count = 0
+		var tw := _combo_label.create_tween()
+		tw.tween_property(_combo_label, "modulate:a", 0.0, 0.3)
+		tw.tween_callback(func(): _combo_label.visible = false)
+
+## red glow around the screen edges when you take a hit
+func _build_hurt_flash() -> void:
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0.8, 0.0, 0.05, 0.0))
+	grad.set_color(1, Color(0.85, 0.0, 0.05, 0.6))
+	grad.add_point(0.72, Color(0.85, 0.0, 0.05, 0.0))
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.15, 0.5)
+	tex.width = 256
+	tex.height = 256
+	_hurt_flash = TextureRect.new()
+	_hurt_flash.texture = tex
+	_hurt_flash.stretch_mode = TextureRect.STRETCH_SCALE
+	_hurt_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_hurt_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hurt_flash.modulate.a = 0.0
+	$HUD.add_child(_hurt_flash)
+	$HUD.move_child(_hurt_flash, 0)
+
+## remember a press for a moment so early inputs aren't eaten
+func _read_inputs(delta: float) -> void:
+	_buffer_timer -= delta
+	if _buffer_timer <= 0.0:
+		_buffered = ""
+	if Input.is_action_just_pressed("dodge"):
+		_buffered = "dodge"
+		_buffer_timer = input_buffer_time
+	elif Input.is_action_just_pressed("attack"):
+		_buffered = "attack"
+		_buffer_timer = input_buffer_time
+
+func _consume(action: String) -> bool:
+	if _buffered == action:
+		_buffered = ""
+		return true
+	return false
+
 func _physics_process(delta: float) -> void:
 	roll_cooldown_timer = max(roll_cooldown_timer - delta, 0.0)
 	if roll_cooldown_timer <= 0.0:
 		can_roll = true
+	if invincible_timer > 0.0:
+		invincible_timer -= delta
+		# blink while invincible
+		animated_sprite.visible = state == State.DEAD or int(invincible_timer * 20.0) % 2 == 0
+		if invincible_timer <= 0.0:
+			animated_sprite.visible = true
+	if untargetable_timer > 0.0:
+		untargetable_timer -= delta
+		if untargetable_timer <= 0.0:
+			_phase_in()
+	_read_inputs(delta)
+	_update_combo(delta)
 
 	match state:
 		State.MOVE:
 			_handle_move(delta)
 		State.ROLL:
 			_handle_roll(delta)
+		State.ATTACK:
+			_handle_attack(delta)
+		State.HURT:
+			velocity = knockback
+			knockback = knockback.move_toward(Vector2.ZERO, 1200.0 * delta)
+		State.DEAD:
+			velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
 	move_and_slide()
 	_update_animation()
 
-func _handle_move(delta: float) -> void:
-	var input_dir := Vector2(
+func _get_input_dir() -> Vector2:
+	return Vector2(
 		Input.get_action_strength("move_right") - Input.get_action_strength("move_left"),
 		Input.get_action_strength("move_down") - Input.get_action_strength("move_up")
 	).normalized()
+
+func _handle_move(delta: float) -> void:
+	var input_dir := _get_input_dir()
 
 	if input_dir != Vector2.ZERO:
 		last_direction = input_dir
@@ -44,34 +242,244 @@ func _handle_move(delta: float) -> void:
 	else:
 		velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
 
-	if Input.is_action_just_pressed("dodge") and can_roll:
+	if _buffered == "dodge" and can_roll:
+		_consume("dodge")
 		_start_roll(input_dir)
+	elif _consume("attack"):
+		_start_attack("attack1")
 
 func _start_roll(input_dir: Vector2) -> void:
 	state = State.ROLL
 	roll_timer = roll_duration
 	can_roll = false
 	roll_cooldown_timer = roll_cooldown
+	combo_queued = false
 	# roll in whatever direction is currently held, fallback to last faced direction if standing still
 	roll_direction = input_dir if input_dir != Vector2.ZERO else last_direction
 	velocity = roll_direction * roll_speed
+	# phase out: untargetable until the timer runs out
+	untargetable_timer = dodge_untargetable_time
+	animated_sprite.modulate = phase_color
+	ghost_timer = 0.0
+	_spawn_ghost()
 
 func _handle_roll(delta: float) -> void:
 	roll_timer -= delta
+	ghost_timer -= delta
+	if ghost_timer <= 0.0:
+		ghost_timer = ghost_interval
+		_spawn_ghost()
 	if roll_timer <= 0.0:
 		state = State.MOVE
 		velocity = velocity.limit_length(speed)
+		# you stay phased (untargetable) until untargetable_timer runs out
+
+## leave a glowing copy of the current frame behind that fades out
+func _spawn_ghost() -> void:
+	var frames := animated_sprite.sprite_frames
+	if frames == null or get_parent() == null:
+		return
+	var ghost := Sprite2D.new()
+	ghost.texture = frames.get_frame_texture(animated_sprite.animation, animated_sprite.frame)
+	ghost.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	ghost.flip_h = animated_sprite.flip_h
+	ghost.scale = animated_sprite.scale
+	ghost.material = _ghost_material
+	ghost.modulate = ghost_color
+	get_parent().add_child(ghost)
+	ghost.global_position = animated_sprite.global_position
+	# sort with the world just behind the player
+	ghost.z_index = z_index
+	var tw := ghost.create_tween()
+	tw.tween_property(ghost, "modulate:a", 0.0, ghost_fade_time)
+	tw.parallel().tween_property(ghost, "scale", ghost.scale * 0.92, ghost_fade_time)
+	tw.tween_callback(ghost.queue_free)
+
+## snap back from the phased look with a quick bright flash
+func _phase_in() -> void:
+	animated_sprite.modulate = Color(1.6, 1.9, 2.0, 1.0)
+	var tw := create_tween()
+	tw.tween_property(animated_sprite, "modulate", Color.WHITE, 0.12)
+
+func _start_attack(anim_name: String) -> void:
+	state = State.ATTACK
+	combo_queued = false
+	# swing toward the mouse, not toward where you're walking
+	_face_mouse()
+	# the sword reaches out toward the aim marker (up, down, diagonal, anywhere)
+	var aim: Vector2 = aim_indicator.last_direction
+	sword_hitbox.position = aim * sword_reach + Vector2(0, -8)
+	_strike_index = -1
+	_hit_this_strike.clear()
+	animated_sprite.speed_scale = 1.0
+	animated_sprite.flip_h = not facing_right
+	animated_sprite.play(anim_name)
+	# step into the swing
+	velocity = aim * (finisher_lunge if anim_name == "attack2" else attack_lunge)
+
+func _handle_attack(delta: float) -> void:
+	var input_dir := _get_input_dir()
+	velocity = velocity.move_toward(input_dir * speed * attack_move_factor, friction * delta)
+	if animated_sprite.animation == "attack1" and _consume("attack"):
+		combo_queued = true
+	_check_sword_hits()
+	# roll cancels a swing
+	if _buffered == "dodge" and can_roll:
+		_consume("dodge")
+		_start_roll(input_dir)
+
+func _on_frame_changed() -> void:
+	_check_sword_hits()
+
+## runs every frame of a swing: anything inside the sword area during a strike window gets hit once
+func _check_sword_hits() -> void:
+	if state != State.ATTACK:
+		return
+	var windows: Array = HIT_WINDOWS.get(String(animated_sprite.animation), [])
+	var frame := animated_sprite.frame
+	var idx := -1
+	for i in windows.size():
+		if frame >= windows[i][0] and frame <= windows[i][1]:
+			idx = i
+			break
+	if idx != _strike_index:
+		_strike_index = idx
+		_hit_this_strike.clear()
+		if idx >= 0:
+			# big sword crescent for every strike, alternating direction
+			var aim: Vector2 = aim_indicator.last_direction
+			var heavy: bool = animated_sprite.animation == "attack2" and idx == windows.size() - 1
+			_slash_flip = not _slash_flip
+			Juice.slash(self, global_position + Vector2(0, -10) + aim * 8.0, aim, heavy, _slash_flip)
+	if idx < 0:
+		return
+	var targets: Array = []
+	for body in sword_hitbox.get_overlapping_bodies():
+		targets.append(body)
+	for area in sword_hitbox.get_overlapping_areas():
+		targets.append(area.get_parent())  # enemy hurtboxes sit right under the enemy
+	for enemy in targets:
+		if enemy in _hit_this_strike:
+			continue
+		if enemy.is_in_group("enemy") and enemy.has_method("take_damage"):
+			_hit_this_strike.append(enemy)
+			var finisher: bool = idx == windows.size() - 1 and animated_sprite.animation == "attack2"
+			# small shove on combo hits so the bat stays in reach, big launch on the finisher
+			enemy.take_damage(sword_damage, global_position, 1.3 if finisher else 0.4)
+			_on_sword_hit(enemy, finisher)
+
+## all the feedback for landing a hit. Everything turned up.
+func _on_sword_hit(enemy: Node2D, finisher: bool) -> void:
+	var hit_pos: Vector2 = enemy.global_position
+	var hurtbox = enemy.get_node_or_null("Hurtbox")
+	if hurtbox:
+		hit_pos = hurtbox.global_position
+	var dir := (hit_pos - global_position).normalized()
+	var kill: bool = enemy.get("state") != null and enemy.state == enemy.State.DEAD
+	var heavy := finisher or kill
+	_bump_combo()
+	# exit wound: everything blows out the BACK of the target
+	Juice.spark(get_parent(), hit_pos, dir, heavy)
+	Juice.splat(self, enemy.global_position, dir, 5 if kill else (3 if finisher else 2))
+	if kill:
+		Juice.damage_number(get_parent(), hit_pos + Vector2(0, -18), "KO!", Color(1, 0.25, 0.3), 40)
+		Juice.hit_stop(self, hit_stop_kill)
+		Juice.shake(self, 0.95, dir)
+		Juice.zoom_punch(self, 0.12)
+		Juice.impact_flash(self, 0.45)
+	elif finisher:
+		Juice.damage_number(get_parent(), hit_pos + Vector2(0, -16), str(sword_damage) + "!", Color(1, 0.6, 0.15), 32)
+		Juice.hit_stop(self, hit_stop_heavy)
+		Juice.shake(self, 0.75, dir)
+		Juice.zoom_punch(self, 0.07)
+		Juice.impact_flash(self, 0.18)
+	else:
+		Juice.damage_number(get_parent(), hit_pos + Vector2(0, -14), str(sword_damage), Color(1, 0.92, 0.35), 26)
+		Juice.hit_stop(self, hit_stop_light)
+		Juice.shake(self, 0.5, dir)
+		Juice.zoom_punch(self, 0.03)
+
+func _on_animation_finished() -> void:
+	match state:
+		State.ATTACK:
+			if combo_queued and animated_sprite.animation == "attack1":
+				_start_attack("attack2")
+			else:
+				state = State.MOVE
+		State.HURT:
+			state = State.MOVE
+		State.DEAD:
+			await get_tree().create_timer(1.0).timeout
+			Engine.set_meta("arrival_spawn", "Start")
+			get_tree().change_scene_to_file(respawn_scene)
+
+## enemies check this so they lose track of you while you're phased out
+func is_untargetable() -> bool:
+	return untargetable_timer > 0.0 or state == State.ROLL or state == State.DEAD
+
+func take_damage(amount: int, from_position: Vector2) -> void:
+	if is_untargetable() or invincible_timer > 0.0:
+		return
+	health = max(health - amount, 0)
+	health_changed.emit(health, max_health)
+	knockback = (global_position - from_position).normalized() * knockback_strength
+	# feel the hit
+	Juice.hit_stop(self, hit_stop_hurt)
+	Juice.shake(self, 0.85, global_position - from_position)
+	Juice.zoom_punch(self, 0.05)
+	Juice.impact_flash(self, 0.2, Color(1, 0.1, 0.15))
+	_hurt_flash.modulate.a = 0.8
+	var tw := create_tween()
+	tw.tween_property(_hurt_flash, "modulate:a", 0.0, 0.4)
+	animated_sprite.scale = Vector2(2.5, 1.6)
+	var sq := create_tween()
+	sq.tween_property(animated_sprite, "scale", Vector2(2, 2), 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if health <= 0:
+		state = State.DEAD
+		invincible_timer = 0.0
+		animated_sprite.visible = true
+		animated_sprite.speed_scale = 1.0
+		animated_sprite.play("death")
+		died.emit()
+		return
+	state = State.HURT
+	invincible_timer = invincible_time
+	animated_sprite.speed_scale = 1.0
+	animated_sprite.play("hurt")
+
+func heal(amount: int) -> void:
+	health = min(health + amount, max_health)
+	health_changed.emit(health, max_health)
+
+## You always look toward the mouse, no matter which way you walk.
+func _face_mouse() -> void:
+	var aim: Vector2 = aim_indicator.last_direction
+	# small dead zone so it doesn't flicker when the mouse is straight above/below you
+	if aim.x > 0.1:
+		facing_right = true
+	elif aim.x < -0.1:
+		facing_right = false
 
 func _update_animation() -> void:
-	var anim_prefix := "down"
-	if abs(last_direction.x) > abs(last_direction.y):
-		anim_prefix = "right" if last_direction.x > 0 else "left"
-	else:
-		anim_prefix = "down" if last_direction.y > 0 else "up"
-
+	if state == State.ATTACK or state == State.HURT or state == State.DEAD:
+		return  # these play out on their own
+	_face_mouse()
+	animated_sprite.flip_h = not facing_right
+	# walking away from where you're looking = backpedal (walk cycle in reverse)
+	var facing_sign := 1.0 if facing_right else -1.0
+	var backpedal := velocity.x * facing_sign < -10.0
 	if state == State.ROLL:
-		animated_sprite.play("roll_" + anim_prefix)
+		# no roll animation in the pack, so fast-forward the walk cycle
+		_play_anim("walk", 2.5, backpedal)
 	elif velocity.length() > 10.0:
-		animated_sprite.play("walk_" + anim_prefix)
+		# legs keep up with the move speed (walk cycle was drawn for ~120 px/s)
+		_play_anim("walk", speed / 120.0, backpedal)
 	else:
-		animated_sprite.play("idle_" + anim_prefix)
+		_play_anim("idle", 1.0, false)
+
+func _play_anim(anim_name: String, anim_speed: float, backwards: bool) -> void:
+	var frames := animated_sprite.sprite_frames
+	if frames and frames.has_animation(anim_name):
+		animated_sprite.speed_scale = -anim_speed if backwards else anim_speed
+		if animated_sprite.animation != anim_name or not animated_sprite.is_playing():
+			animated_sprite.play(anim_name)

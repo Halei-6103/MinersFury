@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Miners Fury"
-run/main_scene="uid://o7uf3vkpubew"
+run/main_scene="res://scenes/levels/hub/hub.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 

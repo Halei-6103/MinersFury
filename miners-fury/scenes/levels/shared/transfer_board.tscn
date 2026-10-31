@@ -1,0 +1,49 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/levels/shared/transfer_board.gd" id="1_tb"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/transfer_board.png" id="2_tb"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/transfer_glow.png" id="3_tb"]
+[ext_resource type="Script" path="res://scenes/levels/hub/station.gd" id="4_tb"]
+
+[sub_resource type="CanvasItemMaterial" id="Mat_add"]
+blend_mode = 1
+
+[sub_resource type="CircleShape2D" id="Circle_pad"]
+radius = 44.0
+
+[node name="TransferBoard" type="Node2D"]
+script = ExtResource("1_tb")
+
+[node name="Board" type="Sprite2D" parent="."]
+texture = ExtResource("2_tb")
+offset = Vector2(0.0, -32.0)
+
+[node name="Glow" type="Sprite2D" parent="."]
+material = SubResource("Mat_add")
+texture = ExtResource("3_tb")
+offset = Vector2(0.0, -32.0)
+
+[node name="Cabinet" type="StaticBody2D" parent="."]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Cabinet"]
+polygon = PackedVector2Array(-14, -37.0, 2, -29.0, -20, -18.0, -36, -26.0)
+
+[node name="Interact" type="Area2D" parent="."]
+script = ExtResource("4_tb")
+station_id = "transfer"
+station_name = "Transfer"
+prompt_path = NodePath("Prompt")
+
+[node name="Zone" type="CollisionShape2D" parent="Interact"]
+shape = SubResource("Circle_pad")
+
+[node name="Prompt" type="Label" parent="Interact"]
+z_index = 20
+offset_left = -90.0
+offset_top = -104
+offset_right = 90.0
+offset_bottom = -86
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1

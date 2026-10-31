@@ -1,0 +1,1380 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/levels/hub/hub.gd" id="1_hub"]
+[ext_resource type="Script" path="res://scenes/levels/hub/station.gd" id="2_hub"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/ground.png" id="4_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/farm_plot.png" id="5_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/shop_stall.png" id="6_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/telecom_station.png" id="7_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/radio_mast.png" id="8_hub"]
+[ext_resource type="PackedScene" path="res://scenes/levels/shared/transfer_board.tscn" id="9_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/tent.png" id="10_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/bedroll.png" id="11_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/campfire.png" id="12_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/crate.png" id="13_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/crate_broken.png" id="14_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/barrel.png" id="15_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/sandbags_v.png" id="16_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/boulder_big.png" id="17_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/boulder_med.png" id="18_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/scrap_wall_v.png" id="19_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/boulder_small.png" id="20_hub"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/sandbags_u.png" id="21_hub"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 58
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_2"]
+radius = 58
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_3"]
+size = Vector2(330, 190)
+
+[node name="Hub" type="Node2D"]
+script = ExtResource("1_hub")
+
+[node name="Ground" type="Node2D" parent="."]
+
+[node name="Terrain" type="Sprite2D" parent="Ground"]
+texture = ExtResource("4_hub")
+centered = false
+position = Vector2(-1200, -850)
+
+[node name="Farm" type="Sprite2D" parent="Ground"]
+texture = ExtResource("5_hub")
+position = Vector2(-290, 10)
+offset = Vector2(0.5, -5.0)
+
+[node name="Bounds" type="StaticBody2D" parent="."]
+
+[node name="Boundary" type="CollisionPolygon2D" parent="Bounds"]
+build_mode = 1
+polygon = PackedVector2Array(0.0, -270.0, 468.0, -135.0, 468.0, 135.0, 0.0, 270.0, -468.0, 135.0, -468.0, -135.0)
+
+[node name="FarmFence" type="StaticBody2D" parent="."]
+position = Vector2(-290, 10)
+
+[node name="Shape" type="CollisionPolygon2D" parent="FarmFence"]
+polygon = PackedVector2Array(28.0, -72.0, 144.0, -14.0, -28.0, 72.0, -144.0, 14.0)
+
+[node name="Entities" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="SeedShop" type="Node2D" parent="Entities"]
+position = Vector2(230, -120)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SeedShop"]
+texture = ExtResource("6_hub")
+offset = Vector2(0.5, -26.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SeedShop"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SeedShop/Body"]
+polygon = PackedVector2Array(-11.0, -19.5, 39.0, 5.5, 11.0, 19.5, -39.0, -5.5)
+
+[node name="Interact" type="Area2D" parent="Entities/SeedShop"]
+position = Vector2(0, 0)
+script = ExtResource("2_hub")
+station_id = "shop"
+station_name = "Seed Shop"
+description = "A folding table and whatever seeds survived the trip.\nBuy seeds here and plant them in the greenhouse plot.\n\n(Shop menu coming soon)"
+prompt_path = NodePath("Prompt")
+
+[node name="Zone" type="CollisionShape2D" parent="Entities/SeedShop/Interact"]
+shape = SubResource("CircleShape2D_1")
+
+[node name="Prompt" type="Label" parent="Entities/SeedShop/Interact"]
+offset_left = -80.0
+offset_top = -89
+offset_right = 80.0
+offset_bottom = -71
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 12
+text = ""
+horizontal_alignment = 1
+z_index = 20
+
+[node name="Telecom" type="Node2D" parent="Entities"]
+position = Vector2(250, 150)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Telecom"]
+texture = ExtResource("7_hub")
+offset = Vector2(0.5, -24.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Telecom"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Telecom/Body"]
+polygon = PackedVector2Array(-11.0, -19.5, 39.0, 5.5, 11.0, 19.5, -39.0, -5.5)
+
+[node name="Interact" type="Area2D" parent="Entities/Telecom"]
+position = Vector2(0, 0)
+script = ExtResource("2_hub")
+station_id = "telecom"
+station_name = "Telecom Uplink"
+description = "Our only line back to Earth.\nSend up the materials you dig out of the mines and they beam down weapon blueprints.\n\n(Uplink menu coming soon)"
+prompt_path = NodePath("Prompt")
+
+[node name="Zone" type="CollisionShape2D" parent="Entities/Telecom/Interact"]
+shape = SubResource("CircleShape2D_2")
+
+[node name="Prompt" type="Label" parent="Entities/Telecom/Interact"]
+offset_left = -80.0
+offset_top = -89
+offset_right = 80.0
+offset_bottom = -71
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 12
+text = ""
+horizontal_alignment = 1
+z_index = 20
+
+[node name="RadioMast" type="Node2D" parent="Entities"]
+position = Vector2(372, 70)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/RadioMast"]
+texture = ExtResource("8_hub")
+offset = Vector2(0.5, -47.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/RadioMast"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/RadioMast/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="Greenhouse" type="Node2D" parent="Entities"]
+position = Vector2(-290, 10)
+
+[node name="Interact" type="Area2D" parent="Entities/Greenhouse"]
+position = Vector2(0, 0)
+script = ExtResource("2_hub")
+station_id = "farm"
+station_name = "Greenhouse Plot"
+description = "Grow food for temporary stat boosts.\nSome crops attune you to an element so you can wield those weapons, like Zap Berry for electric gear.\n\n(Farming coming soon)"
+prompt_path = NodePath("Prompt")
+
+[node name="Zone" type="CollisionShape2D" parent="Entities/Greenhouse/Interact"]
+shape = SubResource("RectangleShape2D_3")
+
+[node name="Prompt" type="Label" parent="Entities/Greenhouse/Interact"]
+offset_left = -80.0
+offset_top = -112
+offset_right = 80.0
+offset_bottom = -94
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 12
+text = ""
+horizontal_alignment = 1
+z_index = 20
+
+[node name="TransferBoard" parent="Entities" instance=ExtResource("9_hub")]
+position = Vector2(10, -236)
+label = "Transfer: Wasteland"
+target_scene = "res://scenes/levels/wasteland/wasteland.tscn"
+arrival_spawn = "FromHub"
+
+[node name="SpawnPoints" type="Node2D" parent="."]
+
+[node name="Start" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(0, 100)
+
+[node name="FromWasteland" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(40, -180)
+
+[node name="Tent" type="Node2D" parent="Entities"]
+position = Vector2(-160, 172)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Tent"]
+texture = ExtResource("10_hub")
+offset = Vector2(0.5, -9.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Tent"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Tent/Body"]
+polygon = PackedVector2Array(-6.0, -19.0, 38.0, 3.0, 6.0, 19.0, -38.0, -3.0)
+
+[node name="Bedroll1" type="Node2D" parent="Entities"]
+position = Vector2(-62, 196)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bedroll1"]
+texture = ExtResource("11_hub")
+offset = Vector2(0.5, -2.0)
+
+[node name="Campfire" type="Node2D" parent="Entities"]
+position = Vector2(-20, 40)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Campfire"]
+texture = ExtResource("12_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Campfire"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Campfire/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="Crate1" type="Node2D" parent="Entities"]
+position = Vector2(60, -112)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Crate1"]
+texture = ExtResource("13_hub")
+offset = Vector2(0.5, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Crate1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Crate1/Body"]
+polygon = PackedVector2Array(0.0, -8.0, 16.0, 0.0, 0.0, 8.0, -16.0, 0.0)
+
+[node name="Crate2" type="Node2D" parent="Entities"]
+position = Vector2(88, -100)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Crate2"]
+texture = ExtResource("13_hub")
+offset = Vector2(0.5, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Crate2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Crate2/Body"]
+polygon = PackedVector2Array(0.0, -8.0, 16.0, 0.0, 0.0, 8.0, -16.0, 0.0)
+
+[node name="CrateBroken1" type="Node2D" parent="Entities"]
+position = Vector2(74, -132)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CrateBroken1"]
+texture = ExtResource("14_hub")
+offset = Vector2(0.5, -8.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/CrateBroken1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/CrateBroken1/Body"]
+polygon = PackedVector2Array(0.0, -8.0, 16.0, 0.0, 0.0, 8.0, -16.0, 0.0)
+
+[node name="Crate3" type="Node2D" parent="Entities"]
+position = Vector2(-150, -150)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Crate3"]
+texture = ExtResource("13_hub")
+offset = Vector2(0.5, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Crate3"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Crate3/Body"]
+polygon = PackedVector2Array(0.0, -8.0, 16.0, 0.0, 0.0, 8.0, -16.0, 0.0)
+
+[node name="CrateBroken2" type="Node2D" parent="Entities"]
+position = Vector2(-124, -168)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CrateBroken2"]
+texture = ExtResource("14_hub")
+offset = Vector2(0.5, -8.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/CrateBroken2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/CrateBroken2/Body"]
+polygon = PackedVector2Array(0.0, -8.0, 16.0, 0.0, 0.0, 8.0, -16.0, 0.0)
+
+[node name="Crate4" type="Node2D" parent="Entities"]
+position = Vector2(-40, 74)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Crate4"]
+texture = ExtResource("13_hub")
+offset = Vector2(0.5, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Crate4"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Crate4/Body"]
+polygon = PackedVector2Array(0.0, -8.0, 16.0, 0.0, 0.0, 8.0, -16.0, 0.0)
+
+[node name="Crate5" type="Node2D" parent="Entities"]
+position = Vector2(130, 236)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Crate5"]
+texture = ExtResource("13_hub")
+offset = Vector2(0.5, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Crate5"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Crate5/Body"]
+polygon = PackedVector2Array(0.0, -8.0, 16.0, 0.0, 0.0, 8.0, -16.0, 0.0)
+
+[node name="CrateBroken3" type="Node2D" parent="Entities"]
+position = Vector2(330, 186)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CrateBroken3"]
+texture = ExtResource("14_hub")
+offset = Vector2(0.5, -8.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/CrateBroken3"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/CrateBroken3/Body"]
+polygon = PackedVector2Array(0.0, -8.0, 16.0, 0.0, 0.0, 8.0, -16.0, 0.0)
+
+[node name="Crate6" type="Node2D" parent="Entities"]
+position = Vector2(110, -190)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Crate6"]
+texture = ExtResource("13_hub")
+offset = Vector2(0.5, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Crate6"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Crate6/Body"]
+polygon = PackedVector2Array(0.0, -8.0, 16.0, 0.0, 0.0, 8.0, -16.0, 0.0)
+
+[node name="Barrel1" type="Node2D" parent="Entities"]
+position = Vector2(424, -24)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Barrel1"]
+texture = ExtResource("15_hub")
+offset = Vector2(0.5, -9.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Barrel1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Barrel1/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="Barrel2" type="Node2D" parent="Entities"]
+position = Vector2(444, -4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Barrel2"]
+texture = ExtResource("15_hub")
+offset = Vector2(0.5, -9.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Barrel2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Barrel2/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="Barrel3" type="Node2D" parent="Entities"]
+position = Vector2(410, 8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Barrel3"]
+texture = ExtResource("15_hub")
+offset = Vector2(0.5, -9.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Barrel3"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Barrel3/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="Barrel4" type="Node2D" parent="Entities"]
+position = Vector2(-60, -200)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Barrel4"]
+texture = ExtResource("15_hub")
+offset = Vector2(0.5, -9.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Barrel4"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Barrel4/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="SandbagsV1" type="Node2D" parent="Entities"]
+position = Vector2(140, -160)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsV1"]
+texture = ExtResource("16_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsV1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsV1/Body"]
+polygon = PackedVector2Array(17.0, -13.5, 27.0, -8.5, -17.0, 13.5, -27.0, 8.5)
+
+[node name="BoulderBig1" type="Node2D" parent="Entities"]
+position = Vector2(-540, -157)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig1"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderBig1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderBig1/Body"]
+polygon = PackedVector2Array(0.0, -14.0, 28.0, 0.0, 0.0, 14.0, -28.0, 0.0)
+
+[node name="BoulderMed1" type="Node2D" parent="Entities"]
+position = Vector2(-482, -175)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed1"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed1/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderBig2" type="Node2D" parent="Entities"]
+position = Vector2(-435, -191)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig2"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderBig2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderBig2/Body"]
+polygon = PackedVector2Array(0.0, -14.0, 28.0, 0.0, 0.0, 14.0, -28.0, 0.0)
+
+[node name="BoulderMed2" type="Node2D" parent="Entities"]
+position = Vector2(-386, -204)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed2"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed2/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderBig3" type="Node2D" parent="Entities"]
+position = Vector2(-322, -218)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig3"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderBig3"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderBig3/Body"]
+polygon = PackedVector2Array(0.0, -14.0, 28.0, 0.0, 0.0, 14.0, -28.0, 0.0)
+
+[node name="BoulderMed3" type="Node2D" parent="Entities"]
+position = Vector2(-261, -232)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed3"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed3"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed3/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderMed4" type="Node2D" parent="Entities"]
+position = Vector2(-208, -254)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed4"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed4"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed4/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderMed5" type="Node2D" parent="Entities"]
+position = Vector2(-151, -258)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed5"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed5"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed5/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderBig4" type="Node2D" parent="Entities"]
+position = Vector2(-112, -268)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig4"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderBig4"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderBig4/Body"]
+polygon = PackedVector2Array(0.0, -14.0, 28.0, 0.0, 0.0, 14.0, -28.0, 0.0)
+
+[node name="BoulderMed6" type="Node2D" parent="Entities"]
+position = Vector2(105, -287)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed6"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed6"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed6/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderMed7" type="Node2D" parent="Entities"]
+position = Vector2(158, -272)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed7"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed7"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed7/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="ScrapWallV1" type="Node2D" parent="Entities"]
+position = Vector2(229, -250)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/ScrapWallV1"]
+texture = ExtResource("19_hub")
+offset = Vector2(0.5, -16.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/ScrapWallV1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/ScrapWallV1/Body"]
+polygon = PackedVector2Array(21.0, -13.5, 27.0, -10.5, -21.0, 13.5, -27.0, 10.5)
+
+[node name="BoulderMed8" type="Node2D" parent="Entities"]
+position = Vector2(256, -234)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed8"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed8"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed8/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderBig5" type="Node2D" parent="Entities"]
+position = Vector2(313, -216)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig5"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderBig5"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderBig5/Body"]
+polygon = PackedVector2Array(0.0, -14.0, 28.0, 0.0, 0.0, 14.0, -28.0, 0.0)
+
+[node name="BoulderBig6" type="Node2D" parent="Entities"]
+position = Vector2(382, -203)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig6"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderBig6"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderBig6/Body"]
+polygon = PackedVector2Array(0.0, -14.0, 28.0, 0.0, 0.0, 14.0, -28.0, 0.0)
+
+[node name="BoulderMed9" type="Node2D" parent="Entities"]
+position = Vector2(432, -190)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed9"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed9"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed9/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderMed10" type="Node2D" parent="Entities"]
+position = Vector2(477, -166)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed10"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed10"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed10/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderBig7" type="Node2D" parent="Entities"]
+position = Vector2(526, -149)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig7"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderBig7"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderBig7/Body"]
+polygon = PackedVector2Array(0.0, -14.0, 28.0, 0.0, 0.0, 14.0, -28.0, 0.0)
+
+[node name="BoulderMed11" type="Node2D" parent="Entities"]
+position = Vector2(531, -142)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed11"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed11"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed11/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderMed12" type="Node2D" parent="Entities"]
+position = Vector2(545, -106)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed12"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed12"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed12/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderMed13" type="Node2D" parent="Entities"]
+position = Vector2(546, -35)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed13"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed13"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed13/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderBig8" type="Node2D" parent="Entities"]
+position = Vector2(526, 19)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig8"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderBig8"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderBig8/Body"]
+polygon = PackedVector2Array(0.0, -14.0, 28.0, 0.0, 0.0, 14.0, -28.0, 0.0)
+
+[node name="BoulderMed14" type="Node2D" parent="Entities"]
+position = Vector2(528, 82)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed14"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed14"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed14/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderSmall1" type="Node2D" parent="Entities"]
+position = Vector2(531, 149)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall1"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderSmall1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderSmall1/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="SandbagsV2" type="Node2D" parent="Entities"]
+position = Vector2(540, 153)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsV2"]
+texture = ExtResource("16_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsV2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsV2/Body"]
+polygon = PackedVector2Array(17.0, -13.5, 27.0, -8.5, -17.0, 13.5, -27.0, 8.5)
+
+[node name="BoulderSmall2" type="Node2D" parent="Entities"]
+position = Vector2(485, 174)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall2"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderSmall2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderSmall2/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="SandbagsV3" type="Node2D" parent="Entities"]
+position = Vector2(450, 187)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsV3"]
+texture = ExtResource("16_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsV3"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsV3/Body"]
+polygon = PackedVector2Array(17.0, -13.5, 27.0, -8.5, -17.0, 13.5, -27.0, 8.5)
+
+[node name="BoulderSmall3" type="Node2D" parent="Entities"]
+position = Vector2(381, 199)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall3"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderSmall3"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderSmall3/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="SandbagsV4" type="Node2D" parent="Entities"]
+position = Vector2(309, 217)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsV4"]
+texture = ExtResource("16_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsV4"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsV4/Body"]
+polygon = PackedVector2Array(17.0, -13.5, 27.0, -8.5, -17.0, 13.5, -27.0, 8.5)
+
+[node name="BoulderSmall4" type="Node2D" parent="Entities"]
+position = Vector2(264, 229)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall4"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderSmall4"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderSmall4/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="SandbagsV5" type="Node2D" parent="Entities"]
+position = Vector2(222, 250)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsV5"]
+texture = ExtResource("16_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsV5"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsV5/Body"]
+polygon = PackedVector2Array(17.0, -13.5, 27.0, -8.5, -17.0, 13.5, -27.0, 8.5)
+
+[node name="BoulderSmall5" type="Node2D" parent="Entities"]
+position = Vector2(170, 263)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall5"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderSmall5"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderSmall5/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="SandbagsV6" type="Node2D" parent="Entities"]
+position = Vector2(111, 269)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsV6"]
+texture = ExtResource("16_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsV6"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsV6/Body"]
+polygon = PackedVector2Array(17.0, -13.5, 27.0, -8.5, -17.0, 13.5, -27.0, 8.5)
+
+[node name="SandbagsV7" type="Node2D" parent="Entities"]
+position = Vector2(53, 292)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsV7"]
+texture = ExtResource("16_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsV7"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsV7/Body"]
+polygon = PackedVector2Array(17.0, -13.5, 27.0, -8.5, -17.0, 13.5, -27.0, 8.5)
+
+[node name="BoulderSmall6" type="Node2D" parent="Entities"]
+position = Vector2(-5, 308)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall6"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderSmall6"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderSmall6/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="SandbagsU1" type="Node2D" parent="Entities"]
+position = Vector2(1, 308)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsU1"]
+texture = ExtResource("21_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsU1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsU1/Body"]
+polygon = PackedVector2Array(-17.0, -13.5, 27.0, 8.5, 17.0, 13.5, -27.0, -8.5)
+
+[node name="BoulderSmall7" type="Node2D" parent="Entities"]
+position = Vector2(-64, 293)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall7"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderSmall7"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderSmall7/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="SandbagsU2" type="Node2D" parent="Entities"]
+position = Vector2(-102, 274)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsU2"]
+texture = ExtResource("21_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsU2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsU2/Body"]
+polygon = PackedVector2Array(-17.0, -13.5, 27.0, 8.5, 17.0, 13.5, -27.0, -8.5)
+
+[node name="BoulderSmall8" type="Node2D" parent="Entities"]
+position = Vector2(-159, 257)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall8"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderSmall8"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderSmall8/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="SandbagsU3" type="Node2D" parent="Entities"]
+position = Vector2(-205, 249)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsU3"]
+texture = ExtResource("21_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsU3"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsU3/Body"]
+polygon = PackedVector2Array(-17.0, -13.5, 27.0, 8.5, 17.0, 13.5, -27.0, -8.5)
+
+[node name="SandbagsU4" type="Node2D" parent="Entities"]
+position = Vector2(-257, 233)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsU4"]
+texture = ExtResource("21_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsU4"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsU4/Body"]
+polygon = PackedVector2Array(-17.0, -13.5, 27.0, 8.5, 17.0, 13.5, -27.0, -8.5)
+
+[node name="SandbagsU5" type="Node2D" parent="Entities"]
+position = Vector2(-330, 223)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsU5"]
+texture = ExtResource("21_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsU5"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsU5/Body"]
+polygon = PackedVector2Array(-17.0, -13.5, 27.0, 8.5, 17.0, 13.5, -27.0, -8.5)
+
+[node name="BoulderSmall9" type="Node2D" parent="Entities"]
+position = Vector2(-384, 197)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall9"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderSmall9"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderSmall9/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="BoulderSmall10" type="Node2D" parent="Entities"]
+position = Vector2(-428, 182)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall10"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderSmall10"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderSmall10/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="SandbagsU6" type="Node2D" parent="Entities"]
+position = Vector2(-475, 170)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsU6"]
+texture = ExtResource("21_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsU6"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsU6/Body"]
+polygon = PackedVector2Array(-17.0, -13.5, 27.0, 8.5, 17.0, 13.5, -27.0, -8.5)
+
+[node name="SandbagsU7" type="Node2D" parent="Entities"]
+position = Vector2(-537, 160)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/SandbagsU7"]
+texture = ExtResource("21_hub")
+offset = Vector2(0.0, -3.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/SandbagsU7"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsU7/Body"]
+polygon = PackedVector2Array(-17.0, -13.5, 27.0, 8.5, 17.0, 13.5, -27.0, -8.5)
+
+[node name="BoulderMed15" type="Node2D" parent="Entities"]
+position = Vector2(-540, 144)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed15"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed15"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed15/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderMed16" type="Node2D" parent="Entities"]
+position = Vector2(-526, 82)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed16"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed16"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed16/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderSmall11" type="Node2D" parent="Entities"]
+position = Vector2(-544, 37)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall11"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderSmall11"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderSmall11/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="BoulderMed17" type="Node2D" parent="Entities"]
+position = Vector2(-545, -28)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed17"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed17"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed17/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderMed18" type="Node2D" parent="Entities"]
+position = Vector2(-541, -98)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed18"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed18"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed18/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderMed19" type="Node2D" parent="Entities"]
+position = Vector2(-542, -153)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed19"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BoulderMed19"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BoulderMed19/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BoulderSmall12" type="Node2D" parent="Entities"]
+position = Vector2(738, -367)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall12"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderMed20" type="Node2D" parent="Entities"]
+position = Vector2(1005, -249)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed20"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderSmall13" type="Node2D" parent="Entities"]
+position = Vector2(177, -762)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall13"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderSmall14" type="Node2D" parent="Entities"]
+position = Vector2(-383, -353)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall14"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderSmall15" type="Node2D" parent="Entities"]
+position = Vector2(697, 230)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall15"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderSmall16" type="Node2D" parent="Entities"]
+position = Vector2(523, 512)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall16"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderMed21" type="Node2D" parent="Entities"]
+position = Vector2(929, -511)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed21"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed22" type="Node2D" parent="Entities"]
+position = Vector2(1047, 712)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed22"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed23" type="Node2D" parent="Entities"]
+position = Vector2(741, 682)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed23"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed24" type="Node2D" parent="Entities"]
+position = Vector2(-478, -657)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed24"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed25" type="Node2D" parent="Entities"]
+position = Vector2(-722, 437)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed25"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderBig9" type="Node2D" parent="Entities"]
+position = Vector2(808, -358)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig9"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="BoulderMed26" type="Node2D" parent="Entities"]
+position = Vector2(-670, 135)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed26"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderBig10" type="Node2D" parent="Entities"]
+position = Vector2(-618, 290)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig10"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="BoulderMed27" type="Node2D" parent="Entities"]
+position = Vector2(1070, 748)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed27"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderSmall17" type="Node2D" parent="Entities"]
+position = Vector2(-981, -572)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall17"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderBig11" type="Node2D" parent="Entities"]
+position = Vector2(1030, -27)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig11"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="BoulderMed28" type="Node2D" parent="Entities"]
+position = Vector2(358, -668)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed28"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderBig12" type="Node2D" parent="Entities"]
+position = Vector2(-577, 629)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig12"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="BoulderMed29" type="Node2D" parent="Entities"]
+position = Vector2(-329, 705)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed29"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderSmall18" type="Node2D" parent="Entities"]
+position = Vector2(806, 295)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall18"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderSmall19" type="Node2D" parent="Entities"]
+position = Vector2(1022, 78)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall19"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderSmall20" type="Node2D" parent="Entities"]
+position = Vector2(-891, 71)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall20"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderSmall21" type="Node2D" parent="Entities"]
+position = Vector2(992, -323)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall21"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderSmall22" type="Node2D" parent="Entities"]
+position = Vector2(701, -126)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall22"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderBig13" type="Node2D" parent="Entities"]
+position = Vector2(-662, -573)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig13"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="BoulderBig14" type="Node2D" parent="Entities"]
+position = Vector2(-328, 614)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig14"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="BoulderSmall23" type="Node2D" parent="Entities"]
+position = Vector2(916, 62)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall23"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderMed30" type="Node2D" parent="Entities"]
+position = Vector2(285, 610)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed30"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed31" type="Node2D" parent="Entities"]
+position = Vector2(-156, 744)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed31"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed32" type="Node2D" parent="Entities"]
+position = Vector2(-459, 737)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed32"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed33" type="Node2D" parent="Entities"]
+position = Vector2(-255, 554)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed33"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderSmall24" type="Node2D" parent="Entities"]
+position = Vector2(211, -375)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall24"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderMed34" type="Node2D" parent="Entities"]
+position = Vector2(-398, 755)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed34"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderBig15" type="Node2D" parent="Entities"]
+position = Vector2(945, -556)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderBig15"]
+texture = ExtResource("17_hub")
+offset = Vector2(-0.5, -18.0)
+
+[node name="BoulderMed35" type="Node2D" parent="Entities"]
+position = Vector2(-832, 190)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed35"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed36" type="Node2D" parent="Entities"]
+position = Vector2(-560, -718)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed36"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderSmall25" type="Node2D" parent="Entities"]
+position = Vector2(719, -759)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderSmall25"]
+texture = ExtResource("20_hub")
+offset = Vector2(0.0, -7.0)
+
+[node name="BoulderMed37" type="Node2D" parent="Entities"]
+position = Vector2(-1019, -15)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed37"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed38" type="Node2D" parent="Entities"]
+position = Vector2(487, -334)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed38"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed39" type="Node2D" parent="Entities"]
+position = Vector2(536, -596)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed39"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed40" type="Node2D" parent="Entities"]
+position = Vector2(-306, 382)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed40"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed41" type="Node2D" parent="Entities"]
+position = Vector2(-1020, -386)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed41"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed42" type="Node2D" parent="Entities"]
+position = Vector2(409, -612)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed42"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed43" type="Node2D" parent="Entities"]
+position = Vector2(-1068, 434)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed43"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="BoulderMed44" type="Node2D" parent="Entities"]
+position = Vector2(997, 232)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BoulderMed44"]
+texture = ExtResource("18_hub")
+offset = Vector2(1.0, -13.0)
+
+[node name="Player" parent="Entities" instance=ExtResource("3_hub")]
+position = Vector2(0, 100)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Controls" type="Label" parent="UI"]
+offset_left = 16
+offset_top = 12
+offset_right = 420
+offset_bottom = 36
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+text = "WASD move   Space roll   Click attack   E interact"
+
+[node name="InfoPanel" type="PanelContainer" parent="UI"]
+visible = false
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -280
+offset_top = -200
+offset_right = 280
+offset_bottom = -24
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Margin" type="MarginContainer" parent="UI/InfoPanel"]
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="UI/InfoPanel/Margin"]
+
+[node name="Title" type="Label" parent="UI/InfoPanel/Margin/VBox"]
+theme_override_font_sizes/font_size = 22
+text = "Station"
+
+[node name="Body" type="Label" parent="UI/InfoPanel/Margin/VBox"]
+custom_minimum_size = Vector2(520, 0)
+autowrap_mode = 3
+text = ""
+
+[node name="Hint" type="Label" parent="UI/InfoPanel/Margin/VBox"]
+theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "[E] close"

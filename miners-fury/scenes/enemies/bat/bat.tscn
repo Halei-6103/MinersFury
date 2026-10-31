@@ -1,0 +1,46 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/enemies/bat/bat.gd" id="1_bat"]
+[ext_resource type="SpriteFrames" path="res://assets/sprites/enemies/bat/bat_frames.tres" id="2_bat"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_body"]
+radius = 12.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hurt"]
+radius = 20.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_bite"]
+radius = 18.0
+
+[node name="Bat" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 4
+motion_mode = 1
+script = ExtResource("1_bat")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+position = Vector2(0, -18)
+scale = Vector2(2, 2)
+sprite_frames = ExtResource("2_bat")
+animation = &"fly"
+
+[node name="Body" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_body")
+
+[node name="BiteArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 1
+monitorable = false
+
+[node name="Shape" type="CollisionShape2D" parent="BiteArea"]
+shape = SubResource("CircleShape2D_bite")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+position = Vector2(0, -20)
+collision_layer = 2
+collision_mask = 0
+monitoring = false
+
+[node name="Shape" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("CircleShape2D_hurt")
