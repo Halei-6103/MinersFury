@@ -8,7 +8,11 @@ const Juice = preload("res://scenes/effects/juice.gd")
 @export var speed: float = 216.0
 @export var roll_speed: float = 400.0
 @export var roll_duration: float = 0.18
-@export var roll_cooldown: float = 0.6
+## short gap between back-to-back dashes
+@export var roll_cooldown: float = 0.2
+## dash charges you can store, and how long one takes to refill
+@export var dash_max: float = 2.0
+@export var dash_recharge_time: float = 1.6
 @export var acceleration: float = 1440.0
 @export var friction: float = 1620.0
 ## how much you can still drift while swinging (0 = planted, 1 = full speed)
@@ -53,7 +57,8 @@ const Juice = preload("res://scenes/effects/juice.gd")
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var aim_indicator: Node2D = $AimIndicator
 @onready var sword_hitbox: Area2D = $SwordHitbox
-@onready var hud = $HUD/Hearts
+@onready var swing_fx: AnimatedSprite2D = $SwingFX
+@onready var hud = $HUD/StatusBars
 
 enum State { MOVE, ROLL, ATTACK, HURT, DEAD }
 var state: State = State.MOVE
@@ -63,6 +68,7 @@ var roll_direction: Vector2 = Vector2.ZERO
 var roll_timer: float = 0.0
 var roll_cooldown_timer: float = 0.0
 var can_roll: bool = true
+var dash_charge: float = 2.0
 
 # the swordsman sprite is drawn facing right, we flip it for left
 var facing_right: bool = true
@@ -76,7 +82,10 @@ const HIT_WINDOWS := {
 	"attack2": [[2, 4], [6, 8], [11, 13]],
 }
 ## how far in front of you (toward the aim marker) the sword reaches
-@export var sword_reach: float = 30.0
+@export var sword_reach: float = 44.0
+## size of the separated sword swoosh (body is drawn at 2x)
+@export var swing_fx_scale: float = 3.2
+@export var finisher_fx_scale: float = 3.7
 var _strike_index: int = -1
 var _hit_this_strike: Array = []
 
@@ -92,7 +101,6 @@ var _hurt_flash: TextureRect
 var _combo_label: Label
 var combo_count: int = 0
 var _combo_timer: float = 0.0
-var _slash_flip: bool = false
 
 func _ready() -> void:
 	add_to_group("player")
@@ -100,7 +108,8 @@ func _ready() -> void:
 	_ghost_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD  # afterimages glow
 	animated_sprite.animation_finished.connect(_on_animation_finished)
 	animated_sprite.frame_changed.connect(_on_frame_changed)
-	health_changed.connect(hud.set_health)
+	dash_charge = dash_max
+	hud.player = self
 	health_changed.emit(health, max_health)
 	_build_hurt_flash()
 	_build_combo_label()
@@ -196,8 +205,13 @@ func _consume(action: String) -> bool:
 
 func _physics_process(delta: float) -> void:
 	roll_cooldown_timer = max(roll_cooldown_timer - delta, 0.0)
-	if roll_cooldown_timer <= 0.0:
-		can_roll = true
+	# dash charges slowly refill
+	dash_charge = minf(dash_charge + delta / dash_recharge_time, dash_max)
+	can_roll = roll_cooldown_timer <= 0.0 and dash_charge >= 1.0
+	# pressed dodge with nothing left in the tank: the bar tells you
+	if _buffered == "dodge" and dash_charge < 1.0 and roll_cooldown_timer <= 0.0 and state != State.DEAD:
+		_consume("dodge")
+		hud.deny_dash()
 	if invincible_timer > 0.0:
 		invincible_timer -= delta
 		# blink while invincible
@@ -226,6 +240,11 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 	_update_animation()
+	if swing_fx.visible:
+		if state != State.ATTACK or swing_fx.animation != animated_sprite.animation:
+			swing_fx.visible = false
+		elif swing_fx.frame != animated_sprite.frame:
+			swing_fx.frame = animated_sprite.frame
 
 func _get_input_dir() -> Vector2:
 	return Vector2(
@@ -253,6 +272,7 @@ func _start_roll(input_dir: Vector2) -> void:
 	roll_timer = roll_duration
 	can_roll = false
 	roll_cooldown_timer = roll_cooldown
+	dash_charge -= 1.0
 	combo_queued = false
 	# roll in whatever direction is currently held, fallback to last faced direction if standing still
 	roll_direction = input_dir if input_dir != Vector2.ZERO else last_direction
@@ -314,8 +334,31 @@ func _start_attack(anim_name: String) -> void:
 	animated_sprite.speed_scale = 1.0
 	animated_sprite.flip_h = not facing_right
 	animated_sprite.play(anim_name)
+	_play_swing_fx(anim_name, aim)
 	# step into the swing
 	velocity = aim * (finisher_lunge if anim_name == "attack2" else attack_lunge)
+
+## the pack's own sword swoosh, pulled onto its own layer, scaled up and
+## aimed at the marker (snapped to 8 directions so the pixels stay crisp)
+func _play_swing_fx(anim_name: String, aim: Vector2) -> void:
+	if not swing_fx.sprite_frames.has_animation(anim_name):
+		swing_fx.visible = false
+		return
+	var angle := snappedf(aim.angle(), PI / 4.0)
+	# the swoosh is drawn facing right: flip it for the left side instead of
+	# rotating it upside down
+	if cos(angle) < -0.01:
+		swing_fx.flip_h = true
+		swing_fx.rotation = wrapf(angle - PI, -PI, PI)
+	else:
+		swing_fx.flip_h = false
+		swing_fx.rotation = angle
+	var k := finisher_fx_scale if anim_name == "attack2" else swing_fx_scale
+	swing_fx.scale = Vector2(k, k)
+	swing_fx.visible = true
+	swing_fx.speed_scale = 1.0
+	swing_fx.play(anim_name)
+	swing_fx.frame = 0
 
 func _handle_attack(delta: float) -> void:
 	var input_dir := _get_input_dir()
@@ -345,12 +388,6 @@ func _check_sword_hits() -> void:
 	if idx != _strike_index:
 		_strike_index = idx
 		_hit_this_strike.clear()
-		if idx >= 0:
-			# big sword crescent for every strike, alternating direction
-			var aim: Vector2 = aim_indicator.last_direction
-			var heavy: bool = animated_sprite.animation == "attack2" and idx == windows.size() - 1
-			_slash_flip = not _slash_flip
-			Juice.slash(self, global_position + Vector2(0, -10) + aim * 8.0, aim, heavy, _slash_flip)
 	if idx < 0:
 		return
 	var targets: Array = []

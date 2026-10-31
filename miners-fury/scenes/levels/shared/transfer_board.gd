@@ -14,11 +14,22 @@ var _busy: bool = false
 
 
 func _ready() -> void:
+	# the pad is floor: move it onto the level's ground layer so you're always
+	# drawn on top of it when you stand on it (the cabinet still hides you)
+	_sink_pad.call_deferred()
 	interact.station_id = "transfer"
 	interact.station_name = label
 	if interact.prompt:
 		interact.prompt.text = "[E] " + label
 	interact.interacted.connect(_on_interacted)
+
+
+func _sink_pad() -> void:
+	var scene := get_tree().current_scene
+	var ground = scene.get_node_or_null("Ground") if scene else null
+	var pad := get_node_or_null("Pad")
+	if ground and pad:
+		pad.reparent(ground, true)
 
 
 func _process(delta: float) -> void:

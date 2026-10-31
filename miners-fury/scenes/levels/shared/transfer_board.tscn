@@ -1,9 +1,10 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scenes/levels/shared/transfer_board.gd" id="1_tb"]
-[ext_resource type="Texture2D" path="res://assets/sprites/hub/transfer_board.png" id="2_tb"]
-[ext_resource type="Texture2D" path="res://assets/sprites/hub/transfer_glow.png" id="3_tb"]
-[ext_resource type="Script" path="res://scenes/levels/hub/station.gd" id="4_tb"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/transfer_pad.png" id="2_tb"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/transfer_cabinet.png" id="3_tb"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hub/transfer_glow.png" id="4_tb"]
+[ext_resource type="Script" path="res://scenes/levels/hub/station.gd" id="5_tb"]
 
 [sub_resource type="CanvasItemMaterial" id="Mat_add"]
 blend_mode = 1
@@ -12,24 +13,31 @@ blend_mode = 1
 radius = 44.0
 
 [node name="TransferBoard" type="Node2D"]
+y_sort_enabled = true
 script = ExtResource("1_tb")
 
-[node name="Board" type="Sprite2D" parent="."]
+[node name="Pad" type="Sprite2D" parent="."]
 texture = ExtResource("2_tb")
-offset = Vector2(0.0, -32.0)
+offset = Vector2(0.0, -4.0)
+
+[node name="Cabinet" type="Sprite2D" parent="."]
+position = Vector2(-17.0, -22.0)
+texture = ExtResource("3_tb")
+offset = Vector2(0.5, -28.5)
+
+[node name="CabinetBody" type="StaticBody2D" parent="Cabinet"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Cabinet/CabinetBody"]
+polygon = PackedVector2Array(3.0, -15.0, 19.0, -7.0, -3.0, 4.0, -19.0, -4.0)
 
 [node name="Glow" type="Sprite2D" parent="."]
+z_index = 1
 material = SubResource("Mat_add")
-texture = ExtResource("3_tb")
+texture = ExtResource("4_tb")
 offset = Vector2(0.0, -32.0)
 
-[node name="Cabinet" type="StaticBody2D" parent="."]
-
-[node name="Shape" type="CollisionPolygon2D" parent="Cabinet"]
-polygon = PackedVector2Array(-14, -37.0, 2, -29.0, -20, -18.0, -36, -26.0)
-
 [node name="Interact" type="Area2D" parent="."]
-script = ExtResource("4_tb")
+script = ExtResource("5_tb")
 station_id = "transfer"
 station_name = "Transfer"
 prompt_path = NodePath("Prompt")

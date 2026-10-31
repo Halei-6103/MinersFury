@@ -2,8 +2,8 @@
 
 [ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/idle.png" id="1_t"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/walk.png" id="2_t"]
-[ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/attack1.png" id="3_t"]
-[ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/attack2.png" id="4_t"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/attack1_body.png" id="3_t"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/attack2_body.png" id="4_t"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/attack3.png" id="5_t"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/hurt.png" id="6_t"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/death.png" id="7_t"]

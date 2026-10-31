@@ -35,6 +35,8 @@ var hit_this_attack: bool = false
 var knockback: Vector2 = Vector2.ZERO
 var windup_timer: float = 0.0
 var _airborne: bool = false
+var _flight_tween: Tween
+var _spin_tween: Tween
 var _ghost_timer: float = 0.0
 var _ghost_mat := CanvasItemMaterial.new()
 
@@ -115,6 +117,37 @@ func _physics_process(delta: float) -> void:
 	if state != State.DEAD and abs(velocity.x) > 5.0:
 		sprite.flip_h = velocity.x < 0.0
 	move_and_slide()
+	_check_wall_hits()
+
+## the map edge is a wall: knocked bats bounce off it, launched corpses SLAM into it
+func _check_wall_hits() -> void:
+	if get_slide_collision_count() == 0:
+		return
+	var n := get_slide_collision(0).get_normal()
+	if state == State.DEAD and _airborne:
+		_wall_slam(n)
+	elif state == State.HURT and knockback.length() > 150.0:
+		knockback = knockback.bounce(n) * 0.45
+		velocity = knockback
+		Juice.shake(self, 0.25)
+		Juice.death_puff(get_parent(), global_position - n * 10.0, Color(0.55, 0.45, 0.35))
+
+func _wall_slam(n: Vector2) -> void:
+	_airborne = false
+	velocity = velocity.bounce(n) * 0.25
+	if _flight_tween:
+		_flight_tween.kill()
+	if _spin_tween:
+		_spin_tween.kill()
+	Juice.shake(self, 0.6, -n)
+	Juice.spark(get_parent(), sprite.global_position - n * 6.0, -n, false, Color(0.55, 0.45, 0.35))
+	# smack, then drop straight down at the foot of the wall
+	sprite.scale = Vector2(1.3, 2.6) if absf(n.x) > absf(n.y) else Vector2(2.7, 1.3)
+	var tw := create_tween()
+	tw.tween_property(sprite, "scale", Vector2(2, 2), 0.15)
+	tw.parallel().tween_property(sprite, "position:y", -6.0, 0.16).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+	tw.parallel().tween_property(sprite, "rotation", 0.0, 0.16)
+	tw.tween_callback(_land)
 
 func _get_player() -> Node2D:
 	var p = get_tree().get_first_node_in_group("player")
@@ -187,13 +220,21 @@ func _die() -> void:
 	sprite.play("hurt")
 	sprite.pause()
 	var spin := TAU * 3.0 * (1.0 if dir.x >= 0.0 else -1.0)
-	var tw := create_tween()
-	tw.tween_property(sprite, "position:y", -78.0, 0.24).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_property(sprite, "position:y", -6.0, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tw.tween_callback(_land)
+	# keep the arc under the wall line: low arc if the wall is close in that direction
+	var apex := -78.0
+	var space := get_world_2d().direct_space_state
+	var q := PhysicsRayQueryParameters2D.create(global_position, global_position + dir * 400.0, 4)
+	var hit := space.intersect_ray(q)
+	if hit:
+		var dist: float = global_position.distance_to(hit.position)
+		apex = -clampf(dist * 0.2, 12.0, 64.0)
+	_flight_tween = create_tween()
+	_flight_tween.tween_property(sprite, "position:y", apex, 0.24).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_flight_tween.tween_property(sprite, "position:y", -6.0, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_flight_tween.tween_callback(_land)
 	# spin the whole flight
-	var spin_tw := create_tween()
-	spin_tw.tween_property(sprite, "rotation", spin, 0.46).from(0.0)
+	_spin_tween = create_tween()
+	_spin_tween.tween_property(sprite, "rotation", spin, 0.46).from(0.0)
 	died.emit()
 
 func _land() -> void:

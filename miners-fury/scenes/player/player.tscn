@@ -3,14 +3,15 @@
 [ext_resource type="Script" uid="uid://bpcvq1ax4p585" path="res://scenes/player/player.gd" id="1_8afob"]
 [ext_resource type="SpriteFrames" path="res://assets/sprites/player/swordsman_frames.tres" id="2_swrd"]
 [ext_resource type="Script" uid="uid://tlmi3228q2ix" path="res://scenes/player/aim_indicator.gd" id="3_gmlin"]
-[ext_resource type="Script" path="res://scenes/ui/hearts.gd" id="4_hrts"]
+[ext_resource type="Script" path="res://scenes/ui/status_bars.gd" id="4_hrts"]
 [ext_resource type="Script" path="res://scenes/effects/camera_shake.gd" id="5_cam"]
+[ext_resource type="SpriteFrames" path="res://assets/sprites/player/swing_fx_frames.tres" id="6_swfx"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_x7p2l"]
 size = Vector2(32, 32)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_sword"]
-radius = 30.0
+radius = 40.0
 
 [node name="Player" type="CharacterBody2D" unique_id=1076072738]
 script = ExtResource("1_8afob")
@@ -30,6 +31,14 @@ sprite_frames = ExtResource("2_swrd")
 animation = &"idle"
 autoplay = "idle"
 
+[node name="SwingFX" type="AnimatedSprite2D" parent="."]
+visible = false
+texture_filter = 1
+position = Vector2(0, -8)
+scale = Vector2(3.2, 3.2)
+sprite_frames = ExtResource("6_swfx")
+animation = &"attack1"
+
 [node name="SwordHitbox" type="Area2D" parent="."]
 position = Vector2(26, -10)
 collision_layer = 0
@@ -45,12 +54,15 @@ script = ExtResource("3_gmlin")
 [node name="HUD" type="CanvasLayer" parent="."]
 layer = 5
 
-[node name="Hearts" type="Control" parent="HUD"]
+[node name="StatusBars" type="Control" parent="HUD"]
 layout_mode = 3
-anchors_preset = 0
-offset_left = 18.0
-offset_top = 44.0
-offset_right = 260.0
-offset_bottom = 70.0
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = -86.0
+offset_right = 320.0
+offset_bottom = -20.0
+grow_vertical = 0
 mouse_filter = 2
 script = ExtResource("4_hrts")
