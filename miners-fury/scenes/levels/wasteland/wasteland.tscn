@@ -16,8 +16,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/wasteland/dead_bush2.png" id="14_w"]
 [ext_resource type="Texture2D" path="res://assets/sprites/wasteland/skull.png" id="15_w"]
 [ext_resource type="Texture2D" path="res://assets/sprites/wasteland/mesa_pillar.png" id="16_w"]
-[ext_resource type="PackedScene" path="res://scenes/enemies/bat/bat.tscn" id="17_w"]
-[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="18_w"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="17_w"]
 
 
 
@@ -1545,41 +1544,22 @@ position = Vector2(-557.5, -503.3)
 texture = ExtResource("11_w")
 offset = Vector2(-4.0, -10.0)
 
-[node name="Bats" type="Node2D" parent="Entities"]
+[node name="Monsters" type="Node2D" parent="Entities"]
 y_sort_enabled = true
 
-[node name="Bat1" parent="Entities/Bats" instance=ExtResource("17_w")]
-position = Vector2(-120, -120)
+[node name="SpawnArea" type="Marker2D" parent="."]
 
-[node name="Bat2" parent="Entities/Bats" instance=ExtResource("17_w")]
-position = Vector2(80, -220)
-
-[node name="Bat3" parent="Entities/Bats" instance=ExtResource("17_w")]
-position = Vector2(330, -60)
-
-[node name="Bat4" parent="Entities/Bats" instance=ExtResource("17_w")]
-position = Vector2(460, -230)
-
-[node name="Bat5" parent="Entities/Bats" instance=ExtResource("17_w")]
-position = Vector2(150, 200)
-
-[node name="Bat6" parent="Entities/Bats" instance=ExtResource("17_w")]
-position = Vector2(640, 40)
-
-[node name="Bat7" parent="Entities/Bats" instance=ExtResource("17_w")]
-position = Vector2(-20, 260)
-
-[node name="Player" parent="Entities" instance=ExtResource("18_w")]
+[node name="Player" parent="Entities" instance=ExtResource("17_w")]
 position = Vector2(-590, 154)
 
 [node name="UI" type="CanvasLayer" parent="."]
 
-[node name="BatsLeft" type="Label" parent="UI"]
+[node name="RoundInfo" type="Label" parent="UI"]
 offset_left = 18
 offset_top = 14
-offset_right = 400
-offset_bottom = 38
+offset_right = 500
+offset_bottom = 40
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 16
-text = "Bats left: 7"
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 18
+text = ""

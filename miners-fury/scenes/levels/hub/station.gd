@@ -18,6 +18,7 @@ var player_in_range: bool = false
 func _ready() -> void:
 	add_to_group("hub_station")
 	_ensure_interact_action()
+	collision_mask |= 8   # the player lives on layer 4
 	if prompt:
 		prompt.text = "[E] " + station_name
 		prompt.visible = false

@@ -1,0 +1,44 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/enemies/melee/melee_enemy.gd" id="1_me"]
+
+[sub_resource type="CircleShape2D" id="Body_shape"]
+resource_local_to_scene = true
+radius = 12.0
+
+[sub_resource type="CircleShape2D" id="Hurt_shape"]
+resource_local_to_scene = true
+radius = 18.0
+
+[sub_resource type="CircleShape2D" id="Attack_shape"]
+resource_local_to_scene = true
+radius = 26.0
+
+[node name="MeleeEnemy" type="CharacterBody2D"]
+collision_layer = 18
+collision_mask = 5
+motion_mode = 1
+script = ExtResource("1_me")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(2, 2)
+
+[node name="Body" type="CollisionShape2D" parent="."]
+shape = SubResource("Body_shape")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 2
+collision_mask = 0
+monitoring = false
+
+[node name="Shape" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("Hurt_shape")
+
+[node name="AttackArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 8
+monitorable = false
+
+[node name="Shape" type="CollisionShape2D" parent="AttackArea"]
+shape = SubResource("Attack_shape")

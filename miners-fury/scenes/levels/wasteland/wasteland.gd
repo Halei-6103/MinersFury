@@ -1,37 +1,186 @@
 extends Node2D
-## The sandy wasteland, first combat zone. Bats roost out here.
+## The sandy wasteland: 5 rounds, each one harder. Clear all 5 to win.
+## Edit ROUNDS to change who shows up and how many.
 
 const TransferBoard = preload("res://scenes/levels/shared/transfer_board.gd")
 const Music = preload("res://scenes/audio/music.gd")
 const Juice = preload("res://scenes/effects/juice.gd")
+const BatScene = preload("res://scenes/enemies/bat/bat.tscn")
+const MeleeScene = preload("res://scenes/enemies/melee/melee_enemy.tscn")
+const BossBar = preload("res://scenes/ui/boss_bar.gd")
 
-var _was_clear := false
+## each round: a subtitle and a list of [monster, count]
+const ROUNDS := [
+	{"sub": "Bats", "spawns": [["bat", 4]]},
+	{"sub": "Bats & Slimes", "spawns": [["bat", 3], ["slime", 3]]},
+	{"sub": "The Dead Walk", "spawns": [["skeleton", 4], ["bat", 2]]},
+	{"sub": "Orc Raiders", "spawns": [["orc", 2], ["skeleton", 2], ["slime", 2]]},
+	{"sub": "BOSS: Werebear", "spawns": [["werebear", 1], ["skeleton", 2], ["bat", 2]]},
+]
+## seconds of breathing room between rounds
+const BREAK_TIME := 3.5
+## hearts restored when you clear a round
+const HEAL_BETWEEN := 1
 
-@onready var bats_left_label: Label = $UI/BatsLeft
+## playable diamond (iso square) half sizes, matches the wall
+const HW := 900.0
+const HH := 450.0
+
+var round_index: int = -1
+var _spawning: bool = false
+var _finished: bool = false
+var _boss_bar: Control
+
+@onready var round_info: Label = $UI/RoundInfo
+@onready var monsters: Node2D = $Entities/Monsters
 
 
 func _ready() -> void:
 	TransferBoard.place_player(self)
 	Music.ensure(self)
-	for bat in get_tree().get_nodes_in_group("enemy"):
-		bat.died.connect(_update_count)
-	_update_count()
+	_boss_bar = BossBar.new()
+	_boss_bar.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_boss_bar.offset_bottom = 90
+	_boss_bar.visible = false
+	$UI.add_child(_boss_bar)
+	round_info.text = ""
+	await get_tree().create_timer(1.2, false).timeout
+	_next_round()
 
 
-func _update_count() -> void:
-	# deferred so the bat that just died is already out of the count
-	await get_tree().process_frame
-	var alive := 0
+func _player() -> Node2D:
+	return get_tree().get_first_node_in_group("player")
+
+
+func _alive() -> int:
+	var n := 0
 	for e in get_tree().get_nodes_in_group("enemy"):
 		if e.state != e.State.DEAD:
-			alive += 1
-	bats_left_label.text = "Bats left: %d" % alive if alive > 0 else "Area clear!"
-	if alive == 0 and not _was_clear:
-		_was_clear = true
+			n += 1
+	return n
+
+
+func _update_info() -> void:
+	if round_index < 0:
+		return
+	round_info.text = "ROUND %d / %d     Enemies: %d" % [round_index + 1, ROUNDS.size(), _alive()]
+
+
+func _next_round() -> void:
+	round_index += 1
+	var r: Dictionary = ROUNDS[round_index]
+	var boss_round := round_index == ROUNDS.size() - 1
+	_banner("ROUND %d" % (round_index + 1), r.sub, Color(1, 0.4, 0.3) if boss_round else Color(1, 0.85, 0.3))
+	await get_tree().create_timer(1.1, false).timeout
+	_spawning = true
+	var queue: Array = []
+	for entry in r.spawns:
+		for i in entry[1]:
+			queue.append(entry[0])
+	queue.shuffle()
+	# boss shows up first so the bar is there
+	queue.sort_custom(func(a, b): return a == "werebear" and b != "werebear")
+	for kind in queue:
+		_spawn(kind)
+		_update_info()
+		await get_tree().create_timer(0.35, false).timeout
+	_spawning = false
+	_update_info()
+
+
+func _spawn(kind: String) -> void:
+	var e: Node2D
+	if kind == "bat":
+		e = BatScene.instantiate()
+	else:
+		e = MeleeScene.instantiate()
+		e.kind = kind
+	e.position = _spawn_point(kind == "werebear")
+	monsters.add_child(e)
+	e.died.connect(_on_enemy_died)
+	if kind == "bat":
+		Juice.shockwave(self, e.global_position, 16.0)
+	if kind == "werebear":
+		_boss_bar.boss = e
+		_boss_bar.title = "WEREBEAR"
+		_boss_bar.visible = true
+		Juice.shake(self, 0.8)
+
+
+## somewhere on the sand, not right on top of you
+func _spawn_point(far: bool) -> Vector2:
+	var p := _player()
+	var me := p.global_position if p else Vector2.ZERO
+	var best := Vector2.ZERO
+	for i in 40:
+		var v := Vector2(randf_range(-1, 1) * HW, randf_range(-1, 1) * HH) * 0.75
+		if absf(v.x) / HW + absf(v.y) / HH > 0.78:
+			continue
+		best = v
+		if v.distance_to(me) > (380.0 if far else 260.0):
+			return v
+	return best
+
+
+func _on_enemy_died() -> void:
+	await get_tree().process_frame
+	_update_info()
+	if _spawning or _finished or _alive() > 0:
+		return
+	if round_index >= ROUNDS.size() - 1:
+		_finished = true
+		_boss_bar.visible = false
 		_finale()
+		return
+	_round_clear()
 
 
-## last kill: heavy slow-mo, camera pushes in, giant banner slams onto the screen
+func _round_clear() -> void:
+	var p := _player()
+	_banner("ROUND CLEAR", "+%d heart" % HEAL_BETWEEN if HEAL_BETWEEN > 0 else "", Color(0.6, 1, 0.6), 1.4, 0.8)
+	if p and p.health < p.max_health and HEAL_BETWEEN > 0:
+		p.heal(HEAL_BETWEEN)
+		Juice.damage_number(p.get_parent(), p.global_position + Vector2(0, -50), "+%d" % HEAL_BETWEEN, Color(0.5, 1, 0.5), 26)
+	await get_tree().create_timer(BREAK_TIME, false).timeout
+	_next_round()
+
+
+## big text slammed onto the screen. scale = how big, hold = seconds on screen
+func _banner(text: String, sub: String, color: Color, hold: float = 1.6, scale_k: float = 1.0) -> void:
+	var box := VBoxContainer.new()
+	box.set_anchors_preset(Control.PRESET_CENTER)
+	box.offset_left = -420
+	box.offset_right = 420
+	box.offset_top = -190
+	box.offset_bottom = -40
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for i in 2:
+		var l := Label.new()
+		l.text = text if i == 0 else sub
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.add_theme_font_size_override("font_size", int((64 if i == 0 else 26) * scale_k))
+		l.add_theme_constant_override("outline_size", 16 if i == 0 else 10)
+		l.add_theme_color_override("font_outline_color", Color(0.1, 0.02, 0.05))
+		l.add_theme_color_override("font_color", color if i == 0 else Color(1, 1, 1))
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if l.text != "":
+			box.add_child(l)
+	$UI.add_child(box)
+	box.pivot_offset = Vector2(420, 75)
+	box.scale = Vector2(2.4, 2.4)
+	box.modulate.a = 0.0
+	var tw := box.create_tween()
+	tw.set_ignore_time_scale(true)
+	tw.tween_property(box, "modulate:a", 1.0, 0.06)
+	tw.parallel().tween_property(box, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_callback(func(): Juice.shake(self, 0.45))
+	tw.tween_interval(hold)
+	tw.tween_property(box, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(box.queue_free)
+
+
+## won all 5: heavy slow-mo, camera pushes in, VICTORY
 func _finale() -> void:
 	Juice.slow_mo(self, 1.6, 0.12)
 	var cam = get_tree().get_first_node_in_group("camera")
@@ -41,35 +190,8 @@ func _finale() -> void:
 		tw.tween_method(cam.set_base_zoom, Vector2.ONE, Vector2(1.6, 1.6), 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		tw.tween_interval(1.0)
 		tw.tween_method(cam.set_base_zoom, Vector2(1.6, 1.6), Vector2.ONE, 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-
-	bats_left_label.modulate = Color(1, 0.9, 0.4)
-
-	var banner := Label.new()
-	banner.text = "AREA CLEAR"
-	banner.set_anchors_preset(Control.PRESET_CENTER)
-	banner.offset_left = -400
-	banner.offset_right = 400
-	banner.offset_top = -160
-	banner.offset_bottom = -60
-	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	banner.add_theme_font_size_override("font_size", 72)
-	banner.add_theme_constant_override("outline_size", 18)
-	banner.add_theme_color_override("font_outline_color", Color(0.1, 0.02, 0.05))
-	banner.add_theme_color_override("font_color", Color(1, 0.85, 0.3))
-	banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	$UI.add_child(banner)
-	banner.pivot_offset = Vector2(400, 50)
-	banner.scale = Vector2(3.0, 3.0)
-	banner.modulate.a = 0.0
-	var bt := banner.create_tween()
-	bt.set_ignore_time_scale(true)
-	bt.tween_interval(0.25)
-	bt.tween_property(banner, "modulate:a", 1.0, 0.05)
-	bt.parallel().tween_property(banner, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	bt.tween_callback(func():
-		Juice.shake(self, 0.8)
-		Juice.impact_flash(self, 0.5, Color(1, 0.9, 0.5)))
-	bt.tween_interval(2.2)
-	bt.tween_property(banner, "modulate:a", 0.0, 0.6)
-	bt.tween_callback(banner.queue_free)
+	round_info.text = "ALL 5 ROUNDS CLEARED"
+	round_info.modulate = Color(1, 0.9, 0.4)
+	await get_tree().create_timer(0.25, true, false, true).timeout
+	Juice.impact_flash(self, 0.5, Color(1, 0.9, 0.5))
+	_banner("VICTORY", "The wasteland is yours", Color(1, 0.85, 0.3), 2.6, 1.2)

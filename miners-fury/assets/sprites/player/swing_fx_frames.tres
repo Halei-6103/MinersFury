@@ -1,7 +1,7 @@
-[gd_resource type="SpriteFrames" format=3]
+[gd_resource type="SpriteFrames" format=3 uid="uid://byv0kx42f70lv"]
 
-[ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/attack1_fx.png" id="1_t"]
-[ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/attack2_fx.png" id="2_t"]
+[ext_resource type="Texture2D" uid="uid://btlmk0ni7vlc1" path="res://assets/sprites/player/swordsman/attack1_fx.png" id="1_t"]
+[ext_resource type="Texture2D" uid="uid://dvsfiprrir0g8" path="res://assets/sprites/player/swordsman/attack2_fx.png" id="2_t"]
 
 [sub_resource type="AtlasTexture" id="attack1_0"]
 atlas = ExtResource("1_t")
@@ -115,7 +115,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("attack1_6")
 }],
-"loop": false,
+"loop": 0,
 "name": &"attack1",
 "speed": 16.0
 }, {
@@ -165,7 +165,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("attack2_14")
 }],
-"loop": false,
+"loop": 0,
 "name": &"attack2",
 "speed": 18.0
 }]

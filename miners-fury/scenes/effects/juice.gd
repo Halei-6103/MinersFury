@@ -170,7 +170,7 @@ static func damage_number(parent: Node, pos: Vector2, text: String, color: Color
 	n.global_position = pos
 
 
-## Dust cloud + falling scraps when something dies.
+## Dust cloud when something dies.
 static func death_puff(parent: Node, pos: Vector2, scrap_color: Color = Color(0.25, 0.2, 0.32)) -> void:
 	if parent == null:
 		return
@@ -199,23 +199,5 @@ static func death_puff(parent: Node, pos: Vector2, scrap_color: Color = Color(0.
 	dust.color_ramp = dg
 	root.add_child(dust)
 
-	var scraps := CPUParticles2D.new()
-	scraps.one_shot = true
-	scraps.explosiveness = 1.0
-	scraps.amount = 12
-	scraps.lifetime = 0.8
-	scraps.direction = Vector2.UP
-	scraps.spread = 75.0
-	scraps.gravity = Vector2(0, 520)
-	scraps.initial_velocity_min = 120.0
-	scraps.initial_velocity_max = 240.0
-	scraps.angular_velocity_min = -600.0
-	scraps.angular_velocity_max = 600.0
-	scraps.scale_amount_min = 2.0
-	scraps.scale_amount_max = 4.0
-	scraps.color = scrap_color
-	root.add_child(scraps)
-
 	dust.emitting = true
-	scraps.emitting = true
 	root.get_tree().create_timer(1.5, false).timeout.connect(root.queue_free)

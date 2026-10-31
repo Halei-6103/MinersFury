@@ -22,7 +22,7 @@ const Juice = preload("res://scenes/effects/juice.gd")
 ## killing blow launches the corpse this fast (home run)
 @export var launch_speed: float = 640.0
 
-enum State { IDLE, CHASE, ATTACK, HURT, DEAD }
+enum State { IDLE, CHASE, ATTACK, HURT, STUNNED, DEAD }
 var state: State = State.IDLE
 
 var health: int
@@ -34,6 +34,15 @@ var lunge_dir: Vector2 = Vector2.ZERO
 var hit_this_attack: bool = false
 var knockback: Vector2 = Vector2.ZERO
 var windup_timer: float = 0.0
+var stun_timer: float = 0.0
+## the big "PARRY NOW" flash fires this many seconds before the dive connects
+const TELL_LEAD := 0.35
+var _tell_at: float = 0.0
+var _tell_clock: float = 0.0
+var _told: bool = true
+var _tell_fx: float = 0.0
+var ichor_color: Color = Color(0.5, 0.06, 0.32)
+var _t: float = 0.0
 var _airborne: bool = false
 var _flight_tween: Tween
 var _spin_tween: Tween
@@ -103,6 +112,18 @@ func _physics_process(delta: float) -> void:
 		State.HURT:
 			velocity = knockback
 			knockback = knockback.move_toward(Vector2.ZERO, 900.0 * delta)
+		State.STUNNED:
+			# knocked out of the air, flopping on the ground
+			velocity = knockback
+			knockback = knockback.move_toward(Vector2.ZERO, 900.0 * delta)
+			stun_timer -= delta
+			if stun_timer <= 0.0:
+				state = State.CHASE
+				cooldown = 0.6
+				sprite.modulate = Color.WHITE
+				var up := create_tween()
+				up.tween_property(sprite, "position:y", -18.0, 0.2).set_ease(Tween.EASE_OUT)
+				sprite.play("fly")
 		State.DEAD:
 			if _airborne:
 				# flying corpse: slows a bit, leaves a streak behind it
@@ -173,14 +194,20 @@ func _start_attack(to_player: Vector2) -> void:
 	sprite.play("attack1")
 	sprite.pause()
 	sprite.frame = 0
+	var fps: float = maxf(sprite.sprite_frames.get_animation_speed("attack1"), 1.0)
+	# the bite lands partway through the dive: account for the distance it has to fly
+	var fly: float = maxf(to_player.length() - 30.0, 0.0) / lunge_speed
+	_tell_at = maxf(windup_time + LUNGE_FRAMES[0] / fps + fly - TELL_LEAD, 0.0)
+	_tell_clock = 0.0
+	_told = false
 
 func _try_bite() -> void:
 	if hit_this_attack:
 		return
 	for body in bite_area.get_overlapping_bodies():
 		if body.is_in_group("player") and body.has_method("take_damage"):
-			body.take_damage(damage, global_position)
 			hit_this_attack = true
+			body.take_damage(damage, global_position, self)
 			velocity = -lunge_dir * 120.0  # bounce off after biting
 			return
 
@@ -188,6 +215,8 @@ func _try_bite() -> void:
 func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) -> void:
 	if state == State.DEAD:
 		return
+	if state == State.STUNNED:
+		amount *= 2   # stunned = open for punishment
 	health -= amount
 	sprite.position.x = 0.0
 	knockback = (global_position - from_position).normalized() * hit_knockback * knock_scale
@@ -195,8 +224,27 @@ func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) 
 	if health <= 0:
 		_die()
 		return
+	if state == State.STUNNED:
+		knockback *= 0.4
+		return
 	state = State.HURT
 	sprite.play("hurt")
+
+## parried! knocked out of the air and dazed
+func stun(duration: float) -> void:
+	if state == State.DEAD:
+		return
+	state = State.STUNNED
+	stun_timer = duration
+	windup_timer = 0.0
+	sprite.position.x = 0.0
+	sprite.play("hurt")
+	sprite.pause()
+	sprite.frame = 1
+	sprite.modulate = Color(0.85, 0.85, 1.2)
+	knockback = -lunge_dir * 260.0
+	var drop := create_tween()
+	drop.tween_property(sprite, "position:y", -6.0, 0.18).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
 
 func _flash() -> void:
 	sprite.modulate = Color(3, 3, 3)
@@ -283,3 +331,50 @@ func _on_animation_finished() -> void:
 			tw.tween_interval(1.2)
 			tw.tween_property(self, "modulate:a", 0.0, 0.6)
 			tw.tween_callback(queue_free)
+
+
+func _process(delta: float) -> void:
+	_t += delta
+	_tell_fx = maxf(_tell_fx - delta, 0.0)
+	if not _told and state == State.ATTACK:
+		_tell_clock += delta
+		if _tell_clock >= _tell_at:
+			_told = true
+			_tell_fx = 0.28
+			sprite.modulate = Color(5, 5, 4)
+			var tw := create_tween()
+			tw.tween_property(sprite, "modulate", Color.WHITE, 0.16)
+	elif state != State.ATTACK:
+		_told = true
+	queue_redraw()
+
+
+func _draw() -> void:
+	if _tell_fx > 0.0:
+		_draw_tell()
+	if state != State.STUNNED:
+		return
+	for i in 3:
+		var a := _t * 6.0 + TAU * i / 3.0
+		var p := Vector2(cos(a) * 12.0, -30.0 + sin(a) * 4.0)
+		draw_rect(Rect2(p - Vector2(1, 3), Vector2(2, 6)), Color(1, 0.92, 0.3))
+		draw_rect(Rect2(p - Vector2(3, 1), Vector2(6, 2)), Color(1, 0.92, 0.3))
+		draw_rect(Rect2(p - Vector2(1, 1), Vector2(2, 2)), Color(1, 1, 1))
+
+
+## big gold glint + ring: block now!
+func _draw_tell() -> void:
+	var p := 1.0 - _tell_fx / 0.28
+	var a := 1.0 - p
+	var body := Vector2(0, sprite.position.y)
+	var r := 14.0 + p * 30.0
+	draw_arc(body, r, 0.0, TAU, 28, Color(0.1, 0.05, 0.05, a * 0.8), 6.0)
+	draw_arc(body, r, 0.0, TAU, 28, Color(1.0, 0.85, 0.25, a), 3.0)
+	var g := 12.0 + 8.0 * sin(p * PI)
+	var c := Vector2(0, sprite.position.y - 26.0)
+	for pass_ in 2:
+		var w := 3.0 if pass_ == 0 else 0.0
+		var col := Color(0.1, 0.05, 0.05, a) if pass_ == 0 else Color(1.0, 0.9, 0.3, a)
+		draw_colored_polygon(PackedVector2Array([c + Vector2(0, -g - w), c + Vector2(g * 0.22 + w, 0), c + Vector2(0, g + w), c + Vector2(-g * 0.22 - w, 0)]), col)
+		draw_colored_polygon(PackedVector2Array([c + Vector2(-g - w, 0), c + Vector2(0, g * 0.22 + w), c + Vector2(g + w, 0), c + Vector2(0, -g * 0.22 - w)]), col)
+	draw_circle(c, 3.0, Color(1, 1, 1, a))

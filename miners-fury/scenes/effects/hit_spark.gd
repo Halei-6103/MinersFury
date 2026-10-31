@@ -1,7 +1,6 @@
 extends Node2D
-## Impact: a hot star flash on the hit point, anime impact rays, and a
-## directional EXIT BURST blasting out the back of whatever got hit
-## (sparks, embers, ichor). Everything has a dark rim so it reads on sand.
+## Impact: a hot star flash on the hit point and anime impact rays shooting
+## out the back of whatever got hit. Dark rims so it reads on sand.
 ## Spawn through Juice.spark(...).
 
 var dir: Vector2 = Vector2.RIGHT
@@ -22,32 +21,8 @@ func _ready() -> void:
 		var a := randf_range(-0.45, 0.45)
 		_rays.append([dir.rotated(a), randf_range(0.6, 1.0), randf_range(0.0, 0.04)])
 
-	# 1. ichor first so the bright stuff draws on top. heavy, arcs down.
-	var ichor := _burst(int(26 * k), 0.6, 26.0, 220.0, 560.0, 3.0, 6.0)
-	ichor.gravity = Vector2(0, 1000)
-	ichor.damping_min = 40.0
-	ichor.damping_max = 100.0
-	ichor.color_ramp = _ramp([ichor_color.lightened(0.15), ichor_color, ichor_color.darkened(0.45)])
-
-	# 2. embers, wider cone, fall
-	var embers := _burst(int(18 * k), 0.55, 40.0, 180.0, 460.0, 2.5, 4.5)
-	embers.gravity = Vector2(0, 600)
-	embers.color_ramp = _ramp([Color(1, 0.7, 0.15), Color(0.95, 0.3, 0.05), Color(0.5, 0.08, 0.05, 0.0)])
-
-	# 3. hot core, tight cone, fast. dark rim layer under a bright layer
-	var rim := _burst(int(16 * k), 0.32, 16.0, 420.0, 820.0, 6.0, 9.0)
-	rim.color = Color(0.15, 0.03, 0.08)
-	var core := _burst(int(16 * k), 0.32, 16.0, 420.0, 820.0, 3.0, 5.0)
-	core.color_ramp = _ramp([Color(1, 1, 1), Color(1, 0.95, 0.5), Color(1, 0.5, 0.1)])
-	# rim and core share a seed so the bright pixel sits inside the dark one
-	rim.seed = 1234
-	core.seed = 1234
-	rim.use_fixed_seed = true
-	core.use_fixed_seed = true
-	rim.restart()
-	core.restart()
-
-	get_tree().create_timer(1.3, false).timeout.connect(queue_free)
+	# (no falling particle bits: just the flash and rays, the splats land on the ground)
+	get_tree().create_timer(0.4, false).timeout.connect(queue_free)
 
 
 func _burst(amount: int, life: float, spread: float, vmin: float, vmax: float, smin: float, smax: float) -> CPUParticles2D:

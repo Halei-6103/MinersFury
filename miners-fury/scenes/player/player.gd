@@ -46,6 +46,15 @@ const Juice = preload("res://scenes/effects/juice.gd")
 ## how long the combo counter stays up without a hit
 @export var combo_timeout: float = 2.5
 
+@export_group("Block")
+## hold right click to block hits from the front
+@export var block_move_factor: float = 0.35
+## block this long before a hit lands = PARRY (stuns the attacker)
+@export var parry_window: float = 0.25
+@export var parry_stun_time: float = 2.2
+## how wide the guard covers, in degrees each side of your aim
+@export var block_angle: float = 75.0
+
 @export_group("Combat")
 @export var max_health: int = 5
 @export var sword_damage: int = 1
@@ -60,7 +69,7 @@ const Juice = preload("res://scenes/effects/juice.gd")
 @onready var swing_fx: AnimatedSprite2D = $SwingFX
 @onready var hud = $HUD/StatusBars
 
-enum State { MOVE, ROLL, ATTACK, HURT, DEAD }
+enum State { MOVE, ROLL, ATTACK, HURT, DEAD, BLOCK }
 var state: State = State.MOVE
 
 var last_direction: Vector2 = Vector2.DOWN
@@ -98,6 +107,9 @@ var knockback: Vector2 = Vector2.ZERO
 var _buffered: String = ""
 var _buffer_timer: float = 0.0
 var _hurt_flash: TextureRect
+var _guard: Node2D
+var _block_time: float = 0.0
+const GuardArc = preload("res://scenes/effects/guard_arc.gd")
 var _combo_label: Label
 var combo_count: int = 0
 var _combo_timer: float = 0.0
@@ -113,6 +125,12 @@ func _ready() -> void:
 	health_changed.emit(health, max_health)
 	_build_hurt_flash()
 	_build_combo_label()
+	_ensure_block_action()
+	_guard = GuardArc.new()
+	_guard.position = Vector2(0, -10)
+	_guard.z_index = 5
+	_guard.visible = false
+	add_child(_guard)
 	Engine.time_scale = 1.0  # in case a scene change happened mid hit stop
 
 ## "12 HITS" counter on the right side of the screen
@@ -232,6 +250,8 @@ func _physics_process(delta: float) -> void:
 			_handle_roll(delta)
 		State.ATTACK:
 			_handle_attack(delta)
+		State.BLOCK:
+			_handle_block(delta)
 		State.HURT:
 			velocity = knockback
 			knockback = knockback.move_toward(Vector2.ZERO, 1200.0 * delta)
@@ -266,6 +286,89 @@ func _handle_move(delta: float) -> void:
 		_start_roll(input_dir)
 	elif _consume("attack"):
 		_start_attack("attack1")
+	elif Input.is_action_pressed("block"):
+		_start_block()
+
+## right click (hold). Added at runtime so no Input Map setup is needed.
+func _ensure_block_action() -> void:
+	if InputMap.has_action("block"):
+		return
+	InputMap.add_action("block")
+	var ev := InputEventMouseButton.new()
+	ev.button_index = MOUSE_BUTTON_RIGHT
+	InputMap.action_add_event("block", ev)
+
+func _start_block() -> void:
+	state = State.BLOCK
+	_block_time = 0.0
+	combo_queued = false
+	_face_mouse()
+	# guard pose: sword raised (2nd frame of the slash)
+	animated_sprite.speed_scale = 1.0
+	animated_sprite.flip_h = not facing_right
+	animated_sprite.play("attack1")
+	animated_sprite.pause()
+	animated_sprite.frame = 1
+	_guard.visible = true
+
+func _handle_block(delta: float) -> void:
+	_block_time += delta
+	var input_dir := _get_input_dir()
+	velocity = velocity.move_toward(input_dir * speed * block_move_factor, acceleration * delta)
+	_face_mouse()
+	animated_sprite.flip_h = not facing_right
+	_guard.dir = aim_indicator.last_direction
+	_guard.perfect = _block_time <= parry_window
+	if not Input.is_action_pressed("block"):
+		_end_block()
+		state = State.MOVE
+	elif _buffered == "dodge" and can_roll:
+		_consume("dodge")
+		_end_block()
+		_start_roll(input_dir)
+	elif _consume("attack"):
+		_end_block()
+		_start_attack("attack1")
+
+func _end_block() -> void:
+	_guard.visible = false
+	animated_sprite.play("idle")
+
+## is a hit coming from in front of the guard?
+func _blocks_from(from_position: Vector2) -> bool:
+	if state != State.BLOCK:
+		return false
+	var to_hit := (from_position - global_position).normalized()
+	return to_hit.dot(aim_indicator.last_direction) >= cos(deg_to_rad(block_angle))
+
+func _parry(attacker: Node, from_position: Vector2) -> void:
+	var dir := (from_position - global_position).normalized()
+	var at := global_position + Vector2(0, -12) + dir * 26.0
+	if attacker and attacker.has_method("stun"):
+		attacker.stun(parry_stun_time)
+	Juice.hit_stop(self, 0.2)
+	Juice.slow_mo(self, 0.55, 0.35)
+	Juice.shake(self, 0.7, dir)
+	Juice.zoom_punch(self, 0.1)
+	Juice.impact_flash(self, 0.35, Color(1, 0.9, 0.5))
+	Juice.spark(get_parent(), at, dir, true, Color(1, 0.8, 0.3))
+	Juice.damage_number(get_parent(), at + Vector2(0, -20), "PARRY!", Color(1, 0.85, 0.3), 34)
+	_guard.hit_flash(Color(1, 1, 1))
+	invincible_timer = 0.0
+	untargetable_timer = maxf(untargetable_timer, 0.35)
+	# reward: a little dash back
+	dash_charge = minf(dash_charge + 0.5, dash_max)
+	_bump_combo()
+
+func _blocked(amount: int, from_position: Vector2) -> void:
+	var dir := (from_position - global_position).normalized()
+	knockback = -dir * 120.0
+	velocity = knockback
+	Juice.hit_stop(self, 0.06)
+	Juice.shake(self, 0.35, -dir)
+	Juice.spark(get_parent(), global_position + Vector2(0, -12) + dir * 26.0, dir, false, Color(0.5, 0.75, 1.0))
+	Juice.damage_number(get_parent(), global_position + Vector2(0, -40), "BLOCK", Color(0.6, 0.85, 1.0), 20)
+	_guard.hit_flash(Color(1, 1, 1))
 
 func _start_roll(input_dir: Vector2) -> void:
 	state = State.ROLL
@@ -277,8 +380,9 @@ func _start_roll(input_dir: Vector2) -> void:
 	# roll in whatever direction is currently held, fallback to last faced direction if standing still
 	roll_direction = input_dir if input_dir != Vector2.ZERO else last_direction
 	velocity = roll_direction * roll_speed
-	# phase out: untargetable until the timer runs out
+	# phase out: untargetable until the timer runs out, and pass through monsters
 	untargetable_timer = dodge_untargetable_time
+	collision_mask = 1
 	animated_sprite.modulate = phase_color
 	ghost_timer = 0.0
 	_spawn_ghost()
@@ -292,6 +396,7 @@ func _handle_roll(delta: float) -> void:
 	if roll_timer <= 0.0:
 		state = State.MOVE
 		velocity = velocity.limit_length(speed)
+		collision_mask = 17   # monsters are solid again
 		# you stay phased (untargetable) until untargetable_timer runs out
 
 ## leave a glowing copy of the current frame behind that fades out
@@ -416,8 +521,9 @@ func _on_sword_hit(enemy: Node2D, finisher: bool) -> void:
 	var heavy := finisher or kill
 	_bump_combo()
 	# exit wound: everything blows out the BACK of the target
-	Juice.spark(get_parent(), hit_pos, dir, heavy)
-	Juice.splat(self, enemy.global_position, dir, 5 if kill else (3 if finisher else 2))
+	var ichor: Color = enemy.get("ichor_color") if enemy.get("ichor_color") != null else Color(0.5, 0.06, 0.32)
+	Juice.spark(get_parent(), hit_pos, dir, heavy, ichor)
+	Juice.splat(self, enemy.global_position, dir, 5 if kill else (3 if finisher else 2), ichor.darkened(0.2))
 	if kill:
 		Juice.damage_number(get_parent(), hit_pos + Vector2(0, -18), "KO!", Color(1, 0.25, 0.3), 40)
 		Juice.hit_stop(self, hit_stop_kill)
@@ -454,9 +560,17 @@ func _on_animation_finished() -> void:
 func is_untargetable() -> bool:
 	return untargetable_timer > 0.0 or state == State.ROLL or state == State.DEAD
 
-func take_damage(amount: int, from_position: Vector2) -> void:
+func take_damage(amount: int, from_position: Vector2, attacker: Node = null) -> void:
 	if is_untargetable() or invincible_timer > 0.0:
 		return
+	if _blocks_from(from_position):
+		if _block_time <= parry_window:
+			_parry(attacker, from_position)
+		else:
+			_blocked(amount, from_position)
+		return
+	if state == State.BLOCK:
+		_end_block()
 	health = max(health - amount, 0)
 	health_changed.emit(health, max_health)
 	knockback = (global_position - from_position).normalized() * knockback_strength
@@ -498,7 +612,7 @@ func _face_mouse() -> void:
 		facing_right = false
 
 func _update_animation() -> void:
-	if state == State.ATTACK or state == State.HURT or state == State.DEAD:
+	if state == State.ATTACK or state == State.HURT or state == State.DEAD or state == State.BLOCK:
 		return  # these play out on their own
 	_face_mouse()
 	animated_sprite.flip_h = not facing_right
