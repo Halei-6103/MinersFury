@@ -8,6 +8,8 @@ const Juice = preload("res://scenes/effects/juice.gd")
 const BatScene = preload("res://scenes/enemies/bat/bat.tscn")
 const MeleeScene = preload("res://scenes/enemies/melee/melee_enemy.tscn")
 const BossBar = preload("res://scenes/ui/boss_bar.gd")
+const Pickup = preload("res://scenes/items/pickup.gd")
+const GameState = preload("res://scenes/core/game_state.gd")
 
 ## each round: a subtitle and a list of [monster, count]
 const ROUNDS := [
@@ -105,6 +107,7 @@ func _spawn(kind: String) -> void:
 		_boss_bar.title = "WEREBEAR"
 		_boss_bar.visible = true
 		Juice.shake(self, 0.8)
+		e.died.connect(_drop_boss_loot.bind(e))
 
 
 ## somewhere on the sand, not right on top of you
@@ -180,6 +183,19 @@ func _banner(text: String, sub: String, color: Color, hold: float = 1.6, scale_k
 	tw.tween_callback(box.queue_free)
 
 
+## the Werebear coughs up a Storm Crystal, plus the Storm Blade blueprint
+## the first time (until you've picked it up or built the sword)
+func _drop_boss_loot(boss: Node2D) -> void:
+	var at := boss.global_position
+	await get_tree().create_timer(0.5, false).timeout
+	var p := _player()
+	var away := (at - p.global_position).normalized() if p else Vector2.RIGHT
+	Juice.shockwave(self, at, 26.0)
+	Pickup.drop($Entities, at, "item", "storm_crystal", away.rotated(-0.7))
+	if not GameState.knows("storm_blade"):
+		Pickup.drop($Entities, at, "blueprint", "storm_blade", away.rotated(0.7))
+
+
 ## won all 5: heavy slow-mo, camera pushes in, VICTORY
 func _finale() -> void:
 	Juice.slow_mo(self, 1.6, 0.12)
@@ -195,3 +211,7 @@ func _finale() -> void:
 	await get_tree().create_timer(0.25, true, false, true).timeout
 	Juice.impact_flash(self, 0.5, Color(1, 0.9, 0.5))
 	_banner("VICTORY", "The wasteland is yours", Color(1, 0.85, 0.3), 2.6, 1.2)
+	# anything you didn't grab flies to you
+	await get_tree().create_timer(3.0, false).timeout
+	for loot in get_tree().get_nodes_in_group("pickup"):
+		loot.pull_now()

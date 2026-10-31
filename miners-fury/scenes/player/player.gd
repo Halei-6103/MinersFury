@@ -4,6 +4,11 @@ signal health_changed(health: int, max_health: int)
 signal died
 
 const Juice = preload("res://scenes/effects/juice.gd")
+const GameState = preload("res://scenes/core/game_state.gd")
+const LightningBolt = preload("res://scenes/effects/lightning_bolt.gd")
+const Thunderclap = preload("res://scenes/effects/thunderclap.gd")
+const StormAura = preload("res://scenes/effects/storm_aura.gd")
+const STORM_FX = preload("res://assets/sprites/player/storm_fx_frames.tres")
 
 @export var speed: float = 216.0
 @export var roll_speed: float = 400.0
@@ -63,6 +68,16 @@ const Juice = preload("res://scenes/effects/juice.gd")
 ## scene to go back to when you die
 @export_file("*.tscn") var respawn_scene: String = "res://scenes/levels/hub/hub.tscn"
 
+@export_group("Storm Blade")
+## each hit jumps to this many more enemies nearby
+@export var chain_count: int = 2
+@export var chain_range: float = 110.0
+@export var chain_damage: int = 1
+## combo finisher: thunderclap around the blade
+@export var clap_radius: float = 100.0
+@export var clap_damage: int = 1
+@export var clap_stun: float = 0.6
+
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var aim_indicator: Node2D = $AimIndicator
 @onready var sword_hitbox: Area2D = $SwordHitbox
@@ -113,6 +128,11 @@ const GuardArc = preload("res://scenes/effects/guard_arc.gd")
 var _combo_label: Label
 var combo_count: int = 0
 var _combo_timer: float = 0.0
+## "iron_sword" or "storm_blade" (comes from the save, swapped at the telecom)
+var weapon: String = "iron_sword"
+var _iron_fx: SpriteFrames
+var _aura: Node2D
+var _clapped: bool = false
 
 func _ready() -> void:
 	add_to_group("player")
@@ -132,6 +152,24 @@ func _ready() -> void:
 	_guard.visible = false
 	add_child(_guard)
 	Engine.time_scale = 1.0  # in case a scene change happened mid hit stop
+	_iron_fx = swing_fx.sprite_frames
+	GameState.ensure_loaded()
+	set_weapon(GameState.equipped)
+
+## swap swords: the swoosh, the crackle on the blade, and what hits do
+func set_weapon(w: String) -> void:
+	weapon = w
+	var storm := w == "storm_blade"
+	swing_fx.sprite_frames = STORM_FX if storm else _iron_fx
+	if storm and _aura == null:
+		_aura = StormAura.new()
+		add_child(_aura)
+	elif not storm and _aura:
+		_aura.queue_free()
+		_aura = null
+
+func is_storm() -> bool:
+	return weapon == "storm_blade"
 
 ## "12 HITS" counter on the right side of the screen
 func _build_combo_label() -> void:
@@ -436,6 +474,7 @@ func _start_attack(anim_name: String) -> void:
 	sword_hitbox.position = aim * sword_reach + Vector2(0, -8)
 	_strike_index = -1
 	_hit_this_strike.clear()
+	_clapped = false
 	animated_sprite.speed_scale = 1.0
 	animated_sprite.flip_h = not facing_right
 	animated_sprite.play(anim_name)
@@ -509,6 +548,72 @@ func _check_sword_hits() -> void:
 			# small shove on combo hits so the bat stays in reach, big launch on the finisher
 			enemy.take_damage(sword_damage, global_position, 1.3 if finisher else 0.4)
 			_on_sword_hit(enemy, finisher)
+	# Storm Blade: the finisher strike always sets off a thunderclap
+	if is_storm() and not _clapped and animated_sprite.animation == "attack2" and idx == windows.size() - 1:
+		_clapped = true
+		_thunderclap()
+
+func _hit_point(e: Node2D) -> Vector2:
+	var hb = e.get_node_or_null("Hurtbox")
+	return hb.global_position if hb else e.global_position
+
+func _is_dead(e) -> bool:
+	return e.get("state") != null and e.state == e.State.DEAD
+
+## lightning jumps from whoever you hit to the next closest enemies
+func _chain_lightning(origin: Node2D) -> void:
+	var zapped: Array = [origin]
+	var from_pos := _hit_point(origin)
+	for i in chain_count:
+		var best: Node2D = null
+		var best_d := chain_range
+		for e in get_tree().get_nodes_in_group("enemy"):
+			if e in zapped or e in _hit_this_strike or _is_dead(e) or not e.has_method("take_damage"):
+				continue
+			var d := from_pos.distance_to(_hit_point(e))
+			if d < best_d:
+				best_d = d
+				best = e
+		if best == null:
+			return
+		zapped.append(best)
+		var to_pos := _hit_point(best)
+		LightningBolt.zap(get_parent(), from_pos, to_pos, 1.4, 0.28)
+		best.take_damage(chain_damage, from_pos, 0.25)
+		Juice.spark(get_parent(), to_pos, (to_pos - from_pos).normalized(), false, Color(0.35, 0.65, 1.0))
+		if _is_dead(best):
+			Juice.damage_number(get_parent(), to_pos + Vector2(0, -16), "KO!", Color(0.5, 0.85, 1.0), 30)
+		else:
+			Juice.damage_number(get_parent(), to_pos + Vector2(0, -14), str(chain_damage), Color(0.55, 0.85, 1.0), 22)
+		from_pos = to_pos
+
+## finisher: lightning from the sky, ring of electricity, hurts and stuns everything close
+func _thunderclap() -> void:
+	var aim: Vector2 = aim_indicator.last_direction
+	var center := global_position + aim * 34.0
+	var tc = Thunderclap.new()
+	tc.radius = clap_radius
+	get_parent().add_child(tc)
+	tc.global_position = center
+	Juice.shockwave(self, center, 34.0)
+	Juice.impact_flash(self, 0.2, Color(0.55, 0.75, 1.0))
+	Juice.shake(self, 0.85, aim)
+	Juice.zoom_punch(self, 0.06)
+	Juice.hit_stop(self, 0.1)
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if _is_dead(e) or not e.has_method("take_damage"):
+			continue
+		var off: Vector2 = e.global_position - center
+		# the floor is iso, so the ring is an ellipse
+		if Vector2(off.x, off.y * 2.0).length() > clap_radius:
+			continue
+		var hp := _hit_point(e)
+		if not e in _hit_this_strike:
+			e.take_damage(clap_damage, center, 0.6)
+			LightningBolt.zap(get_parent(), center + Vector2(0, -10), hp, 0.8, 0.2)
+			Juice.damage_number(get_parent(), hp + Vector2(0, -14), str(clap_damage), Color(0.55, 0.85, 1.0), 24)
+		if not _is_dead(e) and e.has_method("stun") and e.state != e.State.STUNNED:
+			e.stun(clap_stun)
 
 ## all the feedback for landing a hit. Everything turned up.
 func _on_sword_hit(enemy: Node2D, finisher: bool) -> void:
@@ -520,6 +625,9 @@ func _on_sword_hit(enemy: Node2D, finisher: bool) -> void:
 	var kill: bool = enemy.get("state") != null and enemy.state == enemy.State.DEAD
 	var heavy := finisher or kill
 	_bump_combo()
+	if is_storm():
+		_chain_lightning(enemy)
+		Juice.spark(get_parent(), hit_pos, dir, false, Color(0.35, 0.65, 1.0))
 	# exit wound: everything blows out the BACK of the target
 	var ichor: Color = enemy.get("ichor_color") if enemy.get("ichor_color") != null else Color(0.5, 0.06, 0.32)
 	Juice.spark(get_parent(), hit_pos, dir, heavy, ichor)
