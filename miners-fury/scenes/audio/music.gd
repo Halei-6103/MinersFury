@@ -4,9 +4,9 @@ extends AudioStreamPlayer
 ## Levels call:  Music.ensure(self)
 ##   const Music = preload("res://scenes/audio/music.gd")
 
-const TRACK := "res://assets/audio/music/ian_game_1.mp3"
-## quiet on purpose: background, not foreground. Raise toward -8 if it's too soft.
-const VOLUME_DB := -40.0
+const TRACK := "res://assets/audio/music/cool_beans_man.mp3"
+## background music level. Raise toward 0 if still too soft.
+const VOLUME_DB := -12.0
 const FADE_IN := 2.5
 
 
