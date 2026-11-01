@@ -5,6 +5,11 @@ extends CharacterBody2D
 signal died
 
 const Juice = preload("res://scenes/effects/juice.gd")
+const Pickup = preload("res://scenes/items/pickup.gd")
+const LightningBolt = preload("res://scenes/effects/lightning_bolt.gd")
+## Toxic Storm combo: frozen, takes 30% more damage
+var paralyzed: bool = false
+var _dmg_carry: float = 0.0
 
 @export var max_health: int = 3
 @export var speed: float = 75.0
@@ -118,6 +123,7 @@ func _physics_process(delta: float) -> void:
 			knockback = knockback.move_toward(Vector2.ZERO, 900.0 * delta)
 			stun_timer -= delta
 			if stun_timer <= 0.0:
+				paralyzed = false
 				state = State.CHASE
 				cooldown = 0.6
 				sprite.modulate = Color.WHITE
@@ -216,7 +222,12 @@ func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) 
 	if state == State.DEAD:
 		return
 	if state == State.STUNNED:
-		amount *= 2   # stunned = open for punishment
+		if paralyzed:
+			var f := amount * 1.3 + _dmg_carry
+			amount = int(floor(f))
+			_dmg_carry = f - amount
+		else:
+			amount *= 2   # stunned = open for punishment
 	health -= amount
 	sprite.position.x = 0.0
 	knockback = (global_position - from_position).normalized() * hit_knockback * knock_scale
@@ -230,10 +241,32 @@ func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) 
 	state = State.HURT
 	sprite.play("hurt")
 
+## poison ticks: hurts without knocking it around
+func dot_damage(amount: int, color: Color = Color(0.55, 1.0, 0.35)) -> void:
+	if state == State.DEAD:
+		return
+	health -= amount
+	Juice.damage_number(get_parent(), global_position + Vector2(0, -50), str(amount), color, 16)
+	if health <= 0:
+		knockback = Vector2.RIGHT if randf() < 0.5 else Vector2.LEFT
+		_die()
+
 ## parried! knocked out of the air and dazed
+## Toxic Storm: drops out of the air, locked up
+func paralyze(duration: float) -> void:
+	if state == State.DEAD:
+		return
+	stun(duration)
+	paralyzed = true
+	knockback = Vector2.ZERO
+	sprite.play("fly")
+	sprite.pause()
+	sprite.modulate = Color(0.7, 1.0, 0.85)
+
 func stun(duration: float) -> void:
 	if state == State.DEAD:
 		return
+	paralyzed = false
 	state = State.STUNNED
 	stun_timer = duration
 	windup_timer = 0.0
@@ -259,6 +292,9 @@ func _flash() -> void:
 func _die() -> void:
 	state = State.DEAD
 	collision_layer = 0
+	sprite.self_modulate = Color.WHITE
+	if randf() < 0.7:
+		Pickup.drop(get_parent(), global_position, "item", "bat_wing")
 	var dir := knockback.normalized()
 	if dir == Vector2.ZERO:
 		dir = Vector2.RIGHT
@@ -353,6 +389,12 @@ func _draw() -> void:
 	if _tell_fx > 0.0:
 		_draw_tell()
 	if state != State.STUNNED:
+		return
+	if paralyzed:
+		for i in 3:
+			var a := Vector2(randf_range(-12, 12), randf_range(-24, 0))
+			var b := a + Vector2.from_angle(randf() * TAU) * randf_range(6, 12)
+			LightningBolt.draw_bolt(self, LightningBolt.zigzag(a, b, 2.5, 4.0), 0.9, 0.45)
 		return
 	for i in 3:
 		var a := _t * 6.0 + TAU * i / 3.0

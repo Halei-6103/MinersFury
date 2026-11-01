@@ -1,11 +1,11 @@
 extends Node2D
 ## Loot on the ground. Pops out, bounces, bobs, then gets pulled into you
-## when you walk close. Spawn with Pickup.drop(parent, pos, "item"/"blueprint", id).
+## when you walk close. Spawn with Pickup.drop(parent, pos, "item", id).
 
 const GameState = preload("res://scenes/core/game_state.gd")
 const Juice = preload("res://scenes/effects/juice.gd")
 
-## "item" or "blueprint"
+## always "item" now (shards and materials). Kept for older calls.
 var kind: String = "item"
 var id: String = "storm_crystal"
 ## how close you need to be before it flies to you
@@ -42,10 +42,13 @@ static func drop(parent: Node, pos: Vector2, kind_: String, id_: String, toss_di
 
 func _ready() -> void:
 	add_to_group("pickup")
-	var info: Dictionary = GameState.ITEMS.get(id, {}) if kind == "item" else GameState.BLUEPRINTS.get(id, {})
+	var info: Dictionary = GameState.ITEMS.get(id, {})
 	_color = info.get("color", _color)
 	var tex: Texture2D = load(info.get("icon", "res://assets/sprites/items/storm_crystal.png"))
 	var n: int = info.get("frames", 1)
+	# little material icons are drawn at 1x: show them at the game's 2x pixel size
+	if n == 1:
+		sprite_scale = 2.0
 	var fw := tex.get_width() / n
 	var sf := SpriteFrames.new()
 	sf.set_animation_speed("default", 11.0 if kind == "item" else 12.0)
@@ -60,7 +63,7 @@ func _ready() -> void:
 	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_sprite.scale = Vector2.ONE * sprite_scale
 	# feet on the ground point
-	_sprite.offset = Vector2(0, -tex.get_height() * 0.5 + 3)
+	_sprite.offset = Vector2(0, -tex.get_height() * 0.5 + (3 if n > 1 else 1))
 	add_child(_sprite)
 	_sprite.play()
 
@@ -113,15 +116,13 @@ func pull_now() -> void:
 
 
 func _collect(p: Node2D) -> void:
-	if kind == "blueprint":
-		GameState.add_blueprint(id)
-	else:
-		GameState.add_item(id)
+	GameState.add_item(id)
 	var label := "+ " + GameState.display_name(id)
-	Juice.damage_number(p.get_parent(), p.global_position + Vector2(0, -70), label, _color.lightened(0.2), 20)
-	if kind == "blueprint":
-		Juice.damage_number(p.get_parent(), p.global_position + Vector2(0, -100), "Take it to the Telecom", Color(1, 1, 1), 14)
-	Juice.zoom_punch(self, 0.04)
+	var shard: bool = GameState.ITEMS.get(id, {}).get("type", "") == "shard"
+	Juice.damage_number(p.get_parent(), p.global_position + Vector2(0, -70 - randf() * 20.0), label, _color.lightened(0.2), 22 if shard else 15)
+	if shard:
+		Juice.damage_number(p.get_parent(), p.global_position + Vector2(0, -110), "Send it home from the Telecom", Color(1, 1, 1), 14)
+		Juice.zoom_punch(self, 0.04)
 	queue_free()
 
 

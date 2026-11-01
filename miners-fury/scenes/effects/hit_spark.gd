@@ -1,6 +1,6 @@
 extends Node2D
-## Impact: a hot star flash on the hit point and anime impact rays shooting
-## out the back of whatever got hit. Dark rims so it reads on sand.
+## Impact rays shooting out the back of whatever got hit. Dark rims so they
+## read on sand. The flash on the hit point is a pack sprite (see Juice.spark).
 ## Spawn through Juice.spark(...).
 
 var dir: Vector2 = Vector2.RIGHT
@@ -64,7 +64,6 @@ func _draw() -> void:
 		return
 	var k := 1.0 - _t / FLASH_TIME
 	var r := (44.0 if big else 30.0) * (0.75 + 0.5 * (1.0 - k))
-	var side := dir.orthogonal()
 
 	# impact rays shooting out the back
 	for ray in _rays:
@@ -76,14 +75,7 @@ func _draw() -> void:
 		draw_line(a, b, Color(0.12, 0.02, 0.08, k), 5.0)
 		draw_line(a, b, Color(1, 1, 0.9, k), 2.0)
 
-	# star: dark rim, then white
-	var spike := PackedVector2Array([dir * r * 1.5, side * r * 0.24, -dir * r * 0.45, -side * r * 0.24])
-	var cross := PackedVector2Array([side * r * 0.8, dir * r * 0.16, -side * r * 0.8, -dir * r * 0.16])
-	draw_colored_polygon(_grow(spike, 3.0), Color(0.12, 0.02, 0.08, k))
-	draw_colored_polygon(_grow(cross, 3.0), Color(0.12, 0.02, 0.08, k))
-	draw_colored_polygon(spike, Color(1, 1, 1, k))
-	draw_colored_polygon(cross, Color(1, 0.92, 0.5, k))
-	draw_circle(Vector2.ZERO, r * 0.3 * k + 3.0, Color(1, 1, 1, k))
+	# (the star itself is now the pack sprite Juice.spark plays)
 
 
 func _grow(pts: PackedVector2Array, px: float) -> PackedVector2Array:

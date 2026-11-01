@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/enemies/skeleton/attack2.png" id="4_t"]
 [ext_resource type="Texture2D" path="res://assets/sprites/enemies/skeleton/hurt.png" id="5_t"]
 [ext_resource type="Texture2D" path="res://assets/sprites/enemies/skeleton/death.png" id="6_t"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/skeleton/summon.png" id="7_t"]
 
 [sub_resource type="AtlasTexture" id="idle_0"]
 atlas = ExtResource("1_t")
@@ -147,6 +148,26 @@ region = Rect2(200, 0, 100, 100)
 atlas = ExtResource("6_t")
 region = Rect2(300, 0, 100, 100)
 
+[sub_resource type="AtlasTexture" id="summon_0"]
+atlas = ExtResource("7_t")
+region = Rect2(0, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="summon_1"]
+atlas = ExtResource("7_t")
+region = Rect2(100, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="summon_2"]
+atlas = ExtResource("7_t")
+region = Rect2(200, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="summon_3"]
+atlas = ExtResource("7_t")
+region = Rect2(300, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="summon_4"]
+atlas = ExtResource("7_t")
+region = Rect2(400, 0, 100, 100)
+
 [resource]
 animations = [{
 "frames": [{
@@ -283,4 +304,24 @@ animations = [{
 "loop": false,
 "name": &"death",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("summon_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("summon_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("summon_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("summon_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("summon_4")
+}],
+"loop": false,
+"name": &"summon",
+"speed": 10.0
 }]

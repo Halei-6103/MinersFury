@@ -9,9 +9,10 @@ var life: float = 0.24
 var width: float = 1.3          # 1.3 = chain bolt, 2+ = thunderclap strike
 var forks: int = 1
 
-const CORE := Color(1.0, 0.98, 0.82)
-const YELLOW := Color(1.0, 0.86, 0.25)
-const BLUE := Color(0.3, 0.6, 1.0)
+## colors match the lightning in the effect packs: white core, cyan, deep sky blue
+const CORE := Color(1.0, 1.0, 1.0)
+const YELLOW := Color(0.04, 0.98, 1.0)   # (was yellow, now pack cyan)
+const BLUE := Color(0.0, 0.71, 0.95)
 
 var _t: float = 0.0
 var _flick: float = 0.0
@@ -43,7 +44,7 @@ static func zigzag(a: Vector2, b: Vector2, jag: float, seg: float = 14.0) -> Pac
 	return pts
 
 
-## glow + yellow + white-hot core, all with dark-free additive look
+## blue glow + cyan + white-hot core
 static func draw_bolt(ci: CanvasItem, pts: PackedVector2Array, alpha: float, w: float = 1.0) -> void:
 	if pts.size() < 2:
 		return
@@ -76,7 +77,7 @@ func _regen() -> void:
 
 func _process(delta: float) -> void:
 	# flicker on the real clock so it still crackles during freeze frames
-	var real := delta / maxf(Engine.time_scale, 0.001)
+	var real := minf(delta / maxf(Engine.time_scale, 0.001), 0.05)
 	_t += real
 	_flick += real
 	if _flick > 0.035:

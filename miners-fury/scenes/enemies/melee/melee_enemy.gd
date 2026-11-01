@@ -7,10 +7,17 @@ extends CharacterBody2D
 ##   skeleton  5 HP, 1 dmg  readable sword swing, great parry practice
 ##   orc       8 HP, 2 dmg  slow heavy chop, doesn't flinch mid-swing
 ##   werebear 30 HP, 2 dmg  boss: big, fast claws, never flinches, parry to open it up
+##   werewolf  6 HP, 1 dmg  fast, pounces, double slash
+##   armored skeleton  9 HP, 1 dmg  shrugs off hits mid-swing
+##   greatsword skeleton 12 HP, 2 dmg  slow huge swings, parry bait
+##   necromancer 40 HP  boss: scythe up close, drops green bolts on you, raises skeletons
+##
+## "drops": [[item_id, chance], ...] spawn as pickups when it dies.
 
 signal died
 
 const Juice = preload("res://scenes/effects/juice.gd")
+const FxSprite = preload("res://scenes/effects/fx_sprite.gd")
 
 const KINDS := {
 	"slime": {
@@ -20,6 +27,7 @@ const KINDS := {
 		"attacks": ["attack1"], "hits": {"attack1": [[3, 4]]}, "lunge": 230.0,
 		"knock_resist": 0.0, "armored_attacks": false, "boss": false, "launch": true,
 		"ichor": Color(0.32, 0.7, 0.22), "foot_y": 57.0, "body_y": 50.0, "radius": 12.0,
+		"drops": [["slime_goo", 0.9]],
 	},
 	"skeleton": {
 		"frames": "res://assets/sprites/enemies/skeleton/skeleton_frames.tres",
@@ -28,6 +36,7 @@ const KINDS := {
 		"attacks": ["attack1"], "hits": {"attack1": [[3, 4]]}, "lunge": 110.0,
 		"knock_resist": 0.15, "armored_attacks": false, "boss": false, "launch": true,
 		"ichor": Color(0.86, 0.83, 0.72), "foot_y": 58.0, "body_y": 49.0, "radius": 12.0,
+		"drops": [["bone", 1.0]],
 	},
 	"orc": {
 		"frames": "res://assets/sprites/enemies/orc/orc_frames.tres",
@@ -36,6 +45,7 @@ const KINDS := {
 		"attacks": ["attack1", "attack2"], "hits": {"attack1": [[3, 4]], "attack2": [[3, 4]]}, "lunge": 80.0,
 		"knock_resist": 0.55, "armored_attacks": true, "boss": false, "launch": false,
 		"ichor": Color(0.55, 0.08, 0.1), "foot_y": 58.0, "body_y": 49.0, "radius": 14.0,
+		"drops": [["orc_tusk", 1.0]],
 	},
 	"werebear": {
 		"frames": "res://assets/sprites/enemies/werebear/werebear_frames.tres",
@@ -44,6 +54,43 @@ const KINDS := {
 		"attacks": ["attack1", "attack2"], "hits": {"attack1": [[5, 6]], "attack2": [[4, 5], [9, 10]]}, "lunge": 140.0,
 		"knock_resist": 0.9, "armored_attacks": true, "boss": true, "launch": false,
 		"ichor": Color(0.45, 0.08, 0.1), "foot_y": 58.0, "body_y": 48.0, "radius": 20.0,
+		"drops": [["wolf_pelt", 1.0], ["wolf_pelt", 1.0]],
+	},
+	"werewolf": {
+		"frames": "res://assets/sprites/enemies/werewolf/werewolf_frames.tres",
+		"hp": 6, "damage": 1, "speed": 105.0, "scale": 2.2,
+		"attack_range": 62.0, "reach": 40.0, "windup": 0.38, "cooldown": 1.25,
+		"attacks": ["attack1", "attack2"], "hits": {"attack1": [[5, 6]], "attack2": [[8, 9], [11, 12]]}, "lunge": 250.0,
+		"knock_resist": 0.2, "armored_attacks": false, "boss": false, "launch": true,
+		"ichor": Color(0.5, 0.1, 0.1), "foot_y": 58.0, "body_y": 50.0, "radius": 13.0,
+		"drops": [["wolf_pelt", 1.0]],
+	},
+	"armored_skeleton": {
+		"frames": "res://assets/sprites/enemies/armored_skeleton/armored_skeleton_frames.tres",
+		"hp": 9, "damage": 1, "speed": 62.0, "scale": 2.2,
+		"attack_range": 56.0, "reach": 40.0, "windup": 0.5, "cooldown": 1.7,
+		"attacks": ["attack1"], "hits": {"attack1": [[4, 5]]}, "lunge": 120.0,
+		"knock_resist": 0.5, "armored_attacks": true, "boss": false, "launch": false,
+		"ichor": Color(0.8, 0.78, 0.7), "foot_y": 58.0, "body_y": 47.0, "radius": 13.0,
+		"drops": [["bone", 1.0], ["bone", 0.5]],
+	},
+	"greatsword_skeleton": {
+		"frames": "res://assets/sprites/enemies/greatsword_skeleton/greatsword_skeleton_frames.tres",
+		"hp": 12, "damage": 2, "speed": 52.0, "scale": 2.4,
+		"attack_range": 72.0, "reach": 56.0, "windup": 0.7, "cooldown": 2.0,
+		"attacks": ["attack1", "attack2"], "hits": {"attack1": [[4, 6]], "attack2": [[6, 9]]}, "lunge": 90.0,
+		"knock_resist": 0.7, "armored_attacks": true, "boss": false, "launch": false,
+		"ichor": Color(0.8, 0.78, 0.7), "foot_y": 58.0, "body_y": 47.0, "radius": 15.0,
+		"drops": [["bone", 1.0], ["bone", 1.0]],
+	},
+	"necromancer": {
+		"frames": "res://assets/sprites/enemies/necromancer/necromancer_frames.tres",
+		"hp": 40, "damage": 2, "speed": 62.0, "scale": 2.6,
+		"attack_range": 80.0, "reach": 60.0, "windup": 0.5, "cooldown": 1.4,
+		"attacks": ["attack1"], "hits": {"attack1": [[5, 7]]}, "lunge": 60.0,
+		"knock_resist": 0.9, "armored_attacks": true, "boss": true, "launch": false,
+		"ichor": Color(0.3, 0.55, 0.2), "foot_y": 58.0, "body_y": 44.0, "radius": 16.0,
+		"caster": true,
 	},
 }
 
@@ -52,7 +99,24 @@ const KINDS := {
 const TELL_LEAD := 0.35
 @export var display_name: String = ""
 
-enum State { SPAWNING, CHASE, WINDUP, ATTACK, HURT, STUNNED, DEAD }
+enum State { SPAWNING, CHASE, WINDUP, ATTACK, HURT, STUNNED, DEAD, CAST }
+
+const Pickup = preload("res://scenes/items/pickup.gd")
+const LightningBolt = preload("res://scenes/effects/lightning_bolt.gd")
+
+## Toxic Storm combo (poison rune + thunderclap): frozen solid, takes 30% more damage
+var paralyzed: bool = false
+var _dmg_carry: float = 0.0
+const NecroBolt = preload("res://scenes/enemies/melee/necro_bolt.gd")
+
+## raised by a Necromancer: climbs out of the ground, drops less loot
+var summoned: bool = false
+var no_drops: bool = false
+var _minions: Array = []
+var _cast_cd: float = 2.5
+var _summon_cd: float = 1.5
+var _cast_anim: String = ""
+var _cast_fired: bool = false
 var state: State = State.SPAWNING
 
 var cfg: Dictionary
@@ -105,6 +169,10 @@ func _ready() -> void:
 
 func _spawn_in() -> void:
 	state = State.SPAWNING
+	if summoned and sprite.sprite_frames.has_animation("summon"):
+		# claw out of the ground (the animation ends -> CHASE)
+		sprite.play("summon")
+		return
 	sprite.play("idle")
 	modulate = Color(1, 1, 1, 0)
 	sprite.position.y -= 30.0
@@ -145,6 +213,8 @@ func _physics_process(delta: float) -> void:
 			if p == null or hidden:
 				velocity = velocity.move_toward(Vector2.ZERO, 600.0 * delta)
 				_play("idle")
+			elif cfg.get("caster", false) and _try_cast(to_p, delta):
+				pass
 			else:
 				var dir := (to_p.normalized() + _separation() * 0.8).normalized()
 				velocity = velocity.move_toward(dir * cfg.speed, 900.0 * delta)
@@ -180,6 +250,16 @@ func _physics_process(delta: float) -> void:
 				_end_stun()
 		State.DEAD:
 			velocity = velocity.move_toward(Vector2.ZERO, (500.0 if _airborne else 2400.0) * delta)
+		State.CAST:
+			velocity = velocity.move_toward(Vector2.ZERO, 1200.0 * delta)
+			if p:
+				_face(to_p.x)
+			if not _cast_fired and sprite.frame >= 5:
+				_cast_fired = true
+				if _cast_anim == "summon":
+					_raise_dead()
+				else:
+					_drop_bolts(p)
 	move_and_slide()
 	if state == State.DEAD and _airborne and get_slide_collision_count() > 0:
 		_airborne = false
@@ -252,6 +332,9 @@ func _window_now() -> int:
 
 func _check_hits() -> void:
 	var w := _window_now()
+	if w >= 0 and w != _strike:
+		_strike = w
+		_swipe_fx(w)
 	if w < 0 or w == _hit_strike:
 		return
 	for b in attack_area.get_overlapping_bodies():
@@ -259,6 +342,20 @@ func _check_hits() -> void:
 			_hit_strike = w
 			b.take_damage(cfg.damage, global_position, self)
 			return
+
+
+## the Werebear's claws rip the air (effect pack 7), hit or miss
+func _swipe_fx(strike: int) -> void:
+	if kind != "werebear":
+		return
+	var at: Vector2 = global_position + attack_dir * cfg.reach * 0.45 + Vector2(0, -6)
+	var left := attack_dir.x < 0.0
+	if sprite.animation == "attack1":
+		FxSprite.spawn(get_parent(), "claw_sweep", at, {"flip_h": left, "z": 30})
+	else:
+		# alternate sides on the double swipe
+		FxSprite.spawn(get_parent(), "claw_burst", at, {"flip_h": left != (strike % 2 == 1), "z": 30})
+	Juice.shake(self, 0.25)
 
 
 ## one big bold flash: block now!
@@ -274,7 +371,13 @@ func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) 
 	if state == State.DEAD or state == State.SPAWNING:
 		return
 	if state == State.STUNNED:
-		amount *= 2   # stunned = open for punishment
+		if paralyzed:
+			# +30%, carried over so small hits still add up
+			var f := amount * 1.3 + _dmg_carry
+			amount = int(floor(f))
+			_dmg_carry = f - amount
+		else:
+			amount *= 2   # stunned = open for punishment
 	health -= amount
 	_bar_timer = 2.5
 	var dir := (global_position - from_position).normalized()
@@ -301,6 +404,80 @@ func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) 
 	sprite.play("hurt")
 
 
+## poison ticks: hurts without interrupting what it's doing
+func dot_damage(amount: int, color: Color = Color(0.55, 1.0, 0.35)) -> void:
+	if state == State.DEAD or state == State.SPAWNING:
+		return
+	health -= amount
+	_bar_timer = 2.5
+	Juice.damage_number(get_parent(), global_position + Vector2(0, hurtbox.position.y * 2.0 - 6.0), str(amount), color, 16)
+	if health <= 0:
+		_die(Vector2.RIGHT if randf() < 0.5 else Vector2.LEFT, 0.6)
+
+
+# ---------------------------------------------------------------- Necromancer spells
+
+func _hp_low() -> bool:
+	return health <= max_health / 2
+
+
+func _alive_minions() -> int:
+	_minions = _minions.filter(func(m): return is_instance_valid(m) and m.state != m.State.DEAD)
+	return _minions.size()
+
+
+## returns true if it started casting instead of walking
+func _try_cast(to_p: Vector2, delta: float) -> bool:
+	_cast_cd -= delta
+	_summon_cd -= delta
+	if _cast_cd > 0.0:
+		return false
+	var want := 3 if _hp_low() else 2
+	if _summon_cd <= 0.0 and _alive_minions() < want:
+		_start_cast("summon")
+		return true
+	# bolts when you're out of scythe range
+	if to_p.length() > cfg.attack_range * 1.4:
+		_start_cast("attack2")
+		return true
+	return false
+
+
+func _start_cast(anim: String) -> void:
+	state = State.CAST
+	_cast_anim = anim
+	_cast_fired = false
+	sprite.play(anim)
+
+
+func _drop_bolts(p: Node2D) -> void:
+	if p == null:
+		return
+	var spots: Array = [p.global_position]
+	if _hp_low():
+		# enraged: a spread of three
+		for i in 2:
+			spots.append(p.global_position + Vector2.from_angle(randf() * TAU) * Vector2(1, 0.5) * randf_range(60, 100))
+	for at in spots:
+		NecroBolt.cast(get_parent(), at, cfg.damage)
+
+
+func _raise_dead() -> void:
+	var scene = load("res://scenes/enemies/melee/melee_enemy.tscn")
+	var n := 2
+	for i in n:
+		var at: Vector2 = global_position + Vector2.from_angle(TAU * i / n + randf_range(-0.6, 0.6)) * Vector2(1, 0.5) * randf_range(70, 110)
+		var floor_layer = get_tree().current_scene.get_node_or_null("Ground")
+		FxSprite.spawn(floor_layer if floor_layer else get_parent(), "necro_circle", at, {"scale": 2.0, "z": 0})
+		var m = scene.instantiate()
+		m.kind = "armored_skeleton" if _hp_low() and i == 0 else "skeleton"
+		m.summoned = true
+		m.position = at
+		get_parent().add_child(m)
+		_minions.append(m)
+	Juice.shake(self, 0.3)
+
+
 func _flash() -> void:
 	var base := sprite.modulate
 	sprite.modulate = Color(3, 3, 3)
@@ -316,6 +493,7 @@ func _flash() -> void:
 func stun(duration: float) -> void:
 	if state == State.DEAD or state == State.SPAWNING:
 		return
+	paralyzed = false
 	state = State.STUNNED
 	_told = true
 	stun_timer = duration * (0.6 if cfg.boss else 1.0)
@@ -327,7 +505,22 @@ func stun(duration: float) -> void:
 	knockback = attack_dir * -220.0 * (1.0 - cfg.knock_resist * 0.5)
 
 
+## Toxic Storm: nerves locked up. Can't move or act. Bosses shake it off in half the time.
+func paralyze(duration: float) -> void:
+	if state == State.DEAD or state == State.SPAWNING:
+		return
+	stun(duration)
+	paralyzed = true
+	stun_timer = duration * (0.5 if cfg.boss else 1.0)
+	knockback = Vector2.ZERO
+	# locked mid-stance, not the red "hurt" frame
+	sprite.play("idle")
+	sprite.pause()
+	sprite.modulate = Color(0.7, 1.0, 0.85)
+
+
 func _end_stun() -> void:
+	paralyzed = false
 	state = State.CHASE
 	cooldown = 0.6
 	sprite.modulate = Color.WHITE
@@ -339,6 +532,13 @@ func _die(dir: Vector2, knock_scale: float) -> void:
 	collision_layer = 0
 	hurtbox.monitorable = false
 	sprite.position.x = 0.0
+	sprite.self_modulate = Color.WHITE
+	_drop_loot()
+	# the dead stop walking when their master falls
+	for m in _minions:
+		if is_instance_valid(m) and m.state != m.State.DEAD:
+			m.no_drops = true
+			m.take_damage(999, global_position)
 	died.emit()
 	if cfg.launch:
 		# small monsters get sent flying
@@ -361,6 +561,14 @@ func _die(dir: Vector2, knock_scale: float) -> void:
 		Juice.death_puff(get_parent(), global_position, ichor_color.darkened(0.3))
 
 
+func _drop_loot() -> void:
+	if no_drops:
+		return
+	for d in cfg.get("drops", []):
+		if randf() < float(d[1]) * (0.4 if summoned else 1.0):
+			Pickup.drop(get_parent(), global_position, "item", d[0])
+
+
 func _land() -> void:
 	_airborne = false
 	sprite.rotation = 0.0
@@ -373,6 +581,15 @@ func _land() -> void:
 
 func _on_animation_finished() -> void:
 	match state:
+		State.SPAWNING:
+			if sprite.animation == "summon":
+				state = State.CHASE
+				Juice.shockwave(self, global_position, 16.0)
+		State.CAST:
+			state = State.CHASE
+			_cast_cd = 1.6 if _hp_low() else 2.4
+			if _cast_anim == "summon":
+				_summon_cd = 8.0
 		State.ATTACK:
 			state = State.CHASE
 			cooldown = cfg.cooldown
@@ -390,8 +607,16 @@ func _draw() -> void:
 	var top: float = hurtbox.position.y * 2.0 - 10.0
 	if _tell_fx > 0.0:
 		_draw_tell(Vector2(0, hurtbox.position.y), top - 6.0, cfg.scale / 2.0)
+	# paralysis: green-blue current crawling over the body
+	if state == State.STUNNED and paralyzed:
+		var by := hurtbox.position.y
+		for i in 3:
+			var a: Vector2 = Vector2(randf_range(-16, 16), by + randf_range(-18, 14)) * cfg.scale / 2.0
+			var b: Vector2 = a + Vector2.from_angle(randf() * TAU) * randf_range(8, 16)
+			LightningBolt.draw_bolt(self, LightningBolt.zigzag(a, b, 3.0, 5.0), 0.9, 0.5)
+		_star(Vector2(0, top), Color(0.6, 1.0, 0.4))
 	# dizzy stars while stunned
-	if state == State.STUNNED:
+	elif state == State.STUNNED:
 		for i in 3:
 			var a := _t * 6.0 + TAU * i / 3.0
 			var p := Vector2(cos(a) * 14.0, top + sin(a) * 5.0)

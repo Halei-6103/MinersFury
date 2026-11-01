@@ -1,0 +1,1854 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/levels/forest/forest.gd" id="1_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/forest_ground.png" id="2_f"]
+[ext_resource type="PackedScene" path="res://scenes/levels/shared/transfer_board.tscn" id="3_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/log_long.png" id="4_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/mossy_big.png" id="5_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/log_short.png" id="6_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/mossy_med.png" id="7_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/stump.png" id="8_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/oak3.png" id="9_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/pine2.png" id="10_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/mossy_small.png" id="11_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/mushrooms.png" id="12_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/fern2.png" id="13_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/fern1.png" id="14_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/bush2.png" id="15_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/bush3.png" id="16_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/bush1.png" id="17_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/pine1.png" id="18_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/oak4.png" id="19_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/pine3.png" id="20_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/oak2.png" id="21_f"]
+[ext_resource type="Texture2D" path="res://assets/sprites/forest/oak1.png" id="22_f"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="23_f"]
+
+
+
+[node name="Forest" type="Node2D"]
+script = ExtResource("1_f")
+
+[node name="Ground" type="Node2D" parent="."]
+
+[node name="Fill" type="Polygon2D" parent="Ground"]
+color = Color(0.18, 0.28, 0.16, 1)
+polygon = PackedVector2Array(-3000, -2000, 3000, -2000, 3000, 2000, -3000, 2000)
+
+[node name="Grass" type="Sprite2D" parent="Ground"]
+texture = ExtResource("2_f")
+centered = false
+position = Vector2(-1400, -900)
+
+[node name="Bounds" type="StaticBody2D" parent="."]
+collision_layer = 5
+
+[node name="Edge" type="CollisionPolygon2D" parent="Bounds"]
+build_mode = 1
+polygon = PackedVector2Array(0, -450.0, 900.0, 0, 0, 450.0, -900.0, 0)
+
+[node name="Entities" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="TransferBoard" parent="Entities" instance=ExtResource("3_f")]
+position = Vector2(-640, 120)
+label = "Return to Camp"
+target_scene = "res://scenes/levels/hub/hub.tscn"
+arrival_spawn = "FromWasteland"
+
+[node name="SpawnPoints" type="Node2D" parent="."]
+
+[node name="Start" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(-590, 154)
+
+[node name="LogLong1" type="Node2D" parent="Entities"]
+position = Vector2(230, -150)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/LogLong1"]
+texture = ExtResource("4_f")
+offset = Vector2(0.5, -9.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/LogLong1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/LogLong1/Body"]
+polygon = PackedVector2Array(-27.0, -24.5, 49.0, 13.5, 27.0, 24.5, -49.0, -13.5)
+
+[node name="MossyBig1" type="Node2D" parent="Entities"]
+position = Vector2(-300, -170)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyBig1"]
+texture = ExtResource("5_f")
+offset = Vector2(0.0, -17.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/MossyBig1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/MossyBig1/Body"]
+polygon = PackedVector2Array(0.0, -15.0, 30.0, 0.0, 0.0, 15.0, -30.0, 0.0)
+
+[node name="LogShort1" type="Node2D" parent="Entities"]
+position = Vector2(480, 150)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/LogShort1"]
+texture = ExtResource("6_f")
+offset = Vector2(0.5, -10.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/LogShort1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/LogShort1/Body"]
+polygon = PackedVector2Array(-13.0, -17.5, 35.0, 6.5, 13.0, 17.5, -35.0, -6.5)
+
+[node name="MossyMed1" type="Node2D" parent="Entities"]
+position = Vector2(90, 210)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyMed1"]
+texture = ExtResource("7_f")
+offset = Vector2(1.0, -12.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/MossyMed1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/MossyMed1/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="Stump1" type="Node2D" parent="Entities"]
+position = Vector2(-120, -40)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Stump1"]
+texture = ExtResource("8_f")
+offset = Vector2(0.5, -6.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Stump1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Stump1/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="Stump2" type="Node2D" parent="Entities"]
+position = Vector2(380, -40)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Stump2"]
+texture = ExtResource("8_f")
+offset = Vector2(0.5, -6.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Stump2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Stump2/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="Oak31" type="Node2D" parent="Entities"]
+position = Vector2(44.0, 306.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak31"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Oak31"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Oak31/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="Oak32" type="Node2D" parent="Entities"]
+position = Vector2(-231.7, 246.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak32"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Oak32"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Oak32/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="Pine21" type="Node2D" parent="Entities"]
+position = Vector2(281.0, 184.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine21"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Pine21"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Pine21/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="Pine22" type="Node2D" parent="Entities"]
+position = Vector2(411.1, 58.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine22"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Pine22"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Pine22/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="Pine23" type="Node2D" parent="Entities"]
+position = Vector2(-580.0, 40.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine23"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Pine23"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Pine23/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="MossySmall1" type="Node2D" parent="Entities"]
+position = Vector2(111.1, 53.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall1"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/MossySmall1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/MossySmall1/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="Stump3" type="Node2D" parent="Entities"]
+position = Vector2(-30.2, 121.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Stump3"]
+texture = ExtResource("8_f")
+offset = Vector2(0.5, -6.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Stump3"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Stump3/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="Stump4" type="Node2D" parent="Entities"]
+position = Vector2(372.0, -97.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Stump4"]
+texture = ExtResource("8_f")
+offset = Vector2(0.5, -6.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Stump4"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Stump4/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="MossySmall2" type="Node2D" parent="Entities"]
+position = Vector2(382.7, -188.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall2"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/MossySmall2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/MossySmall2/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="Stump5" type="Node2D" parent="Entities"]
+position = Vector2(273.0, -258.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Stump5"]
+texture = ExtResource("8_f")
+offset = Vector2(0.5, -6.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Stump5"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Stump5/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="MossyMed2" type="Node2D" parent="Entities"]
+position = Vector2(-184.2, 126.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyMed2"]
+texture = ExtResource("7_f")
+offset = Vector2(1.0, -12.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/MossyMed2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/MossyMed2/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="Mushrooms1" type="Node2D" parent="Entities"]
+position = Vector2(135.8, -77.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Mushrooms1"]
+texture = ExtResource("12_f")
+offset = Vector2(0.0, -4.5)
+
+[node name="Fern21" type="Node2D" parent="Entities"]
+position = Vector2(-342.5, 78.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern21"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="Fern11" type="Node2D" parent="Entities"]
+position = Vector2(-577.9, -66.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern11"]
+texture = ExtResource("14_f")
+offset = Vector2(-2.5, -4.5)
+
+[node name="Fern22" type="Node2D" parent="Entities"]
+position = Vector2(183.0, 18.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern22"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="Mushrooms2" type="Node2D" parent="Entities"]
+position = Vector2(-642.5, -36.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Mushrooms2"]
+texture = ExtResource("12_f")
+offset = Vector2(0.0, -4.5)
+
+[node name="Fern12" type="Node2D" parent="Entities"]
+position = Vector2(8.5, 36.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern12"]
+texture = ExtResource("14_f")
+offset = Vector2(-2.5, -4.5)
+
+[node name="Bush21" type="Node2D" parent="Entities"]
+position = Vector2(-94.4, -205.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush21"]
+texture = ExtResource("15_f")
+offset = Vector2(0.5, -9.0)
+
+[node name="Bush22" type="Node2D" parent="Entities"]
+position = Vector2(-65.3, 252.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush22"]
+texture = ExtResource("15_f")
+offset = Vector2(0.5, -9.0)
+
+[node name="Bush23" type="Node2D" parent="Entities"]
+position = Vector2(-89.3, 321.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush23"]
+texture = ExtResource("15_f")
+offset = Vector2(0.5, -9.0)
+
+[node name="Fern23" type="Node2D" parent="Entities"]
+position = Vector2(-475.3, -143.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern23"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="Mushrooms3" type="Node2D" parent="Entities"]
+position = Vector2(588.0, 126.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Mushrooms3"]
+texture = ExtResource("12_f")
+offset = Vector2(0.0, -4.5)
+
+[node name="Bush31" type="Node2D" parent="Entities"]
+position = Vector2(-430.3, -178.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush31"]
+texture = ExtResource("16_f")
+offset = Vector2(1.5, -8.0)
+
+[node name="Bush11" type="Node2D" parent="Entities"]
+position = Vector2(-114.9, -245.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush11"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Fern24" type="Node2D" parent="Entities"]
+position = Vector2(-412.4, -64.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern24"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="Bush32" type="Node2D" parent="Entities"]
+position = Vector2(-13.6, 373.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush32"]
+texture = ExtResource("16_f")
+offset = Vector2(1.5, -8.0)
+
+[node name="Mushrooms4" type="Node2D" parent="Entities"]
+position = Vector2(-146.0, -178.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Mushrooms4"]
+texture = ExtResource("12_f")
+offset = Vector2(0.0, -4.5)
+
+[node name="Bush24" type="Node2D" parent="Entities"]
+position = Vector2(-113.6, 1.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush24"]
+texture = ExtResource("15_f")
+offset = Vector2(0.5, -9.0)
+
+[node name="Fern25" type="Node2D" parent="Entities"]
+position = Vector2(-14.6, -69.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern25"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="Bush33" type="Node2D" parent="Entities"]
+position = Vector2(-320.5, 263.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush33"]
+texture = ExtResource("16_f")
+offset = Vector2(1.5, -8.0)
+
+[node name="Mushrooms5" type="Node2D" parent="Entities"]
+position = Vector2(264.6, -63.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Mushrooms5"]
+texture = ExtResource("12_f")
+offset = Vector2(0.0, -4.5)
+
+[node name="Bush12" type="Node2D" parent="Entities"]
+position = Vector2(453.3, -124.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush12"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Fern13" type="Node2D" parent="Entities"]
+position = Vector2(164.1, -148.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern13"]
+texture = ExtResource("14_f")
+offset = Vector2(-2.5, -4.5)
+
+[node name="Pine11" type="Node2D" parent="Entities"]
+position = Vector2(-0.2, -494.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine11"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Oak33" type="Node2D" parent="Entities"]
+position = Vector2(55.1, -467.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak33"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Oak41" type="Node2D" parent="Entities"]
+position = Vector2(104.2, -432.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak41"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Oak42" type="Node2D" parent="Entities"]
+position = Vector2(163.2, -426.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak42"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Pine31" type="Node2D" parent="Entities"]
+position = Vector2(193.2, -406.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine31"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Pine24" type="Node2D" parent="Entities"]
+position = Vector2(239.3, -385.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine24"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Pine32" type="Node2D" parent="Entities"]
+position = Vector2(312.9, -353.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine32"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Oak21" type="Node2D" parent="Entities"]
+position = Vector2(365.4, -328.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak21"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="Pine33" type="Node2D" parent="Entities"]
+position = Vector2(400.2, -314.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine33"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Pine34" type="Node2D" parent="Entities"]
+position = Vector2(435.7, -275.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine34"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Oak43" type="Node2D" parent="Entities"]
+position = Vector2(509.1, -259.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak43"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Oak44" type="Node2D" parent="Entities"]
+position = Vector2(536.5, -224.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak44"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Pine35" type="Node2D" parent="Entities"]
+position = Vector2(607.3, -193.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine35"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Pine36" type="Node2D" parent="Entities"]
+position = Vector2(656.2, -186.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine36"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Pine37" type="Node2D" parent="Entities"]
+position = Vector2(715.1, -162.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine37"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Oak45" type="Node2D" parent="Entities"]
+position = Vector2(730.4, -131.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak45"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Oak22" type="Node2D" parent="Entities"]
+position = Vector2(760.6, -101.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak22"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="Pine12" type="Node2D" parent="Entities"]
+position = Vector2(805.6, -74.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine12"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Pine13" type="Node2D" parent="Entities"]
+position = Vector2(917.9, -45.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine13"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Oak11" type="Node2D" parent="Entities"]
+position = Vector2(951.1, -22.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak11"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Pine14" type="Node2D" parent="Entities"]
+position = Vector2(960.7, 4.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine14"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="MossySmall3" type="Node2D" parent="Entities"]
+position = Vector2(1031.7, 0.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall3"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="MossySmall4" type="Node2D" parent="Entities"]
+position = Vector2(946.7, 14.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall4"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Bush34" type="Node2D" parent="Entities"]
+position = Vector2(939.0, 48.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush34"]
+texture = ExtResource("16_f")
+offset = Vector2(1.5, -8.0)
+
+[node name="Fern26" type="Node2D" parent="Entities"]
+position = Vector2(870.2, 56.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern26"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="Fern27" type="Node2D" parent="Entities"]
+position = Vector2(853.2, 84.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern27"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="Bush35" type="Node2D" parent="Entities"]
+position = Vector2(771.0, 99.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush35"]
+texture = ExtResource("16_f")
+offset = Vector2(1.5, -8.0)
+
+[node name="Bush36" type="Node2D" parent="Entities"]
+position = Vector2(712.8, 123.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush36"]
+texture = ExtResource("16_f")
+offset = Vector2(1.5, -8.0)
+
+[node name="Bush13" type="Node2D" parent="Entities"]
+position = Vector2(719.8, 153.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush13"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Bush14" type="Node2D" parent="Entities"]
+position = Vector2(688.0, 174.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush14"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="MossySmall5" type="Node2D" parent="Entities"]
+position = Vector2(641.0, 196.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall5"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Bush25" type="Node2D" parent="Entities"]
+position = Vector2(555.9, 203.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush25"]
+texture = ExtResource("15_f")
+offset = Vector2(0.5, -9.0)
+
+[node name="MossySmall6" type="Node2D" parent="Entities"]
+position = Vector2(535.0, 227.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall6"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Bush37" type="Node2D" parent="Entities"]
+position = Vector2(477.7, 248.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush37"]
+texture = ExtResource("16_f")
+offset = Vector2(1.5, -8.0)
+
+[node name="Fern28" type="Node2D" parent="Entities"]
+position = Vector2(448.8, 254.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern28"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="MossySmall7" type="Node2D" parent="Entities"]
+position = Vector2(432.6, 294.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall7"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Bush15" type="Node2D" parent="Entities"]
+position = Vector2(372.2, 303.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush15"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="MossySmall8" type="Node2D" parent="Entities"]
+position = Vector2(329.7, 327.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall8"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Bush38" type="Node2D" parent="Entities"]
+position = Vector2(301.1, 363.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush38"]
+texture = ExtResource("16_f")
+offset = Vector2(1.5, -8.0)
+
+[node name="Bush16" type="Node2D" parent="Entities"]
+position = Vector2(247.6, 384.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush16"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="MossySmall9" type="Node2D" parent="Entities"]
+position = Vector2(190.8, 383.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall9"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Bush17" type="Node2D" parent="Entities"]
+position = Vector2(168.2, 418.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush17"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="MossySmall10" type="Node2D" parent="Entities"]
+position = Vector2(119.7, 441.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall10"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="MossySmall11" type="Node2D" parent="Entities"]
+position = Vector2(95.3, 470.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall11"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Bush26" type="Node2D" parent="Entities"]
+position = Vector2(44.0, 454.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush26"]
+texture = ExtResource("15_f")
+offset = Vector2(0.5, -9.0)
+
+[node name="MossySmall12" type="Node2D" parent="Entities"]
+position = Vector2(-8.9, 522.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall12"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Fern29" type="Node2D" parent="Entities"]
+position = Vector2(7.3, 491.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern29"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="Fern210" type="Node2D" parent="Entities"]
+position = Vector2(-47.1, 456.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern210"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="Fern211" type="Node2D" parent="Entities"]
+position = Vector2(-90.3, 451.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern211"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="MossySmall13" type="Node2D" parent="Entities"]
+position = Vector2(-125.1, 446.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall13"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="MossySmall14" type="Node2D" parent="Entities"]
+position = Vector2(-168.7, 416.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall14"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="MossySmall15" type="Node2D" parent="Entities"]
+position = Vector2(-198.1, 381.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall15"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Bush27" type="Node2D" parent="Entities"]
+position = Vector2(-238.1, 370.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush27"]
+texture = ExtResource("15_f")
+offset = Vector2(0.5, -9.0)
+
+[node name="Bush28" type="Node2D" parent="Entities"]
+position = Vector2(-293.4, 349.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush28"]
+texture = ExtResource("15_f")
+offset = Vector2(0.5, -9.0)
+
+[node name="Bush39" type="Node2D" parent="Entities"]
+position = Vector2(-344.8, 340.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush39"]
+texture = ExtResource("16_f")
+offset = Vector2(1.5, -8.0)
+
+[node name="MossySmall16" type="Node2D" parent="Entities"]
+position = Vector2(-370.3, 309.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall16"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Bush29" type="Node2D" parent="Entities"]
+position = Vector2(-426.9, 289.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush29"]
+texture = ExtResource("15_f")
+offset = Vector2(0.5, -9.0)
+
+[node name="MossySmall17" type="Node2D" parent="Entities"]
+position = Vector2(-456.9, 257.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall17"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="MossySmall18" type="Node2D" parent="Entities"]
+position = Vector2(-475.8, 248.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall18"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="MossySmall19" type="Node2D" parent="Entities"]
+position = Vector2(-532.1, 228.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall19"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Bush18" type="Node2D" parent="Entities"]
+position = Vector2(-572.2, 214.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush18"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="MossySmall20" type="Node2D" parent="Entities"]
+position = Vector2(-612.3, 193.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall20"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="MossySmall21" type="Node2D" parent="Entities"]
+position = Vector2(-657.5, 160.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall21"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="MossySmall22" type="Node2D" parent="Entities"]
+position = Vector2(-745.6, 146.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall22"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Bush310" type="Node2D" parent="Entities"]
+position = Vector2(-759.2, 125.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush310"]
+texture = ExtResource("16_f")
+offset = Vector2(1.5, -8.0)
+
+[node name="Fern212" type="Node2D" parent="Entities"]
+position = Vector2(-764.7, 104.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern212"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="Bush19" type="Node2D" parent="Entities"]
+position = Vector2(-810.1, 74.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush19"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Bush210" type="Node2D" parent="Entities"]
+position = Vector2(-876.9, 57.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush210"]
+texture = ExtResource("15_f")
+offset = Vector2(0.5, -9.0)
+
+[node name="Bush110" type="Node2D" parent="Entities"]
+position = Vector2(-952.2, 40.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush110"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Fern213" type="Node2D" parent="Entities"]
+position = Vector2(-934.8, 15.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Fern213"]
+texture = ExtResource("13_f")
+offset = Vector2(-1.5, -4.5)
+
+[node name="MossySmall23" type="Node2D" parent="Entities"]
+position = Vector2(-989.8, -1.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossySmall23"]
+texture = ExtResource("11_f")
+offset = Vector2(0.5, -5.5)
+
+[node name="Oak12" type="Node2D" parent="Entities"]
+position = Vector2(-971.6, 4.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak12"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Pine25" type="Node2D" parent="Entities"]
+position = Vector2(-980.6, -27.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine25"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Pine38" type="Node2D" parent="Entities"]
+position = Vector2(-883.1, -43.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine38"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Pine39" type="Node2D" parent="Entities"]
+position = Vector2(-821.7, -75.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine39"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Oak46" type="Node2D" parent="Entities"]
+position = Vector2(-773.3, -96.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak46"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Pine15" type="Node2D" parent="Entities"]
+position = Vector2(-733.6, -122.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine15"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Pine26" type="Node2D" parent="Entities"]
+position = Vector2(-701.1, -150.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine26"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Oak13" type="Node2D" parent="Entities"]
+position = Vector2(-648.7, -173.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak13"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Oak34" type="Node2D" parent="Entities"]
+position = Vector2(-619.9, -205.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak34"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Oak23" type="Node2D" parent="Entities"]
+position = Vector2(-519.8, -224.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak23"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="Oak14" type="Node2D" parent="Entities"]
+position = Vector2(-493.6, -233.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak14"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Oak47" type="Node2D" parent="Entities"]
+position = Vector2(-468.1, -275.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak47"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Oak15" type="Node2D" parent="Entities"]
+position = Vector2(-394.7, -285.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak15"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Pine310" type="Node2D" parent="Entities"]
+position = Vector2(-359.7, -333.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine310"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Pine311" type="Node2D" parent="Entities"]
+position = Vector2(-296.7, -341.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine311"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Oak16" type="Node2D" parent="Entities"]
+position = Vector2(-254.0, -385.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak16"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Oak35" type="Node2D" parent="Entities"]
+position = Vector2(-204.7, -375.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak35"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Pine312" type="Node2D" parent="Entities"]
+position = Vector2(-156.8, -422.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine312"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Pine16" type="Node2D" parent="Entities"]
+position = Vector2(-92.0, -436.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine16"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Oak36" type="Node2D" parent="Entities"]
+position = Vector2(-58.2, -460.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak36"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Pine27" type="Node2D" parent="Entities"]
+position = Vector2(12.8, -519.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine27"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Pine313" type="Node2D" parent="Entities"]
+position = Vector2(1385.9, -393.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine313"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Pine314" type="Node2D" parent="Entities"]
+position = Vector2(-852.2, 127.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine314"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Bush111" type="Node2D" parent="Entities"]
+position = Vector2(1230.0, 828.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush111"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Pine28" type="Node2D" parent="Entities"]
+position = Vector2(617.3, 545.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine28"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Oak17" type="Node2D" parent="Entities"]
+position = Vector2(-1100.4, 884.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak17"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Oak24" type="Node2D" parent="Entities"]
+position = Vector2(-1485.5, 880.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak24"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="MossyMed3" type="Node2D" parent="Entities"]
+position = Vector2(-1245.2, 164.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyMed3"]
+texture = ExtResource("7_f")
+offset = Vector2(1.0, -12.0)
+
+[node name="Pine29" type="Node2D" parent="Entities"]
+position = Vector2(-866.4, 887.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine29"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Bush112" type="Node2D" parent="Entities"]
+position = Vector2(-1029.7, 655.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush112"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Bush113" type="Node2D" parent="Entities"]
+position = Vector2(-547.1, -693.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush113"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Pine315" type="Node2D" parent="Entities"]
+position = Vector2(-846.9, -519.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine315"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="MossyMed4" type="Node2D" parent="Entities"]
+position = Vector2(-1411.0, -497.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyMed4"]
+texture = ExtResource("7_f")
+offset = Vector2(1.0, -12.0)
+
+[node name="MossyMed5" type="Node2D" parent="Entities"]
+position = Vector2(1208.1, -582.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyMed5"]
+texture = ExtResource("7_f")
+offset = Vector2(1.0, -12.0)
+
+[node name="Pine17" type="Node2D" parent="Entities"]
+position = Vector2(-755.3, -429.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine17"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Pine18" type="Node2D" parent="Entities"]
+position = Vector2(-1077.9, -339.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine18"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Bush114" type="Node2D" parent="Entities"]
+position = Vector2(-671.5, 884.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush114"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Oak37" type="Node2D" parent="Entities"]
+position = Vector2(895.2, -932.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak37"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Oak18" type="Node2D" parent="Entities"]
+position = Vector2(-1473.3, 283.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak18"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Pine210" type="Node2D" parent="Entities"]
+position = Vector2(-48.5, -718.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine210"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Pine19" type="Node2D" parent="Entities"]
+position = Vector2(1218.8, 20.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine19"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Oak19" type="Node2D" parent="Entities"]
+position = Vector2(583.6, -888.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak19"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Pine211" type="Node2D" parent="Entities"]
+position = Vector2(967.0, -201.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine211"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Oak48" type="Node2D" parent="Entities"]
+position = Vector2(1086.7, 216.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak48"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Pine110" type="Node2D" parent="Entities"]
+position = Vector2(759.0, 778.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine110"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Pine212" type="Node2D" parent="Entities"]
+position = Vector2(-1320.4, -461.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine212"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Oak49" type="Node2D" parent="Entities"]
+position = Vector2(-1463.7, 156.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak49"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Bush115" type="Node2D" parent="Entities"]
+position = Vector2(158.8, -698.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush115"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Oak25" type="Node2D" parent="Entities"]
+position = Vector2(-1389.7, 650.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak25"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="Pine111" type="Node2D" parent="Entities"]
+position = Vector2(-1397.9, -381.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine111"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Oak110" type="Node2D" parent="Entities"]
+position = Vector2(185.6, -548.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak110"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Pine112" type="Node2D" parent="Entities"]
+position = Vector2(-389.1, -768.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine112"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="MossyMed6" type="Node2D" parent="Entities"]
+position = Vector2(1464.7, 827.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyMed6"]
+texture = ExtResource("7_f")
+offset = Vector2(1.0, -12.0)
+
+[node name="Oak111" type="Node2D" parent="Entities"]
+position = Vector2(-847.5, -655.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak111"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Bush116" type="Node2D" parent="Entities"]
+position = Vector2(208.4, 794.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush116"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Pine113" type="Node2D" parent="Entities"]
+position = Vector2(1093.1, 282.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine113"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Oak112" type="Node2D" parent="Entities"]
+position = Vector2(-1163.4, -636.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak112"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Pine213" type="Node2D" parent="Entities"]
+position = Vector2(-891.9, 559.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine213"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Pine316" type="Node2D" parent="Entities"]
+position = Vector2(1359.0, -822.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine316"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Oak38" type="Node2D" parent="Entities"]
+position = Vector2(1464.2, -91.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak38"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Bush117" type="Node2D" parent="Entities"]
+position = Vector2(-1195.4, 485.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush117"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Oak26" type="Node2D" parent="Entities"]
+position = Vector2(338.5, 575.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak26"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="Oak410" type="Node2D" parent="Entities"]
+position = Vector2(-1424.1, -332.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak410"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Oak411" type="Node2D" parent="Entities"]
+position = Vector2(-956.1, 723.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak411"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Oak27" type="Node2D" parent="Entities"]
+position = Vector2(-340.1, 465.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak27"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="Oak412" type="Node2D" parent="Entities"]
+position = Vector2(993.5, 645.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak412"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Pine214" type="Node2D" parent="Entities"]
+position = Vector2(-892.9, 871.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine214"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Oak39" type="Node2D" parent="Entities"]
+position = Vector2(101.2, 813.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak39"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Oak28" type="Node2D" parent="Entities"]
+position = Vector2(1255.3, -368.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak28"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="Pine114" type="Node2D" parent="Entities"]
+position = Vector2(-1238.5, -30.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine114"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Oak413" type="Node2D" parent="Entities"]
+position = Vector2(-238.9, 847.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak413"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Oak414" type="Node2D" parent="Entities"]
+position = Vector2(1191.7, 385.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak414"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Pine317" type="Node2D" parent="Entities"]
+position = Vector2(-775.2, -432.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine317"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Oak310" type="Node2D" parent="Entities"]
+position = Vector2(1444.5, 892.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak310"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="MossyMed7" type="Node2D" parent="Entities"]
+position = Vector2(-919.9, -187.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyMed7"]
+texture = ExtResource("7_f")
+offset = Vector2(1.0, -12.0)
+
+[node name="Oak113" type="Node2D" parent="Entities"]
+position = Vector2(-482.2, -442.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak113"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Pine115" type="Node2D" parent="Entities"]
+position = Vector2(-427.0, 728.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine115"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Pine116" type="Node2D" parent="Entities"]
+position = Vector2(-1016.4, -876.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine116"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Bush118" type="Node2D" parent="Entities"]
+position = Vector2(-790.4, -330.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush118"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Oak415" type="Node2D" parent="Entities"]
+position = Vector2(1329.8, -481.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak415"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Oak29" type="Node2D" parent="Entities"]
+position = Vector2(1337.0, -541.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak29"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="Pine215" type="Node2D" parent="Entities"]
+position = Vector2(-1131.1, 30.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine215"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Oak114" type="Node2D" parent="Entities"]
+position = Vector2(647.6, 345.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak114"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Oak311" type="Node2D" parent="Entities"]
+position = Vector2(-764.5, 871.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak311"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Oak416" type="Node2D" parent="Entities"]
+position = Vector2(-461.9, -907.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak416"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Oak210" type="Node2D" parent="Entities"]
+position = Vector2(-466.0, 863.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak210"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="Pine216" type="Node2D" parent="Entities"]
+position = Vector2(1258.9, 443.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine216"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Pine217" type="Node2D" parent="Entities"]
+position = Vector2(-1263.4, 640.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine217"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Bush119" type="Node2D" parent="Entities"]
+position = Vector2(-784.4, -337.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush119"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Pine318" type="Node2D" parent="Entities"]
+position = Vector2(-205.7, -844.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine318"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Oak211" type="Node2D" parent="Entities"]
+position = Vector2(494.3, 792.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak211"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="Oak312" type="Node2D" parent="Entities"]
+position = Vector2(-475.7, 565.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak312"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Oak115" type="Node2D" parent="Entities"]
+position = Vector2(-392.9, -420.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak115"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Oak313" type="Node2D" parent="Entities"]
+position = Vector2(-1422.9, -16.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak313"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Pine218" type="Node2D" parent="Entities"]
+position = Vector2(-1428.2, 779.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine218"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Oak314" type="Node2D" parent="Entities"]
+position = Vector2(-824.2, 213.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak314"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Pine319" type="Node2D" parent="Entities"]
+position = Vector2(393.4, 495.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine319"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Oak116" type="Node2D" parent="Entities"]
+position = Vector2(-1342.8, -810.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak116"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Oak315" type="Node2D" parent="Entities"]
+position = Vector2(-1434.9, -936.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak315"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Oak117" type="Node2D" parent="Entities"]
+position = Vector2(-884.6, 627.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak117"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Oak316" type="Node2D" parent="Entities"]
+position = Vector2(1398.8, 854.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak316"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Pine320" type="Node2D" parent="Entities"]
+position = Vector2(-976.3, -677.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine320"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Oak417" type="Node2D" parent="Entities"]
+position = Vector2(684.4, -311.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak417"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Bush120" type="Node2D" parent="Entities"]
+position = Vector2(977.4, -569.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush120"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Oak418" type="Node2D" parent="Entities"]
+position = Vector2(754.8, 586.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak418"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="Bush121" type="Node2D" parent="Entities"]
+position = Vector2(147.5, -545.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush121"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Bush122" type="Node2D" parent="Entities"]
+position = Vector2(-1093.2, -141.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush122"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Oak317" type="Node2D" parent="Entities"]
+position = Vector2(836.8, 258.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak317"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Oak118" type="Node2D" parent="Entities"]
+position = Vector2(809.3, -395.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak118"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="MossyMed8" type="Node2D" parent="Entities"]
+position = Vector2(-903.3, -649.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyMed8"]
+texture = ExtResource("7_f")
+offset = Vector2(1.0, -12.0)
+
+[node name="Oak318" type="Node2D" parent="Entities"]
+position = Vector2(-1444.7, -170.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak318"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Oak319" type="Node2D" parent="Entities"]
+position = Vector2(1063.1, 509.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak319"]
+texture = ExtResource("9_f")
+offset = Vector2(-8.0, -74.5)
+
+[node name="Pine117" type="Node2D" parent="Entities"]
+position = Vector2(-382.7, 525.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine117"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Pine118" type="Node2D" parent="Entities"]
+position = Vector2(-338.8, 464.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine118"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="Bush123" type="Node2D" parent="Entities"]
+position = Vector2(-1405.8, 260.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush123"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Oak419" type="Node2D" parent="Entities"]
+position = Vector2(-596.6, -606.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak419"]
+texture = ExtResource("19_f")
+offset = Vector2(6.0, -64.0)
+
+[node name="MossyMed9" type="Node2D" parent="Entities"]
+position = Vector2(25.0, 584.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyMed9"]
+texture = ExtResource("7_f")
+offset = Vector2(1.0, -12.0)
+
+[node name="Pine219" type="Node2D" parent="Entities"]
+position = Vector2(1019.5, 739.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine219"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Bush124" type="Node2D" parent="Entities"]
+position = Vector2(-960.6, -484.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Bush124"]
+texture = ExtResource("17_f")
+offset = Vector2(-0.5, -9.5)
+
+[node name="Pine119" type="Node2D" parent="Entities"]
+position = Vector2(1122.3, -867.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine119"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="MossyMed10" type="Node2D" parent="Entities"]
+position = Vector2(-1343.0, -404.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyMed10"]
+texture = ExtResource("7_f")
+offset = Vector2(1.0, -12.0)
+
+[node name="Pine120" type="Node2D" parent="Entities"]
+position = Vector2(-374.0, 856.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine120"]
+texture = ExtResource("18_f")
+offset = Vector2(0.5, -104.0)
+
+[node name="MossyMed11" type="Node2D" parent="Entities"]
+position = Vector2(-1320.6, 773.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyMed11"]
+texture = ExtResource("7_f")
+offset = Vector2(1.0, -12.0)
+
+[node name="Oak212" type="Node2D" parent="Entities"]
+position = Vector2(-119.3, -554.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak212"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="Pine220" type="Node2D" parent="Entities"]
+position = Vector2(-721.4, -920.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine220"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Oak119" type="Node2D" parent="Entities"]
+position = Vector2(1085.1, 278.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak119"]
+texture = ExtResource("22_f")
+offset = Vector2(-7.5, -67.5)
+
+[node name="Pine321" type="Node2D" parent="Entities"]
+position = Vector2(925.5, -364.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine321"]
+texture = ExtResource("20_f")
+offset = Vector2(0.0, -120.0)
+
+[node name="Oak213" type="Node2D" parent="Entities"]
+position = Vector2(-346.9, 588.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak213"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="MossyMed12" type="Node2D" parent="Entities"]
+position = Vector2(-1024.3, 467.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/MossyMed12"]
+texture = ExtResource("7_f")
+offset = Vector2(1.0, -12.0)
+
+[node name="Pine221" type="Node2D" parent="Entities"]
+position = Vector2(-834.0, -228.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Pine221"]
+texture = ExtResource("10_f")
+offset = Vector2(0.0, -89.0)
+
+[node name="Oak214" type="Node2D" parent="Entities"]
+position = Vector2(-1119.1, -345.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Oak214"]
+texture = ExtResource("21_f")
+offset = Vector2(1.5, -60.5)
+
+[node name="Monsters" type="Node2D" parent="Entities"]
+y_sort_enabled = true
+
+[node name="SpawnArea" type="Marker2D" parent="."]
+
+[node name="Player" parent="Entities" instance=ExtResource("23_f")]
+position = Vector2(-590, 154)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="RoundInfo" type="Label" parent="UI"]
+offset_left = 18
+offset_top = 14
+offset_right = 500
+offset_bottom = 40
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 18
+text = ""

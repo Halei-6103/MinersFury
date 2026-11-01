@@ -9,18 +9,23 @@ var drift: float = 1.0      # which side it hops toward
 
 var _t: float = 0.0
 var _start: Vector2
+var _started: bool = false
 const LIFE := 0.8
 
 
 func _ready() -> void:
 	z_index = 40
-	_start = position
 	scale = Vector2(2.2, 2.2)
 	var tw := create_tween()
 	tw.tween_property(self, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _process(delta: float) -> void:
+	# grab the start spot on the first frame: whoever spawned us sets the
+	# position right after add_child, so it isn't known yet in _ready
+	if not _started:
+		_started = true
+		_start = position
 	_t += delta
 	if _t > LIFE:
 		queue_free()

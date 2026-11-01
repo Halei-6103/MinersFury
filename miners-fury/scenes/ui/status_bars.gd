@@ -45,9 +45,22 @@ var _last_charge: float = -1.0
 var _t: float = 0.0
 
 
+var _slots: Control
+
+
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	custom_minimum_size = Vector2((bar_width + 2) * pixel, (DASH_BOTTOM + 2) * pixel)
+	# weapon slots sit just above the bar
+	_slots = load("res://scenes/ui/weapon_slots.gd").new()
+	_slots.position = Vector2(0, -56)
+	add_child(_slots)
+
+
+## the player calls this when the weapon changes
+func set_weapons() -> void:
+	if _slots:
+		_slots.refresh()
 
 
 ## called by the player when you try to dash with no charge

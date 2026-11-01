@@ -1,0 +1,267 @@
+extends CanvasLayer
+## Always-on UI that lives on the tree root (like the music):
+##   Esc  -> pause menu (resume, volume, return to camp, quit)
+##   Tab  -> inventory (materials, shards, blueprints, weapons -> pick your two hands)
+## Levels call  GameUI.ensure(self)  in _ready().
+## Any menu a level opens itself should add_to_group("modal") so Esc closes
+## that menu instead of opening the pause menu.
+
+const GameState = preload("res://scenes/core/game_state.gd")
+const UI = preload("res://scenes/ui/ui_kit.gd")
+
+const CAMP := "res://scenes/levels/hub/hub.tscn"
+
+var _menu: Control = null
+var _kind: String = ""
+var _confirm_reset: bool = false
+
+
+static func ensure(node: Node) -> void:
+	ensure_buses()
+	if node == null or not node.is_inside_tree():
+		return
+	var root := node.get_tree().root
+	if root.get_node_or_null("GameUI"):
+		return
+	var ui = load("res://scenes/ui/game_ui.gd").new()
+	ui.name = "GameUI"
+	root.add_child.call_deferred(ui)
+
+
+## Music + SFX volume buses (made at runtime so no bus layout file is needed)
+static func ensure_buses() -> void:
+	for bus in ["Music", "SFX"]:
+		if AudioServer.get_bus_index(bus) == -1:
+			AudioServer.add_bus()
+			var i := AudioServer.bus_count - 1
+			AudioServer.set_bus_name(i, bus)
+			AudioServer.set_bus_send(i, "Master")
+	GameState.ensure_loaded()
+	apply_volume()
+
+
+static func apply_volume() -> void:
+	for bus in ["Music", "SFX"]:
+		var i := AudioServer.get_bus_index(bus)
+		if i == -1:
+			continue
+		var v: float = GameState.settings.get(bus.to_lower(), 0.7)
+		AudioServer.set_bus_mute(i, v <= 0.01)
+		AudioServer.set_bus_volume_db(i, linear_to_db(maxf(v, 0.001)))
+
+
+func _ready() -> void:
+	layer = 80
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_ensure_actions()
+
+
+func _ensure_actions() -> void:
+	if not InputMap.has_action("inventory"):
+		InputMap.add_action("inventory")
+		for k in [KEY_TAB, KEY_I]:
+			var ev := InputEventKey.new()
+			ev.physical_keycode = k
+			InputMap.action_add_event("inventory", ev)
+	if not InputMap.has_action("pause"):
+		InputMap.add_action("pause")
+		var ev := InputEventKey.new()
+		ev.physical_keycode = KEY_ESCAPE
+		InputMap.action_add_event("pause", ev)
+
+
+func _no_player() -> bool:
+	return get_tree().get_first_node_in_group("player") == null
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("pause"):
+		if _menu:
+			get_viewport().set_input_as_handled()
+			close()
+		elif get_tree().get_nodes_in_group("modal").is_empty() and not _no_player():
+			get_viewport().set_input_as_handled()
+			open_pause()
+	elif event.is_action_pressed("inventory"):
+		if _menu and _kind == "inventory":
+			get_viewport().set_input_as_handled()
+			close()
+		elif _menu == null and get_tree().get_nodes_in_group("modal").is_empty() and not _no_player():
+			get_viewport().set_input_as_handled()
+			open_inventory()
+
+
+func close() -> void:
+	if _menu:
+		_menu.queue_free()
+		_menu = null
+	_kind = ""
+	_confirm_reset = false
+	get_tree().paused = false
+
+
+func _open(kind: String) -> VBoxContainer:
+	if _menu:
+		_menu.queue_free()
+	_kind = kind
+	get_tree().paused = true
+	var center := UI.overlay(self)
+	_menu = center.get_parent()
+	var p := UI.panel(UI.EDGE, 560.0 if kind == "pause" else 760.0)
+	center.add_child(p)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 14)
+	p.add_child(v)
+	return v
+
+
+# ---------------------------------------------------------------- pause
+
+func open_pause() -> void:
+	var v := _open("pause")
+	var head := HBoxContainer.new()
+	head.add_child(UI.label("PAUSED", 30))
+	head.add_child(UI.spacer())
+	v.add_child(head)
+
+	var resume := UI.button("RESUME", true, UI.EDGE, 18)
+	resume.pressed.connect(close)
+	v.add_child(resume)
+
+	var sound := UI.section("SOUND")
+	for pair in [["Music", "music"], ["Effects", "sfx"]]:
+		var row := HBoxContainer.new()
+		var l := UI.label(pair[0], 15)
+		l.custom_minimum_size.x = 90
+		row.add_child(l)
+		var s := HSlider.new()
+		s.min_value = 0.0
+		s.max_value = 1.0
+		s.step = 0.05
+		s.value = GameState.settings.get(pair[1], 0.7)
+		s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		s.focus_mode = Control.FOCUS_NONE
+		var pct := UI.label("%d%%" % int(s.value * 100), 14, UI.DIM)
+		pct.custom_minimum_size.x = 48
+		s.value_changed.connect(func(val: float) -> void:
+			GameState.settings[pair[1]] = val
+			pct.text = "%d%%" % int(val * 100)
+			apply_volume())
+		s.drag_ended.connect(func(_c: bool) -> void: GameState.save())
+		row.add_child(s)
+		row.add_child(pct)
+		sound.add_child(row)
+	v.add_child(sound)
+
+	var keys := UI.section("CONTROLS")
+	keys.add_child(UI.label("WASD move     Mouse aim     Left click attack (click again to combo)\nRight click block (just before a hit = PARRY)     Space dodge\nR (hold, aim, let go) weapon ultimate     Q swap weapon\nTab inventory     E interact     Esc pause", 13, UI.DIM))
+	v.add_child(keys)
+
+	var row2 := HBoxContainer.new()
+	row2.add_theme_constant_override("separation", 10)
+	var in_camp: bool = get_tree().current_scene and get_tree().current_scene.scene_file_path == CAMP
+	if not in_camp:
+		var camp := UI.button("RETURN TO CAMP", true, UI.GOLD)
+		camp.pressed.connect(func() -> void:
+			close()
+			Engine.set_meta("arrival_spawn", "Start")
+			get_tree().change_scene_to_file(CAMP))
+		row2.add_child(camp)
+	var reset := UI.button("NEW GAME", true, UI.BAD)
+	reset.pressed.connect(func() -> void:
+		if not _confirm_reset:
+			_confirm_reset = true
+			reset.text = "WIPE SAVE? CLICK AGAIN"
+			return
+		GameState.reset()
+		close()
+		Engine.set_meta("arrival_spawn", "Start")
+		get_tree().change_scene_to_file(CAMP))
+	row2.add_child(reset)
+	row2.add_child(UI.spacer())
+	if not OS.has_feature("web"):
+		var quit := UI.button("QUIT GAME", true, Color(0.7, 0.7, 0.75))
+		quit.pressed.connect(func() -> void: get_tree().quit())
+		row2.add_child(quit)
+	v.add_child(row2)
+
+
+# ---------------------------------------------------------------- inventory
+
+func open_inventory() -> void:
+	var v := _open("inventory")
+	var head := HBoxContainer.new()
+	head.add_child(UI.label("INVENTORY", 28))
+	head.add_child(UI.spacer())
+	head.add_child(UI.label("[Tab] close", 13, UI.DIM))
+	v.add_child(head)
+
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 26)
+	v.add_child(cols)
+
+	# left: stuff you're carrying
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 16)
+	left.custom_minimum_size.x = 250
+	cols.add_child(left)
+	var mats := UI.section("MATERIALS")
+	var any := false
+	for id in GameState.items_of_type("material"):
+		any = true
+		mats.add_child(UI.item_row(id, GameState.count(id), GameState.ITEMS[id]))
+	if not any:
+		mats.add_child(UI.label("Nothing yet. Monsters drop these.", 13, UI.DIM))
+	left.add_child(mats)
+	var shards := UI.section("SHARDS & BLUEPRINTS")
+	any = false
+	for id in GameState.items_of_type("shard"):
+		any = true
+		shards.add_child(UI.item_row(id, GameState.count(id), GameState.ITEMS[id]))
+	for bp in GameState.blueprints:
+		any = true
+		shards.add_child(UI.item_row(bp, -1, GameState.BLUEPRINTS[bp], 1.3))
+	if not any:
+		shards.add_child(UI.label("Bosses drop shards.\nThe telecom trades them for blueprints.", 13, UI.DIM))
+	left.add_child(shards)
+
+	# right: weapons and which hand they're in
+	var right := UI.section("WEAPONS")
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cols.add_child(right)
+	right.add_child(UI.label("Pick what goes in each hand. Q swaps hands in a fight.", 13, UI.DIM))
+	for w in GameState.weapons:
+		var info: Dictionary = GameState.WEAPONS[w]
+		var card := UI.card(info.color.darkened(0.35))
+		var cv := VBoxContainer.new()
+		card.add_child(cv)
+		var top := HBoxContainer.new()
+		top.add_child(UI.label(info.name, 19, info.color))
+		top.add_child(UI.spacer())
+		var hand := GameState.slots.find(w)
+		if hand >= 0:
+			top.add_child(UI.label("IN HAND %d" % (hand + 1) + ("  (active)" if hand == GameState.active_slot else ""), 13, UI.GOOD))
+		cv.add_child(top)
+		cv.add_child(UI.label(info.desc, 13, UI.DIM))
+		var btns := HBoxContainer.new()
+		btns.add_theme_constant_override("separation", 8)
+		for i in 2:
+			var b := UI.button("Hand %d" % (i + 1), GameState.slots[i] != w, UI.EDGE, 14)
+			b.pressed.connect(_put_in_hand.bind(i, w))
+			btns.add_child(b)
+		if hand >= 0 and GameState.slots[1 - hand] != "":
+			var un := UI.button("Unequip", true, Color(0.6, 0.6, 0.65), 14)
+			un.pressed.connect(_put_in_hand.bind(hand, ""))
+			btns.add_child(un)
+		cv.add_child(btns)
+		right.add_child(card)
+	if GameState.weapons.size() == 1:
+		right.add_child(UI.label("Craft new weapons at the crafting station in camp.", 13, UI.DIM))
+
+
+func _put_in_hand(i: int, w: String) -> void:
+	GameState.set_slot(i, w)
+	var p = get_tree().get_first_node_in_group("player")
+	if p and p.has_method("set_weapon"):
+		p.set_weapon(GameState.equipped())
+	open_inventory()

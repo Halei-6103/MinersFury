@@ -37,7 +37,7 @@ func set_base_zoom(z: Vector2) -> void:
 
 
 func _process(delta: float) -> void:
-	var real: float = delta / maxf(Engine.time_scale, 0.001)
+	var real: float = minf(delta / maxf(Engine.time_scale, 0.001), 0.05)
 	real = minf(real, 0.05)
 	trauma = max(trauma - decay * real, 0.0)
 	_kick = _kick.lerp(Vector2.ZERO, clamp(kick_return * real, 0.0, 1.0))

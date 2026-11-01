@@ -7,8 +7,9 @@ const Juice = preload("res://scenes/effects/juice.gd")
 const GameState = preload("res://scenes/core/game_state.gd")
 const LightningBolt = preload("res://scenes/effects/lightning_bolt.gd")
 const Thunderclap = preload("res://scenes/effects/thunderclap.gd")
+const FxSprite = preload("res://scenes/effects/fx_sprite.gd")
 const StormAura = preload("res://scenes/effects/storm_aura.gd")
-const STORM_FX = preload("res://assets/sprites/player/storm_fx_frames.tres")
+const PoisonStatus = preload("res://scenes/effects/poison_status.gd")
 
 @export var speed: float = 216.0
 @export var roll_speed: float = 400.0
@@ -44,9 +45,9 @@ const STORM_FX = preload("res://assets/sprites/player/storm_fx_frames.tres")
 @export var attack_lunge: float = 190.0
 @export var finisher_lunge: float = 255.0
 ## freeze frames (seconds): normal hit / combo finisher / killing blow / getting hurt
-@export var hit_stop_light: float = 0.11
-@export var hit_stop_heavy: float = 0.18
-@export var hit_stop_kill: float = 0.28
+@export var hit_stop_light: float = 0.09
+@export var hit_stop_heavy: float = 0.15
+@export var hit_stop_kill: float = 0.23
 @export var hit_stop_hurt: float = 0.12
 ## how long the combo counter stays up without a hit
 @export var combo_timeout: float = 2.5
@@ -66,6 +67,8 @@ const STORM_FX = preload("res://assets/sprites/player/storm_fx_frames.tres")
 @export var invincible_time: float = 1.0
 @export var knockback_strength: float = 260.0
 ## scene to go back to when you die
+## set by the Colosseum: stay down when you die (it shows the run card)
+var hold_on_death: bool = false
 @export_file("*.tscn") var respawn_scene: String = "res://scenes/levels/hub/hub.tscn"
 
 @export_group("Storm Blade")
@@ -73,10 +76,20 @@ const STORM_FX = preload("res://assets/sprites/player/storm_fx_frames.tres")
 @export var chain_count: int = 2
 @export var chain_range: float = 110.0
 @export var chain_damage: int = 1
-## combo finisher: thunderclap around the blade
+@export_group("Ultimates (R)")
+## hold R to aim, let go to cast. How far from you it can land
+@export var ult_range: float = 260.0
+## Storm Blade: thunderclap where you aim
 @export var clap_radius: float = 100.0
-@export var clap_damage: int = 1
-@export var clap_stun: float = 0.6
+@export var clap_damage: int = 3
+@export var clap_stun: float = 1.2
+@export var storm_ult_cooldown: float = 10.0
+## Venom Blade: poison rune where you aim (lasts 5s)
+@export var venom_ult_cooldown: float = 12.0
+## COMBO "Tetrodotoxin": thunderclap on a poison rune (bosses get half)
+@export var paralysis_time: float = 4.0
+## swapping weapons (Q) cancels a swing; you can't swing again for this long
+@export var swap_attack_delay: float = 0.25
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var aim_indicator: Node2D = $AimIndicator
@@ -133,6 +146,15 @@ var weapon: String = "iron_sword"
 var _iron_fx: SpriteFrames
 var _aura: Node2D
 var _clapped: bool = false
+## after a weapon swap you can't swing for this long
+var _attack_lock: float = 0.0
+## seconds left before each weapon's ultimate is ready again
+var _ult_cd: Dictionary = {}
+var _aim_node: Node2D = null
+const UltAim = preload("res://scenes/effects/ult_aim.gd")
+const VenomZone = preload("res://scenes/effects/venom_zone.gd")
+const ParalysisWave = preload("res://scenes/effects/paralysis_wave.gd")
+const ToxicWave = preload("res://scenes/effects/toxic_wave.gd")
 
 func _ready() -> void:
 	add_to_group("player")
@@ -154,19 +176,156 @@ func _ready() -> void:
 	Engine.time_scale = 1.0  # in case a scene change happened mid hit stop
 	_iron_fx = swing_fx.sprite_frames
 	GameState.ensure_loaded()
-	set_weapon(GameState.equipped)
+	_ensure_swap_action()
+	_ensure_ult_action()
+	set_weapon(GameState.equipped())
 
 ## swap swords: the swoosh, the crackle on the blade, and what hits do
 func set_weapon(w: String) -> void:
 	weapon = w
-	var storm := w == "storm_blade"
-	swing_fx.sprite_frames = STORM_FX if storm else _iron_fx
-	if storm and _aura == null:
-		_aura = StormAura.new()
-		add_child(_aura)
-	elif not storm and _aura:
+	var info: Dictionary = GameState.WEAPONS.get(w, GameState.WEAPONS["iron_sword"])
+	var fx = load(info.get("swing_fx", "")) if info.has("swing_fx") else null
+	swing_fx.sprite_frames = fx if fx else _iron_fx
+	# the sword itself is recolored in every animation frame for each weapon
+	var body = load(info.get("body", "")) if info.has("body") else null
+	if body and animated_sprite.sprite_frames != body:
+		var anim := animated_sprite.animation
+		var frame := animated_sprite.frame
+		var playing := animated_sprite.is_playing()
+		animated_sprite.sprite_frames = body
+		animated_sprite.animation = anim
+		animated_sprite.frame = frame
+		if playing:
+			animated_sprite.play(anim)
+	if _aura:
 		_aura.queue_free()
 		_aura = null
+	if info.effect == "storm" or info.effect == "venom":
+		_aura = StormAura.new()
+		_aura.venom = info.effect == "venom"
+		add_child(_aura)
+	if hud and hud.has_method("set_weapons"):
+		hud.set_weapons()
+
+# ---------------------------------------------------------------- ultimates (R)
+
+func _ult_cooldown_for(w: String) -> float:
+	match GameState.WEAPONS.get(w, {}).get("effect", "none"):
+		"storm":
+			return storm_ult_cooldown
+		"venom":
+			return venom_ult_cooldown
+	return 0.0
+
+
+## 0 = just used, 1 = ready (for the HUD). -1 = this weapon has no ultimate
+func ult_charge() -> float:
+	var total := _ult_cooldown_for(weapon)
+	if total <= 0.0:
+		return -1.0
+	return 1.0 - clampf(_ult_cd.get(weapon, 0.0) / total, 0.0, 1.0)
+
+
+func _ult_target() -> Vector2:
+	var to := get_global_mouse_position() - global_position
+	# the floor is iso: measure reach on an ellipse
+	var flat := Vector2(to.x, to.y * 2.0)
+	if flat.length() > ult_range:
+		flat = flat.normalized() * ult_range
+	return global_position + Vector2(flat.x, flat.y * 0.5)
+
+
+func _handle_ultimate(delta: float) -> void:
+	for w in _ult_cd.keys():
+		_ult_cd[w] = maxf(_ult_cd[w] - delta, 0.0)
+	var has_ult := _ult_cooldown_for(weapon) > 0.0
+	if Input.is_action_just_pressed("ultimate"):
+		if not has_ult:
+			Juice.damage_number(get_parent(), global_position + Vector2(0, -70), "No ultimate on this weapon", Color(0.8, 0.8, 0.85), 14)
+		elif _ult_cd.get(weapon, 0.0) > 0.0:
+			Juice.damage_number(get_parent(), global_position + Vector2(0, -70), "Ultimate charging: %ds" % ceili(_ult_cd[weapon]), Color(0.8, 0.8, 0.85), 14)
+		elif _aim_node == null:
+			_aim_node = UltAim.new()
+			_aim_node.color = GameState.WEAPONS[weapon].color
+			_aim_node.max_range = ult_range
+			_aim_node.target_radius = clap_radius if is_storm() else VenomZone.RADIUS
+			get_parent().add_child(_aim_node)
+	if _aim_node:
+		_aim_node.center = global_position
+		_aim_node.target = _ult_target()
+		if state == State.DEAD:
+			_cancel_aim()
+		elif not Input.is_action_pressed("ultimate"):
+			var at := _ult_target()
+			_cancel_aim()
+			_cast_ultimate(at)
+
+
+func _cancel_aim() -> void:
+	if _aim_node:
+		_aim_node.queue_free()
+		_aim_node = null
+
+
+func _cast_ultimate(at: Vector2) -> void:
+	if _ult_cd.get(weapon, 0.0) > 0.0:
+		return
+	_ult_cd[weapon] = _ult_cooldown_for(weapon)
+	_face_mouse()
+	if is_storm():
+		_thunderclap(at)
+	elif is_venom():
+		VenomZone.place(get_parent(), at)
+		Juice.impact_flash(self, 0.12, Color(0.6, 1.0, 0.45))
+	if hud and hud.has_method("set_weapons"):
+		hud.set_weapons()
+
+
+func _ensure_ult_action() -> void:
+	if InputMap.has_action("ultimate"):
+		return
+	InputMap.add_action("ultimate")
+	var ev := InputEventKey.new()
+	ev.physical_keycode = KEY_R
+	InputMap.action_add_event("ultimate", ev)
+
+
+## Q: swap hands
+func _ensure_swap_action() -> void:
+	if InputMap.has_action("swap_weapon"):
+		return
+	InputMap.add_action("swap_weapon")
+	var ev := InputEventKey.new()
+	ev.physical_keycode = KEY_Q
+	InputMap.action_add_event("swap_weapon", ev)
+
+func _try_swap() -> void:
+	if state == State.DEAD:
+		return
+	_cancel_aim()
+	var was_attacking := state == State.ATTACK
+	var w := GameState.swap()
+	if w == "":
+		Juice.damage_number(get_parent(), global_position + Vector2(0, -70), "Other hand is empty", Color(0.8, 0.8, 0.85), 14)
+		return
+	# swapping mid-swing cancels it, then a short beat before you can swing again
+	if was_attacking:
+		state = State.MOVE
+		combo_queued = false
+		_strike_index = -1
+		_hit_this_strike.clear()
+		swing_fx.visible = false
+		animated_sprite.play("idle")
+	_attack_lock = swap_attack_delay
+	set_weapon(w)
+	var c: Color = GameState.WEAPONS[w].color
+	Juice.damage_number(get_parent(), global_position + Vector2(0, -74), GameState.WEAPONS[w].name, c, 18)
+	animated_sprite.modulate = Color(c.r * 2.0, c.g * 2.0, c.b * 2.0)
+	var tw := create_tween()
+	tw.tween_property(animated_sprite, "modulate", Color.WHITE, 0.25)
+
+func is_venom() -> bool:
+	return weapon == "venom_blade"
 
 func is_storm() -> bool:
 	return weapon == "storm_blade"
@@ -279,6 +438,10 @@ func _physics_process(delta: float) -> void:
 		if untargetable_timer <= 0.0:
 			_phase_in()
 	_read_inputs(delta)
+	if Input.is_action_just_pressed("swap_weapon"):
+		_try_swap()
+	_handle_ultimate(delta)
+	_attack_lock = maxf(_attack_lock - delta, 0.0)
 	_update_combo(delta)
 
 	match state:
@@ -388,10 +551,11 @@ func _parry(attacker: Node, from_position: Vector2) -> void:
 	Juice.slow_mo(self, 0.55, 0.35)
 	Juice.shake(self, 0.7, dir)
 	Juice.zoom_punch(self, 0.1)
-	Juice.impact_flash(self, 0.35, Color(1, 0.9, 0.5))
-	Juice.spark(get_parent(), at, dir, true, Color(1, 0.8, 0.3))
+	Juice.impact_flash(self, 0.35, Color(0.7, 1.0, 1.0))
+	Juice.spark(get_parent(), at, dir, true, Color(0.2, 0.9, 1.0))
 	Juice.damage_number(get_parent(), at + Vector2(0, -20), "PARRY!", Color(1, 0.85, 0.3), 34)
 	_guard.hit_flash(Color(1, 1, 1))
+	_guard.parry_burst()
 	invincible_timer = 0.0
 	untargetable_timer = maxf(untargetable_timer, 0.35)
 	# reward: a little dash back
@@ -465,6 +629,14 @@ func _phase_in() -> void:
 	tw.tween_property(animated_sprite, "modulate", Color.WHITE, 0.12)
 
 func _start_attack(anim_name: String) -> void:
+	if _attack_lock > 0.0:
+		# just swapped weapons: hold the swing, and keep the click queued so it
+		# goes off the moment the lockout ends
+		if state != State.ROLL:
+			state = State.MOVE
+		_buffered = "attack"
+		_buffer_timer = _attack_lock + 0.05
+		return
 	state = State.ATTACK
 	combo_queued = false
 	# swing toward the mouse, not toward where you're walking
@@ -548,10 +720,6 @@ func _check_sword_hits() -> void:
 			# small shove on combo hits so the bat stays in reach, big launch on the finisher
 			enemy.take_damage(sword_damage, global_position, 1.3 if finisher else 0.4)
 			_on_sword_hit(enemy, finisher)
-	# Storm Blade: the finisher strike always sets off a thunderclap
-	if is_storm() and not _clapped and animated_sprite.animation == "attack2" and idx == windows.size() - 1:
-		_clapped = true
-		_thunderclap()
 
 func _hit_point(e: Node2D) -> Vector2:
 	var hb = e.get_node_or_null("Hurtbox")
@@ -580,26 +748,32 @@ func _chain_lightning(origin: Node2D) -> void:
 		var to_pos := _hit_point(best)
 		LightningBolt.zap(get_parent(), from_pos, to_pos, 1.4, 0.28)
 		best.take_damage(chain_damage, from_pos, 0.25)
-		Juice.spark(get_parent(), to_pos, (to_pos - from_pos).normalized(), false, Color(0.35, 0.65, 1.0))
+		# a little strike lands on them (effect pack 2)
+		FxSprite.spawn(get_parent(), "chain_strike", best.global_position, {"z": 35})
 		if _is_dead(best):
 			Juice.damage_number(get_parent(), to_pos + Vector2(0, -16), "KO!", Color(0.5, 0.85, 1.0), 30)
 		else:
 			Juice.damage_number(get_parent(), to_pos + Vector2(0, -14), str(chain_damage), Color(0.55, 0.85, 1.0), 22)
 		from_pos = to_pos
 
-## finisher: lightning from the sky, ring of electricity, hurts and stuns everything close
-func _thunderclap() -> void:
-	var aim: Vector2 = aim_indicator.last_direction
-	var center := global_position + aim * 34.0
+## Storm ultimate: lightning from the sky where you aimed, hurts and stuns everything in the ring
+func _thunderclap(center: Vector2) -> void:
+	var aim: Vector2 = (center - global_position).normalized()
+	# thunderclap landing in a poison rune = Toxic Storm
+	var rune: Node2D = null
+	for z in get_tree().get_nodes_in_group("venom_zone"):
+		if z.contains(center):
+			rune = z
+			break
 	var tc = Thunderclap.new()
 	tc.radius = clap_radius
 	get_parent().add_child(tc)
 	tc.global_position = center
 	Juice.shockwave(self, center, 34.0)
-	Juice.impact_flash(self, 0.2, Color(0.55, 0.75, 1.0))
+	Juice.impact_flash(self, 0.2, Color(0.6, 0.95, 1.0))
 	Juice.shake(self, 0.85, aim)
 	Juice.zoom_punch(self, 0.06)
-	Juice.hit_stop(self, 0.1)
+	Juice.hit_stop(self, 0.08)
 	for e in get_tree().get_nodes_in_group("enemy"):
 		if _is_dead(e) or not e.has_method("take_damage"):
 			continue
@@ -608,12 +782,38 @@ func _thunderclap() -> void:
 		if Vector2(off.x, off.y * 2.0).length() > clap_radius:
 			continue
 		var hp := _hit_point(e)
-		if not e in _hit_this_strike:
-			e.take_damage(clap_damage, center, 0.6)
-			LightningBolt.zap(get_parent(), center + Vector2(0, -10), hp, 0.8, 0.2)
-			Juice.damage_number(get_parent(), hp + Vector2(0, -14), str(clap_damage), Color(0.55, 0.85, 1.0), 24)
+		e.take_damage(clap_damage, center, 0.6)
+		LightningBolt.zap(get_parent(), center + Vector2(0, -10), hp, 0.8, 0.2)
+		Juice.damage_number(get_parent(), hp + Vector2(0, -14), str(clap_damage), Color(0.55, 0.85, 1.0), 26)
 		if not _is_dead(e) and e.has_method("stun") and e.state != e.State.STUNNED:
 			e.stun(clap_stun)
+	if rune:
+		_toxic_storm(rune)
+
+
+## COMBO "Tetrodotoxin": thunderclap on a poison rune. The rune fires two electric
+## waves out both sides, perpendicular to the line from you to the rune. Anything a
+## wave passes through is paralyzed (4s, bosses 2s) and takes 30% more damage.
+## Each wave travels as far as your ult aim range, measured from the rune. Rune is used up.
+func _toxic_storm(rune: Node2D) -> void:
+	var c: Vector2 = rune.global_position
+	rune.consume()
+	# work on the flat floor (undo the iso squash), then turn 90 degrees
+	var to_rune := c - global_position
+	var flat := Vector2(to_rune.x, to_rune.y * 2.0)
+	if flat.length() < 1.0:
+		flat = Vector2.from_angle(aim_indicator.last_direction.angle())
+	var side := Vector2(-flat.y, flat.x).normalized()
+	for s in [side, -side]:
+		ToxicWave.fire(get_parent(), c, s, ult_range, paralysis_time)
+	var title = ParalysisWave.new()
+	get_parent().add_child(title)
+	title.global_position = c
+	Juice.impact_flash(self, 0.3, Color(0.7, 1.0, 0.8))
+	Juice.hit_stop(self, 0.12)
+	Juice.shake(self, 0.8)
+	Juice.zoom_punch(self, 0.08)
+
 
 ## all the feedback for landing a hit. Everything turned up.
 func _on_sword_hit(enemy: Node2D, finisher: bool) -> void:
@@ -627,7 +827,11 @@ func _on_sword_hit(enemy: Node2D, finisher: bool) -> void:
 	_bump_combo()
 	if is_storm():
 		_chain_lightning(enemy)
-		Juice.spark(get_parent(), hit_pos, dir, false, Color(0.35, 0.65, 1.0))
+		FxSprite.spawn(get_parent(), "chain_strike", enemy.global_position, {"z": 35})
+	elif is_venom() and not kill:
+		# every hit stacks poison, the finisher stacks two
+		PoisonStatus.apply(enemy, 2 if finisher else 1)
+		FxSprite.spawn(get_parent(), "poison_pop", hit_pos, {"scale": 1.0, "z": 35})
 	# exit wound: everything blows out the BACK of the target
 	var ichor: Color = enemy.get("ichor_color") if enemy.get("ichor_color") != null else Color(0.5, 0.06, 0.32)
 	Juice.spark(get_parent(), hit_pos, dir, heavy, ichor)
@@ -660,6 +864,9 @@ func _on_animation_finished() -> void:
 		State.HURT:
 			state = State.MOVE
 		State.DEAD:
+			# endless maps show a score card instead of sending you home
+			if hold_on_death:
+				return
 			await get_tree().create_timer(1.0).timeout
 			Engine.set_meta("arrival_spawn", "Start")
 			get_tree().change_scene_to_file(respawn_scene)

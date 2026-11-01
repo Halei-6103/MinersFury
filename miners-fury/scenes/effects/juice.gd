@@ -10,13 +10,14 @@ extends RefCounted
 ##   Juice.shockwave(self, pos, size)      ring on the ground
 ##   Juice.slash(parent, pos, dir, ...)    crescent sword arc
 ##   Juice.damage_number(parent, pos, ...) pop-up number
-##   Juice.death_puff(parent, pos)         dust + scraps
+##   Juice.death_puff(parent, pos)         dust puff
 
 const HitSpark = preload("res://scenes/effects/hit_spark.gd")
 const Watcher = preload("res://scenes/effects/hit_stop_watcher.gd")
 const SlashArc = preload("res://scenes/effects/slash_arc.gd")
 const DamageNumber = preload("res://scenes/effects/damage_number.gd")
 const GroundFx = preload("res://scenes/effects/ground_fx.gd")
+const FxSprite = preload("res://scenes/effects/fx_sprite.gd")
 
 
 ## Freeze-frame: the whole game nearly stops for `duration` real seconds.
@@ -170,34 +171,8 @@ static func damage_number(parent: Node, pos: Vector2, text: String, color: Color
 	n.global_position = pos
 
 
-## Dust cloud when something dies.
-static func death_puff(parent: Node, pos: Vector2, scrap_color: Color = Color(0.25, 0.2, 0.32)) -> void:
+## Dust cloud when something dies (effect pack 3).
+static func death_puff(parent: Node, pos: Vector2, _scrap_color: Color = Color(0.25, 0.2, 0.32)) -> void:
 	if parent == null:
 		return
-	var root := Node2D.new()
-	root.z_index = 25
-	parent.add_child(root)
-	root.global_position = pos
-
-	var dust := CPUParticles2D.new()
-	dust.one_shot = true
-	dust.explosiveness = 0.95
-	dust.amount = 30
-	dust.lifetime = 0.7
-	dust.direction = Vector2.UP
-	dust.spread = 180.0
-	dust.gravity = Vector2(0, -30)
-	dust.initial_velocity_min = 40.0
-	dust.initial_velocity_max = 130.0
-	dust.damping_min = 90.0
-	dust.damping_max = 150.0
-	dust.scale_amount_min = 4.0
-	dust.scale_amount_max = 9.0
-	var dg := Gradient.new()
-	dg.set_color(0, Color(0.92, 0.85, 0.72, 0.95))
-	dg.set_color(1, Color(0.7, 0.62, 0.52, 0.0))
-	dust.color_ramp = dg
-	root.add_child(dust)
-
-	dust.emitting = true
-	root.get_tree().create_timer(1.5, false).timeout.connect(root.queue_free)
+	FxSprite.spawn(parent, "death_puff", pos, {"z": 25, "flip_h": randf() < 0.5})
