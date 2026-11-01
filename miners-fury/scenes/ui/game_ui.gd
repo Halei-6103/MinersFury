@@ -38,6 +38,7 @@ static func ensure_buses() -> void:
 			AudioServer.set_bus_send(i, "Master")
 	GameState.ensure_loaded()
 	apply_volume()
+	apply_display()
 
 
 static func apply_volume() -> void:
@@ -48,6 +49,56 @@ static func apply_volume() -> void:
 		var v: float = GameState.settings.get(bus.to_lower(), 0.7)
 		AudioServer.set_bus_mute(i, v <= 0.01)
 		AudioServer.set_bus_volume_db(i, linear_to_db(maxf(v, 0.001)))
+
+
+static func apply_display() -> void:
+	if OS.has_feature("web"):
+		return
+	var full: bool = bool(GameState.settings.get("fullscreen", false))
+	DisplayServer.window_set_mode(
+		DisplayServer.WINDOW_MODE_FULLSCREEN if full else DisplayServer.WINDOW_MODE_WINDOWED)
+
+
+## SOUND sliders + fullscreen toggle, shared by pause + title options
+static func add_settings_controls(parent: VBoxContainer) -> void:
+	var sound := UI.section("SOUND")
+	for pair in [["Music", "music"], ["Effects", "sfx"]]:
+		var row := HBoxContainer.new()
+		var l := UI.label(pair[0], 15)
+		l.custom_minimum_size.x = 90
+		row.add_child(l)
+		var s := HSlider.new()
+		s.min_value = 0.0
+		s.max_value = 1.0
+		s.step = 0.05
+		s.value = GameState.settings.get(pair[1], 0.7)
+		s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		s.focus_mode = Control.FOCUS_NONE
+		var pct := UI.label("%d%%" % int(s.value * 100), 14, UI.DIM)
+		pct.custom_minimum_size.x = 48
+		s.value_changed.connect(func(val: float) -> void:
+			GameState.settings[pair[1]] = val
+			pct.text = "%d%%" % int(val * 100)
+			apply_volume())
+		s.drag_ended.connect(func(_c: bool) -> void: GameState.save())
+		row.add_child(s)
+		row.add_child(pct)
+		sound.add_child(row)
+	parent.add_child(sound)
+
+	if OS.has_feature("web"):
+		return
+	var display := UI.section("DISPLAY")
+	var on: bool = bool(GameState.settings.get("fullscreen", false))
+	var fs := UI.button("FULLSCREEN: ON" if on else "FULLSCREEN: OFF", true, UI.EDGE, 16)
+	fs.pressed.connect(func() -> void:
+		var next: bool = not bool(GameState.settings.get("fullscreen", false))
+		GameState.settings["fullscreen"] = next
+		fs.text = "FULLSCREEN: ON" if next else "FULLSCREEN: OFF"
+		apply_display()
+		GameState.save())
+	display.add_child(fs)
+	parent.add_child(display)
 
 
 func _ready() -> void:
@@ -128,30 +179,7 @@ func open_pause() -> void:
 	resume.pressed.connect(close)
 	v.add_child(resume)
 
-	var sound := UI.section("SOUND")
-	for pair in [["Music", "music"], ["Effects", "sfx"]]:
-		var row := HBoxContainer.new()
-		var l := UI.label(pair[0], 15)
-		l.custom_minimum_size.x = 90
-		row.add_child(l)
-		var s := HSlider.new()
-		s.min_value = 0.0
-		s.max_value = 1.0
-		s.step = 0.05
-		s.value = GameState.settings.get(pair[1], 0.7)
-		s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		s.focus_mode = Control.FOCUS_NONE
-		var pct := UI.label("%d%%" % int(s.value * 100), 14, UI.DIM)
-		pct.custom_minimum_size.x = 48
-		s.value_changed.connect(func(val: float) -> void:
-			GameState.settings[pair[1]] = val
-			pct.text = "%d%%" % int(val * 100)
-			apply_volume())
-		s.drag_ended.connect(func(_c: bool) -> void: GameState.save())
-		row.add_child(s)
-		row.add_child(pct)
-		sound.add_child(row)
-	v.add_child(sound)
+	add_settings_controls(v)
 
 	var keys := UI.section("CONTROLS")
 	keys.add_child(UI.label("WASD move     Mouse aim     Left click attack (click again to combo)\nRight click block (just before a hit = PARRY)     Space dodge\nR (hold, aim, let go) weapon ultimate     Q swap weapon\nTab inventory     E interact     Esc pause", 13, UI.DIM))

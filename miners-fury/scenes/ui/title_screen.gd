@@ -147,30 +147,7 @@ func _toggle_options() -> void:
 	head.add_child(UI.spacer())
 	v.add_child(head)
 
-	var sound := UI.section("SOUND")
-	for pair in [["Music", "music"], ["Effects", "sfx"]]:
-		var row := HBoxContainer.new()
-		var l := UI.label(pair[0], 15)
-		l.custom_minimum_size.x = 90
-		row.add_child(l)
-		var s := HSlider.new()
-		s.min_value = 0.0
-		s.max_value = 1.0
-		s.step = 0.05
-		s.value = GameState.settings.get(pair[1], 0.7)
-		s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		s.focus_mode = Control.FOCUS_NONE
-		var pct := UI.label("%d%%" % int(s.value * 100), 14, UI.DIM)
-		pct.custom_minimum_size.x = 48
-		s.value_changed.connect(func(val: float) -> void:
-			GameState.settings[pair[1]] = val
-			pct.text = "%d%%" % int(val * 100)
-			GameUI.apply_volume())
-		s.drag_ended.connect(func(_c: bool) -> void: GameState.save())
-		row.add_child(s)
-		row.add_child(pct)
-		sound.add_child(row)
-	v.add_child(sound)
+	GameUI.add_settings_controls(v)
 
 	var back := UI.button("BACK", true, UI.EDGE, 16)
 	back.pressed.connect(_toggle_options)

@@ -102,7 +102,7 @@ static var weapons: Array = ["iron_sword"]
 static var slots: Array = ["iron_sword", ""]
 static var active_slot: int = 0
 static var cleared: Array = []
-static var settings: Dictionary = {"music": 0.6, "sfx": 0.8}
+static var settings: Dictionary = {"music": 0.6, "sfx": 0.8, "fullscreen": false}
 ## Colosseum records: highest round reached and most kills in one run
 static var best_round: int = 0
 static var best_kills: int = 0
@@ -151,7 +151,12 @@ static func ensure_loaded() -> void:
 	var st = data.get("settings", {})
 	if typeof(st) == TYPE_DICTIONARY:
 		for k in st:
-			settings[k] = float(st[k])
+			if not settings.has(k):
+				continue
+			if typeof(settings[k]) == TYPE_BOOL:
+				settings[k] = bool(st[k])
+			else:
+				settings[k] = float(st[k])
 
 
 static func save() -> void:
