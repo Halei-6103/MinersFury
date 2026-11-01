@@ -92,6 +92,15 @@ const KINDS := {
 		"ichor": Color(0.3, 0.55, 0.2), "foot_y": 58.0, "body_y": 44.0, "radius": 16.0,
 		"caster": true,
 	},
+	# the proficiency trial boss. Its own brain lives in pufferfish/puffer_boss.gd
+	"pufferfish": {
+		"frames": "res://assets/sprites/enemies/pufferfish/pufferfish_frames.tres",
+		"hp": 55, "damage": 1, "speed": 80.0, "scale": 3.0,
+		"attack_range": 0.0, "reach": 30.0, "windup": 0.5, "cooldown": 1.0,
+		"attacks": ["attack1"], "hits": {"attack1": []}, "lunge": 0.0,
+		"knock_resist": 0.9, "armored_attacks": true, "boss": true, "launch": false,
+		"ichor": Color(0.35, 0.65, 0.9), "foot_y": 67.0, "body_y": 52.0, "radius": 22.0,
+	},
 }
 
 @export var kind: String = "skeleton"

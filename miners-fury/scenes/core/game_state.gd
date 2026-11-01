@@ -104,6 +104,8 @@ static var active_slot: int = 0
 static var cleared: Array = []
 static var settings: Dictionary = {"music": 0.6, "sfx": 0.8, "fullscreen": false}
 ## Colosseum records: highest round reached and most kills in one run
+## weapon proficiencies you've earned (e.g. "tetrodotoxin" = Venom rune + Storm clap combo)
+static var masteries: Array = []
 static var best_round: int = 0
 static var best_kills: int = 0
 static var _loaded: bool = false
@@ -146,6 +148,7 @@ static func ensure_loaded() -> void:
 	if slots[active_slot] == "":
 		active_slot = 1 - active_slot
 	cleared = Array(data.get("cleared", []))
+	masteries = Array(data.get("masteries", []))
 	best_round = int(data.get("best_round", 0))
 	best_kills = int(data.get("best_kills", 0))
 	var st = data.get("settings", {})
@@ -170,6 +173,7 @@ static func save() -> void:
 		"slots": slots,
 		"active_slot": active_slot,
 		"cleared": cleared,
+		"masteries": masteries,
 		"best_round": best_round,
 		"best_kills": best_kills,
 		"settings": settings,
@@ -186,6 +190,7 @@ static func reset() -> void:
 	cleared = []
 	best_round = 0
 	best_kills = 0
+	masteries = []
 	_loaded = true
 	save()
 
@@ -330,6 +335,25 @@ static func is_unlocked(map_id: String) -> bool:
 		if MAPS[i].id == map_id:
 			return i == 0 or is_cleared(MAPS[i - 1].id)
 	return false
+
+
+# ---------------------------------------------------------------- proficiency
+
+static func has_mastery(id: String) -> bool:
+	ensure_loaded()
+	return masteries.has(id)
+
+
+static func add_mastery(id: String) -> void:
+	ensure_loaded()
+	if not masteries.has(id):
+		masteries.append(id)
+	save()
+
+
+## the Tetrodotoxin trial opens up once you own both blades
+static func can_try_tetrodotoxin() -> bool:
+	return owns("storm_blade") and owns("venom_blade") and not has_mastery("tetrodotoxin")
 
 
 ## endless maps count as "done" once you've had a go

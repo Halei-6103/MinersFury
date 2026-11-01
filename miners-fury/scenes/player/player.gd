@@ -67,6 +67,12 @@ const PoisonStatus = preload("res://scenes/effects/poison_status.gd")
 @export var invincible_time: float = 1.0
 @export var knockback_strength: float = 260.0
 ## scene to go back to when you die
+## Tetrodotoxin cast AT you (the pufferfish trial): can't move or act
+var _paralysis: float = 0.0
+## seconds before Q can swap weapons again (stops swap spam)
+@export var swap_cooldown: float = 2.0
+var _swap_cd: float = 0.0
+var _swap_nag: float = 0.0
 ## set by the Colosseum: stay down when you die (it shows the run card)
 var hold_on_death: bool = false
 @export_file("*.tscn") var respawn_scene: String = "res://scenes/levels/hub/hub.tscn"
@@ -299,8 +305,18 @@ func _ensure_swap_action() -> void:
 	ev.physical_keycode = KEY_Q
 	InputMap.action_add_event("swap_weapon", ev)
 
+## 0..1 for the HUD: 1 = you can swap, lower = still cooling down
+func swap_charge() -> float:
+	return 1.0 - _swap_cd / maxf(swap_cooldown, 0.01)
+
 func _try_swap() -> void:
 	if state == State.DEAD:
+		return
+	if _swap_cd > 0.0:
+		# still cooling down: tell them once in a while, not on every key mash
+		if _swap_nag <= 0.0:
+			_swap_nag = 0.5
+			Juice.damage_number(get_parent(), global_position + Vector2(0, -70), "Swap in %.1fs" % _swap_cd, Color(0.75, 0.75, 0.8), 14)
 		return
 	_cancel_aim()
 	var was_attacking := state == State.ATTACK
@@ -317,6 +333,7 @@ func _try_swap() -> void:
 		swing_fx.visible = false
 		animated_sprite.play("idle")
 	_attack_lock = swap_attack_delay
+	_swap_cd = swap_cooldown
 	set_weapon(w)
 	var c: Color = GameState.WEAPONS[w].color
 	Juice.damage_number(get_parent(), global_position + Vector2(0, -74), GameState.WEAPONS[w].name, c, 18)
@@ -420,6 +437,8 @@ func _consume(action: String) -> bool:
 
 func _physics_process(delta: float) -> void:
 	roll_cooldown_timer = max(roll_cooldown_timer - delta, 0.0)
+	_swap_cd = maxf(_swap_cd - delta, 0.0)
+	_swap_nag = maxf(_swap_nag - delta, 0.0)
 	# dash charges slowly refill
 	dash_charge = minf(dash_charge + delta / dash_recharge_time, dash_max)
 	can_roll = roll_cooldown_timer <= 0.0 and dash_charge >= 1.0
@@ -437,6 +456,19 @@ func _physics_process(delta: float) -> void:
 		untargetable_timer -= delta
 		if untargetable_timer <= 0.0:
 			_phase_in()
+	if _paralysis > 0.0:
+		_paralysis -= delta
+		velocity = velocity.move_toward(Vector2.ZERO, 2400.0 * delta)
+		move_and_slide()
+		if _paralysis <= 0.0 or state == State.DEAD:
+			_paralysis = 0.0
+			animated_sprite.modulate = Color.WHITE
+			if state != State.DEAD:
+				state = State.MOVE
+				animated_sprite.play()
+		else:
+			animated_sprite.modulate = Color(0.7, 1.0, 0.85) if int(_paralysis * 14.0) % 2 == 0 else Color(0.9, 1.3, 1.1)
+		return
 	_read_inputs(delta)
 	if Input.is_action_just_pressed("swap_weapon"):
 		_try_swap()
@@ -788,7 +820,11 @@ func _thunderclap(center: Vector2) -> void:
 		if not _is_dead(e) and e.has_method("stun") and e.state != e.State.STUNNED:
 			e.stun(clap_stun)
 	if rune:
-		_toxic_storm(rune)
+		if GameState.has_mastery("tetrodotoxin"):
+			_toxic_storm(rune)
+		else:
+			# you can feel something there, but you don't know how to use it yet
+			Juice.damage_number(get_parent(), rune.global_position + Vector2(0, -60), "?", Color(0.6, 1.0, 0.75), 30)
 
 
 ## COMBO "Tetrodotoxin": thunderclap on a poison rune. The rune fires two electric
@@ -912,6 +948,21 @@ func take_damage(amount: int, from_position: Vector2, attacker: Node = null) -> 
 	invincible_timer = invincible_time
 	animated_sprite.speed_scale = 1.0
 	animated_sprite.play("hurt")
+
+## nerves locked up by a Tetrodotoxin wave
+func paralyze(duration: float) -> void:
+	if state == State.DEAD or is_untargetable():
+		return
+	if state == State.BLOCK:
+		_end_block()
+	state = State.MOVE
+	swing_fx.visible = false
+	_paralysis = duration
+	animated_sprite.play("idle")
+	animated_sprite.pause()
+	Juice.damage_number(get_parent(), global_position + Vector2(0, -60), "PARALYZED!", Color(0.6, 1.0, 0.75), 24)
+	Juice.shake(self, 0.5)
+
 
 func heal(amount: int) -> void:
 	health = min(health + amount, max_health)

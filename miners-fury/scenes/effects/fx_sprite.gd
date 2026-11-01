@@ -37,6 +37,10 @@ const FX := {
 	"lightning_wave_full": [9, 24, Vector2(32, 32)],
 	# Colosseum braziers (fire pack v1, loops)
 	"brazier_fire": [12, 12, Vector2(32, 62)],
+	# pufferfish spit (water pack v4): burst out, fly (loops), splash
+	"water_ball_start": [9, 20, Vector2(32, 32)],
+	"water_ball_fly": [13, 16, Vector2(32, 32)],
+	"water_ball_end": [8, 18, Vector2(32, 32)],
 }
 
 static var _cache: Dictionary = {}

@@ -7,6 +7,7 @@ const GameState = preload("res://scenes/core/game_state.gd")
 const BOX := 34.0
 const GAP := 26.0
 var _flash: float = 0.0
+var _q_ready_flash: float = 0.0
 var _t: float = 0.0
 
 
@@ -24,6 +25,7 @@ func _process(delta: float) -> void:
 	var real := minf(delta / maxf(Engine.time_scale, 0.001), 0.05)
 	_t += real
 	_flash = maxf(_flash - real, 0.0)
+	_q_ready_flash = maxf(_q_ready_flash - real, 0.0)
 	queue_redraw()
 
 
@@ -52,7 +54,18 @@ func _draw() -> void:
 	var qx := BOX + GAP / 2.0
 	draw_rect(Rect2(qx - 8, BOX / 2 - 8, 16, 16), Color(0.08, 0.06, 0.08, 0.9))
 	draw_rect(Rect2(qx - 8, BOX / 2 - 8, 16, 16), Color(0.7, 0.7, 0.75), false, 1.0)
-	draw_string(font, Vector2(qx - 4, BOX / 2 + 5), "Q", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
+	# swap cooldown: the Q box fills back up from the bottom, then blinks when ready
+	var k := 1.0
+	var p = get_tree().get_first_node_in_group("player")
+	if p and p.has_method("swap_charge"):
+		k = clampf(p.swap_charge(), 0.0, 1.0)
+	if k < 1.0:
+		draw_rect(Rect2(qx - 7, BOX / 2 - 7, 14, 14), Color(0.25, 0.25, 0.3))
+		draw_rect(Rect2(qx - 7, BOX / 2 - 7 + 14 * (1.0 - k), 14, 14 * k), Color(0.55, 0.75, 1.0, 0.7))
+		_q_ready_flash = 0.3
+	elif _q_ready_flash > 0.0:
+		draw_rect(Rect2(qx - 7, BOX / 2 - 7, 14, 14), Color(1, 1, 1, _q_ready_flash / 0.3 * 0.8))
+	draw_string(font, Vector2(qx - 4, BOX / 2 + 5), "Q", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE if k >= 1.0 else Color(0.7, 0.7, 0.75))
 
 
 ## R meter under the weapon in your hand: fills while the ultimate charges

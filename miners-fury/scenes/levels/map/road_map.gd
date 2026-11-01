@@ -16,9 +16,14 @@ const STOPS := [
 	{"id": "forest", "pos": Vector2(636, 336)},
 	{"id": "wasteland", "pos": Vector2(992, 452)},
 	{"id": "colosseum", "pos": Vector2(1120, 192)},
+	{"id": "trial", "pos": Vector2(578, 628)},
 ]
 ## which stops are joined by a line
-const LINKS := [[0, 1], [1, 2], [2, 3]]
+const LINKS := [[0, 1], [1, 2], [2, 3], [0, 4]]
+## the Weapon Proficiency trial (not part of the main road): opens once you own
+## both blades, and you can replay it as often as you like after beating it
+const TRIAL := {"id": "trial", "name": "Pufferfish Trial", "boss": "Pufferfish",
+	"scene": "res://scenes/levels/trial/trial.tscn", "trial": true}
 const RADIUS := 28.0
 
 const GREY := Color(0.62, 0.63, 0.66)
@@ -28,8 +33,8 @@ const CAMP_COL := Color(1.0, 0.82, 0.32)
 const OUTLINE := Color(0.08, 0.06, 0.08)
 
 var _hover: int = -1
-var _pop: Array = [0.0, 0.0, 0.0, 0.0]     # hover grow per node
-var _shake: Array = [0.0, 0.0, 0.0, 0.0]   # "nope" wiggle on locked nodes
+var _pop: Array = []     # hover grow per node
+var _shake: Array = []   # "nope" wiggle on locked nodes
 var _t: float = 0.0
 var _leaving: bool = false
 var _tip: PanelContainer
@@ -37,6 +42,9 @@ var _tip_box: VBoxContainer
 
 
 func _ready() -> void:
+	for i in STOPS.size():
+		_pop.append(0.0)
+		_shake.append(0.0)
 	Music.ensure(self)
 	GameUI.ensure(self)
 	GameState.ensure_loaded()
@@ -94,6 +102,8 @@ func _build_ui() -> void:
 
 
 func _map_info(id: String) -> Dictionary:
+	if id == "trial":
+		return TRIAL
 	for m in GameState.MAPS:
 		if m.id == id:
 			return m
@@ -104,6 +114,10 @@ func _status(i: int) -> String:
 	var id: String = STOPS[i].id
 	if id == "camp":
 		return "camp"
+	if id == "trial":
+		if not (GameState.owns("storm_blade") and GameState.owns("venom_blade")):
+			return "locked"
+		return "done" if GameState.has_mastery("tetrodotoxin") else "open"
 	if not GameState.is_unlocked(id):
 		return "locked"
 	return "done" if GameState.is_played(id) else "open"
@@ -158,7 +172,10 @@ func _fill_tip() -> void:
 		return
 	var m := _map_info(id)
 	_tip_box.add_child(UI.label(m.name.to_upper(), 22, _color(_hover)))
-	if m.get("endless", false):
+	if m.get("trial", false):
+		_tip_box.add_child(UI.label("Weapon Proficiency. Just you and the fish.", 14))
+		_tip_box.add_child(UI.label("Beat it to learn Tetrodotoxin\n(Venom rune + Storm thunderclap).", 13, UI.DIM))
+	elif m.get("endless", false):
 		_tip_box.add_child(UI.label("Endless rounds. Bosses every 5.", 14))
 		_tip_box.add_child(UI.label("How long can you last?", 13, UI.DIM))
 		if GameState.best_round > 0:
@@ -170,10 +187,17 @@ func _fill_tip() -> void:
 		elif id == "wasteland":
 			_tip_box.add_child(UI.label("Drops: Bone, Slime Goo, Bat Wing.\nBoss: Tomb Shard", 12, UI.DIM))
 	match st:
+		"locked" when m.get("trial", false):
+			_tip_box.add_child(UI.label("LOCKED: craft the Storm Blade\nand the Venom Blade first", 14, RED))
 		"locked":
 			_tip_box.add_child(UI.label("LOCKED: clear %s first" % _map_info(STOPS[_hover - 1].id).get("name", "the last area"), 14, RED))
 		"done":
-			_tip_box.add_child(UI.label("CLEARED. Click to fight again" if not m.get("endless", false) else "Click to fight", 14, GREEN))
+			var again := "CLEARED. Click to fight again"
+			if m.get("endless", false):
+				again = "Click to fight"
+			elif m.get("trial", false):
+				again = "MASTERED. Click to replay"
+			_tip_box.add_child(UI.label(again, 14, GREEN))
 		_:
 			_tip_box.add_child(UI.label("Click to fight", 14))
 
@@ -212,6 +236,8 @@ func _go(i: int) -> void:
 	if id != "camp":
 		scene = _map_info(id).scene
 		spawn = "Start"
+	if id == "trial":
+		Engine.set_meta("trial_attempt", 0)
 	var flash := ColorRect.new()
 	flash.color = Color(0.7, 0.95, 1.0, 0.0)
 	flash.size = Vector2(4000, 4000)

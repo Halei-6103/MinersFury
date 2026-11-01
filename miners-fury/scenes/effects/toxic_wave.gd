@@ -21,6 +21,8 @@ var start := Vector2.ZERO
 var dir := Vector2.RIGHT          # flat-floor direction (iso undone)
 var distance: float = 260.0
 var paralysis: float = 4.0
+## "enemy" when you cast it, "player" when the pufferfish casts it at you
+var target_group: String = "enemy"
 var _travelled: float = 0.0
 var _hit: Array = []
 var _head: AnimatedSprite2D
@@ -30,8 +32,9 @@ var _fade: float = 0.0
 var _next_drop: float = 0.0
 
 
-static func fire(parent: Node, at: Vector2, flat_dir: Vector2, dist: float, para: float) -> void:
+static func fire(parent: Node, at: Vector2, flat_dir: Vector2, dist: float, para: float, group: String = "enemy") -> void:
 	var w = load("res://scenes/effects/toxic_wave.gd").new()
+	w.target_group = group
 	w.start = at
 	w.dir = flat_dir.normalized()
 	w.distance = dist
@@ -87,7 +90,7 @@ func _process(delta: float) -> void:
 
 ## anyone between the rune and the head, within the wave's thickness
 func _check_hits() -> void:
-	for e in get_tree().get_nodes_in_group("enemy"):
+	for e in get_tree().get_nodes_in_group(target_group):
 		if e in _hit or (e.get("state") != null and e.state == e.State.DEAD) or not e.has_method("paralyze"):
 			continue
 		var rel: Vector2 = e.global_position - start
@@ -98,7 +101,12 @@ func _check_hits() -> void:
 		var side := absf(flat.cross(dir))
 		if side > HALF_WIDTH:
 			continue
+		# rolling through it dodges it
+		if e.has_method("is_untargetable") and e.is_untargetable():
+			continue
 		_hit.append(e)
+		if target_group == "player":
+			e.take_damage(1, start, null)
 		e.paralyze(paralysis)
 		var hb = e.get_node_or_null("Hurtbox")
 		var p: Vector2 = hb.global_position if hb else e.global_position

@@ -10,10 +10,16 @@ const GameState = preload("res://scenes/core/game_state.gd")
 const UI = preload("res://scenes/ui/ui_kit.gd")
 
 const CAMP := "res://scenes/levels/hub/hub.tscn"
+const MAP := "res://scenes/levels/map/road_map.tscn"
+const TRIAL := "res://scenes/levels/trial/trial.tscn"
 
 var _menu: Control = null
 var _kind: String = ""
 var _confirm_reset: bool = false
+## weapon proficiency popup (shows in camp / on the road map once you own both blades)
+var _note: Control = null
+var _scene_id: int = 0
+var _note_wait: float = -1.0
 
 
 static func ensure(node: Node) -> void:
@@ -105,6 +111,65 @@ func _ready() -> void:
 	layer = 80
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_actions()
+
+
+func _process(delta: float) -> void:
+	var cs := get_tree().current_scene
+	var id := cs.get_instance_id() if cs else 0
+	if id != _scene_id:
+		_scene_id = id
+		if _note and is_instance_valid(_note):
+			_note.queue_free()
+		_note = null
+		# give the scene a moment to fade in before popping up
+		_note_wait = 1.4 if cs and (cs.scene_file_path == CAMP or cs.scene_file_path == MAP) else -1.0
+	if _note_wait > 0.0 and not get_tree().paused:
+		_note_wait -= delta
+		if _note_wait <= 0.0 and GameState.can_try_tetrodotoxin():
+			_show_proficiency()
+
+
+## "WEAPON PROFICIENCY" card sliding in from the right, with a START button
+func _show_proficiency() -> void:
+	var holder := Control.new()
+	holder.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(holder)
+	_note = holder
+	var p := UI.panel(Color(0.6, 1.0, 0.75), 330.0)
+	p.position = Vector2(-350, 96)
+	holder.add_child(p)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	p.add_child(v)
+	var head := HBoxContainer.new()
+	head.add_child(UI.label("!", 22, UI.GOLD))
+	head.add_child(UI.label("  WEAPON PROFICIENCY", 18, Color(0.6, 1.0, 0.75)))
+	v.add_child(head)
+	var body := UI.label("Your Storm Blade and Venom Blade hum\nwhen they're near each other.\n\nSomething out at sea wants to test you.", 14)
+	v.add_child(body)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	var go := UI.button("START", true, UI.GOOD, 16)
+	go.pressed.connect(func() -> void:
+		holder.queue_free()
+		_note = null
+		Engine.set_meta("trial_attempt", 0)
+		Engine.set_meta("arrival_spawn", "Start")
+		get_tree().change_scene_to_file(TRIAL))
+	row.add_child(go)
+	var later := UI.button("LATER", true, Color(0.6, 0.6, 0.65), 14)
+	later.pressed.connect(func() -> void:
+		var tw2 := holder.create_tween()
+		tw2.tween_property(p, "position:x", 40.0, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+		tw2.tween_callback(holder.queue_free)
+		_note = null)
+	row.add_child(later)
+	v.add_child(row)
+	# slide in + a little bounce
+	p.position.x = 40.0
+	var tw := p.create_tween()
+	tw.tween_property(p, "position:x", -350.0, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _ensure_actions() -> void:
