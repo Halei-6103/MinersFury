@@ -1,3 +1,13 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Exported builds / download packages (too large for GitHub)
+windows_build/
+*.zip
+*.exe
+*.pck
+*.dmg
+*.app
+*.x86_64
+
