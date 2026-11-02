@@ -9,6 +9,7 @@ extends "res://scenes/enemies/melee/melee_enemy.gd"
 
 const WaterBall = preload("res://scenes/enemies/pufferfish/water_ball.gd")
 const PufferUlt = preload("res://scenes/enemies/pufferfish/puffer_ult.gd")
+const NetC = preload("res://scenes/core/net.gd")
 
 enum Mode { SWIM, SPIT, ULT, LUNGE }
 
@@ -42,6 +43,7 @@ var puffed: bool = false
 var _lunge_t: float = 0.0
 var _lunge_hit: bool = false
 var _lunged: bool = false
+var _lunge_target: Node2D = null
 
 
 func _ready() -> void:
@@ -67,6 +69,9 @@ func _look(to_p: Vector2) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if net_remote:
+		_remote_tick(delta)
+		return
 	_t += delta
 	_bar_timer = maxf(_bar_timer - delta, 0.0)
 	_spike_cd = maxf(_spike_cd - delta, 0.0)
@@ -138,11 +143,15 @@ func _brain(delta: float) -> void:
 			if not _ult_cast and _ult_t >= 0.55:
 				_ult_cast = true
 				PufferUlt.cast(get_tree().current_scene, p.global_position, global_position)
+				NetC.get_node_in(get_tree()).fx_call("puffer_ult", [p.global_position, global_position])
 				Juice.damage_number(get_parent(), global_position + Vector2(0, -110), "!!", Color(0.6, 1.0, 0.75), 30)
-			# a wave got you: don't waste it
-			if _ult_cast and not _lunged and p.get("_paralysis") != null and p._paralysis > 0.3:
-				_start_lunge()
-				return
+			# a wave got someone: don't waste it
+			if _ult_cast and not _lunged:
+				var frozen := _frozen_player()
+				if frozen:
+					_lunge_target = frozen
+					_start_lunge()
+					return
 			if _ult_t >= 0.55 + PufferUlt.WARN + 0.9:
 				puffed = false
 				_play(_fa("deflate"))
@@ -152,7 +161,9 @@ func _brain(delta: float) -> void:
 
 
 		Mode.LUNGE:
-			_lunge(delta, p, to_p)
+			# go after whoever got frozen (co-op: maybe not the closest one)
+			var lt: Node2D = _lunge_target if is_instance_valid(_lunge_target) else p
+			_lunge(delta, lt, lt.global_position - global_position)
 
 
 func _start_lunge() -> void:
@@ -182,12 +193,15 @@ func _lunge(delta: float, p: Node2D, to_p: Vector2) -> void:
 			_lunge_hit = true
 			_lunge_t = LUNGE_TELL
 			# the wave's hit gave you i-frames; this slam is the guaranteed punish
-			p.invincible_timer = 0.0
-			p.take_damage(1, global_position, self)
-			_sfx("geh")
+			if p.get("puppet") == true:
+				NetC.get_node_in(get_tree()).player_hit(p.net_id, 1, global_position, self, true)
+			else:
+				p.invincible_timer = 0.0
+				p.take_damage(1, global_position, self)
+			net_geh()
+			NetC.get_node_in(get_tree()).fx_call("puffer_geh", [net_eid])
 			Juice.shake(self, 0.7, to_p)
 			Juice.hit_stop(self, 0.08)
-			Juice.damage_number(get_parent(), global_position + Vector2(0, -110), "GEH!", Color(1, 0.85, 0.5), 30)
 			velocity = -to_p.normalized() * 340.0
 		elif _lunge_t > LUNGE_TELL + 1.0:
 			_lunge_hit = true   # missed (you got away): give up
@@ -200,6 +214,26 @@ func _lunge(delta: float, p: Node2D, to_p: Vector2) -> void:
 			mode = Mode.SWIM
 			_mode_t = 1.6
 			_ult_cd = ULT_EVERY_ANGRY if _angry() else ULT_EVERY
+
+
+## the "GEH!" sound + popup (the host sends it to everyone's copy too)
+func net_geh() -> void:
+	_sfx("geh")
+	Juice.damage_number(get_parent(), global_position + Vector2(0, -110), "GEH!", Color(1, 0.85, 0.5), 30)
+
+
+## any player frozen by a wave right now (nearest first)
+func _frozen_player() -> Node2D:
+	var best: Node2D = null
+	var bd := INF
+	for q in get_tree().get_nodes_in_group("players_all"):
+		if q.get("_paralysis") == null or q._paralysis <= 0.3 or q.state == q.State.DEAD:
+			continue
+		var d: float = global_position.distance_to(q.global_position)
+		if d < bd:
+			bd = d
+			best = q
+	return best
 
 
 ## plays SFX_DIR/<name>.(ogg|wav|mp3) if you've added one, with a little pitch wobble
@@ -231,8 +265,11 @@ func _spit(p: Node2D) -> void:
 	var dirs: Array = [aim.normalized()]
 	if _angry():
 		dirs = [aim.normalized().rotated(-0.32), aim.normalized(), aim.normalized().rotated(0.32)]
+	var net := NetC.get_node_in(get_tree())
+	var parent_path := str(get_tree().current_scene.get_path_to(get_parent()))
 	for d in dirs:
 		WaterBall.shoot(get_parent(), global_position + d * 26.0, d, cfg.damage, mouth_h)
+		net.fx_call("water_ball", [parent_path, global_position + d * 26.0, d, cfg.damage, mouth_h])
 	Juice.shake(self, 0.2)
 
 

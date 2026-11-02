@@ -47,8 +47,11 @@ func _strike() -> void:
 	FxSprite.spawn(lvl, "necro_bolt", global_position, {"scale": 2.0, "z": 30})
 	FxSprite.spawn(lvl, "poison_cloud", global_position, {"scale": 1.5, "z": 29})
 	Juice.shake(self, 0.3)
-	var p = get_tree().get_first_node_in_group("player")
-	if p and p.has_method("take_damage"):
+	if damage <= 0:
+		return   # a co-op copy, just for show
+	for p in get_tree().get_nodes_in_group("players_all"):
+		if not p.has_method("take_damage"):
+			continue
 		var off: Vector2 = p.global_position - global_position
 		if Vector2(off.x, off.y * 2.0).length() <= RADIUS * 1.2:
 			p.take_damage(damage, global_position, null)

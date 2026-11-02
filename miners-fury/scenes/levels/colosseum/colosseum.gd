@@ -66,6 +66,9 @@ func _ready() -> void:
 		p.died.connect(_on_player_died)
 	_light_braziers()
 	round_info.text = ""
+	# co-op: the host runs the rounds, clients mirror them
+	if _net_client():
+		return
 	await get_tree().create_timer(1.2, false).timeout
 	_next_round()
 
@@ -109,6 +112,7 @@ func _update_info() -> void:
 	if round_no <= 0 or _dead:
 		return
 	round_info.text = "ROUND %d     Kills: %d     Enemies: %d" % [round_no, kills, _alive()]
+	_net().scene_call("_set_round_info", [round_info.text])
 
 
 # ---------------------------------------------------------------- rounds
@@ -265,6 +269,8 @@ func _spawn_point(boss: bool) -> Vector2:
 
 
 func _on_enemy_died() -> void:
+	if _net_client():
+		return
 	await get_tree().process_frame
 	_update_info()
 	if _spawning or _dead or _clearing or round_no <= 0 or _alive() > 0:
@@ -282,6 +288,9 @@ func _round_clear() -> void:
 		p.heal(heal)
 		Juice.damage_number(p.get_parent(), p.global_position + Vector2(0, -50), "+%d" % heal, Color(0.5, 1, 0.5), 26)
 	_pull_loot(1.2)
+	# teammates get the same heal (a full heal on boss rounds) and their loot pulled in
+	_net().scene_call("_net_heal", [999 if full else HEAL_BETWEEN])
+	_net().scene_call("_pull_loot", [1.2])
 	await get_tree().create_timer(BREAK_TIME, false).timeout
 	_next_round()
 
@@ -289,7 +298,8 @@ func _round_clear() -> void:
 # ---------------------------------------------------------------- death card
 
 func _on_player_died() -> void:
-	if _dead:
+	# co-op: you get back up instead (revives coming later), the run keeps going
+	if _dead or Net.online(get_tree()):
 		return
 	_dead = true
 	_spawning = false
@@ -372,3 +382,10 @@ func _leave(scene: String, spawn: String) -> void:
 	if spawn != "":
 		Engine.set_meta("arrival_spawn", spawn)
 	get_tree().change_scene_to_file(scene)
+
+
+## a monster copy showed up on this client: bosses get their bar
+func net_enemy_spawned(e: Node) -> void:
+	var k := str(e.get("kind"))
+	if BOSS_TITLES.has(k) and e.get("summoned") != true:
+		_add_boss_bar(e, BOSS_TITLES[k])

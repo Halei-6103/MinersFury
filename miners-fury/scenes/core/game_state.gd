@@ -106,6 +106,8 @@ static var settings: Dictionary = {"music": 0.6, "sfx": 0.8, "fullscreen": false
 ## Colosseum records: highest round reached and most kills in one run
 ## weapon proficiencies you've earned (e.g. "tetrodotoxin" = Venom rune + Storm clap combo)
 static var masteries: Array = []
+## tutorial tips you've already seen (scenes/ui/tips.gd)
+static var tips_seen: Array = []
 static var best_round: int = 0
 static var best_kills: int = 0
 static var _loaded: bool = false
@@ -149,6 +151,7 @@ static func ensure_loaded() -> void:
 		active_slot = 1 - active_slot
 	cleared = Array(data.get("cleared", []))
 	masteries = Array(data.get("masteries", []))
+	tips_seen = Array(data.get("tips_seen", []))
 	best_round = int(data.get("best_round", 0))
 	best_kills = int(data.get("best_kills", 0))
 	var st = data.get("settings", {})
@@ -174,6 +177,7 @@ static func save() -> void:
 		"active_slot": active_slot,
 		"cleared": cleared,
 		"masteries": masteries,
+		"tips_seen": tips_seen,
 		"best_round": best_round,
 		"best_kills": best_kills,
 		"settings": settings,
@@ -191,6 +195,7 @@ static func reset() -> void:
 	best_round = 0
 	best_kills = 0
 	masteries = []
+	tips_seen = []
 	_loaded = true
 	save()
 

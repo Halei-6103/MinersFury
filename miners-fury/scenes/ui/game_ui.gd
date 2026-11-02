@@ -21,6 +21,9 @@ var _confirm_reset: bool = false
 var _note: Control = null
 var _scene_id: int = 0
 var _note_wait: float = -1.0
+## tutorial tips (scenes/ui/tips.gd)
+var _tips: Control = null
+var _tip_check: float = 1.0
 
 
 static func ensure(node: Node) -> void:
@@ -45,7 +48,24 @@ static func ensure_buses() -> void:
 			AudioServer.set_bus_send(i, "Master")
 	GameState.ensure_loaded()
 	apply_volume()
+	# only set the window mode once, when the game starts. Doing it on every
+	# scene load kicked people out of fullscreen whenever they changed maps
+	if not _display_applied:
+		_display_applied = true
+		apply_display()
+
+
+static var _display_applied: bool = false
+
+
+## F11 or Alt+Enter: flip fullscreen and remember it
+static func toggle_fullscreen() -> void:
+	if OS.has_feature("web"):
+		return
+	var now_full := DisplayServer.window_get_mode() in [DisplayServer.WINDOW_MODE_FULLSCREEN, DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN]
+	GameState.settings["fullscreen"] = not now_full
 	apply_display()
+	GameState.save()
 
 
 static func apply_volume() -> void:
@@ -115,6 +135,16 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# tutorial tips: look for new ones twice a second (not while a menu is open)
+	if _tips == null:
+		_tips = load("res://scenes/ui/tips.gd").new()
+		_tips.name = "Tips"
+		add_child(_tips)
+	_tip_check -= delta
+	if _tip_check <= 0.0:
+		_tip_check = 0.5
+		if _menu == null and get_tree().get_nodes_in_group("modal").is_empty():
+			_tips.check()
 	var cs := get_tree().current_scene
 	var id := cs.get_instance_id() if cs else 0
 	if id != _scene_id:
@@ -191,6 +221,10 @@ func _no_player() -> bool:
 
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_F11 or (event.keycode == KEY_ENTER and event.alt_pressed)):
+		get_viewport().set_input_as_handled()
+		toggle_fullscreen()
+		return
 	if event.is_action_pressed("pause"):
 		if _menu:
 			get_viewport().set_input_as_handled()
@@ -234,6 +268,18 @@ func _open(kind: String) -> VBoxContainer:
 
 # ---------------------------------------------------------------- pause
 
+func open_guide() -> void:
+	var v := _open("guide")
+	var head := HBoxContainer.new()
+	head.add_child(UI.label("HOW TO PLAY", 28, UI.GOLD))
+	head.add_child(UI.spacer())
+	var back := UI.button("BACK", true, UI.EDGE, 14)
+	back.pressed.connect(open_pause)
+	head.add_child(back)
+	v.add_child(head)
+	load("res://scenes/ui/tips.gd").build_guide(v)
+
+
 func open_pause() -> void:
 	var v := _open("pause")
 	var head := HBoxContainer.new()
@@ -244,6 +290,9 @@ func open_pause() -> void:
 	var resume := UI.button("RESUME", true, UI.EDGE, 18)
 	resume.pressed.connect(close)
 	v.add_child(resume)
+	var how := UI.button("HOW TO PLAY", true, UI.GOLD, 16)
+	how.pressed.connect(open_guide)
+	v.add_child(how)
 
 	add_settings_controls(v)
 

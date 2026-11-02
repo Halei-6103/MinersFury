@@ -117,6 +117,13 @@ const LightningBolt = preload("res://scenes/effects/lightning_bolt.gd")
 var paralyzed: bool = false
 var _dmg_carry: float = 0.0
 const NecroBolt = preload("res://scenes/enemies/melee/necro_bolt.gd")
+const Net = preload("res://scenes/core/net.gd")
+
+## co-op: true = this is a client's copy of a monster the host is running
+var net_remote: bool = false
+var net_eid: int = 0
+var _net_target: Vector2 = Vector2.ZERO
+var _net_has_target: bool = false
 
 ## raised by a Necromancer: climbs out of the ground, drops less loot
 var summoned: bool = false
@@ -174,6 +181,9 @@ func _ready() -> void:
 	sprite.animation_finished.connect(_on_animation_finished)
 	sprite.frame_changed.connect(_check_hits)
 	_spawn_in()
+	# co-op: the host shares this monster with everyone
+	if not net_remote and Net.online(get_tree()) and multiplayer.is_server():
+		Net.get_node_in(get_tree()).register_enemy.call_deferred(self)
 
 
 func _spawn_in() -> void:
@@ -193,14 +203,24 @@ func _spawn_in() -> void:
 		Juice.shockwave(self, global_position, 18.0 * cfg.scale / 2.0))
 
 
+## the closest living player (in co-op that can be a teammate)
 func _player() -> Node2D:
-	var p = get_tree().get_first_node_in_group("player")
-	if p == null or p.state == p.State.DEAD:
-		return null
-	return p
+	var best: Node2D = null
+	var best_d := INF
+	for p in get_tree().get_nodes_in_group("players_all"):
+		if p.state == p.State.DEAD:
+			continue
+		var d: float = global_position.distance_squared_to(p.global_position)
+		if d < best_d:
+			best_d = d
+			best = p
+	return best
 
 
 func _physics_process(delta: float) -> void:
+	if net_remote:
+		_remote_tick(delta)
+		return
 	_t += delta
 	cooldown = maxf(cooldown - delta, 0.0)
 	_tell_fx = maxf(_tell_fx - delta, 0.0)
@@ -344,10 +364,11 @@ func _check_hits() -> void:
 	if w >= 0 and w != _strike:
 		_strike = w
 		_swipe_fx(w)
-	if w < 0 or w == _hit_strike:
+	# a copy never deals damage: the host's real monster does
+	if net_remote or w < 0 or w == _hit_strike:
 		return
 	for b in attack_area.get_overlapping_bodies():
-		if b.is_in_group("player") and b.has_method("take_damage"):
+		if b.is_in_group("players_all") and b.has_method("take_damage"):
 			_hit_strike = w
 			b.take_damage(cfg.damage, global_position, self)
 			return
@@ -377,6 +398,11 @@ func _big_tell() -> void:
 
 
 func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) -> void:
+	if net_remote:
+		if state != State.DEAD:
+			_flash()
+			Net.get_node_in(get_tree()).enemy_request(self, "damage", [amount, from_position, knock_scale])
+		return
 	if state == State.DEAD or state == State.SPAWNING:
 		return
 	if state == State.STUNNED:
@@ -415,6 +441,11 @@ func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) 
 
 ## poison ticks: hurts without interrupting what it's doing
 func dot_damage(amount: int, color: Color = Color(0.55, 1.0, 0.35)) -> void:
+	if net_remote:
+		if state != State.DEAD:
+			Juice.damage_number(get_parent(), global_position + Vector2(0, hurtbox.position.y * 2.0 - 6.0), str(amount), color, 16)
+			Net.get_node_in(get_tree()).enemy_request(self, "dot", [amount, color])
+		return
 	if state == State.DEAD or state == State.SPAWNING:
 		return
 	health -= amount
@@ -469,6 +500,7 @@ func _drop_bolts(p: Node2D) -> void:
 			spots.append(p.global_position + Vector2.from_angle(randf() * TAU) * Vector2(1, 0.5) * randf_range(60, 100))
 	for at in spots:
 		NecroBolt.cast(get_parent(), at, cfg.damage)
+		Net.get_node_in(get_tree()).fx_call("necro_bolt", [at])
 
 
 func _raise_dead() -> void:
@@ -487,6 +519,43 @@ func _raise_dead() -> void:
 	Juice.shake(self, 0.3)
 
 
+# ---------------------------------------------------------------- co-op copies
+
+## a client's copy: glide to where the host says the monster is, show its frame
+func _remote_tick(delta: float) -> void:
+	_t += delta
+	if _net_has_target:
+		if global_position.distance_to(_net_target) > 250.0:
+			global_position = _net_target
+		else:
+			global_position = global_position.lerp(_net_target, 1.0 - exp(-14.0 * delta))
+	queue_redraw()
+
+
+func apply_enemy_state(st: Array) -> void:
+	if state == State.DEAD:
+		return
+	_net_target = st[1]
+	_net_has_target = true
+	var anim: String = st[2]
+	if sprite.sprite_frames.has_animation(anim) and sprite.animation != anim:
+		sprite.animation = anim
+	sprite.pause()
+	sprite.frame = st[3]
+	sprite.flip_h = st[4]
+	sprite.modulate = st[5]
+	state = st[6] as State
+	health = st[7]
+
+
+## the host's monster died: fall over here too, and roll YOUR loot
+func remote_die(dir: Vector2) -> void:
+	if state == State.DEAD:
+		return
+	sprite.modulate = Color.WHITE
+	_die(dir, 1.0)
+
+
 func _flash() -> void:
 	var base := sprite.modulate
 	sprite.modulate = Color(3, 3, 3)
@@ -500,6 +569,9 @@ func _flash() -> void:
 
 ## parried! dazed, can't act, takes double damage
 func stun(duration: float) -> void:
+	if net_remote:
+		Net.get_node_in(get_tree()).enemy_request(self, "stun", [duration])
+		return
 	if state == State.DEAD or state == State.SPAWNING:
 		return
 	paralyzed = false
@@ -516,6 +588,9 @@ func stun(duration: float) -> void:
 
 ## Toxic Storm: nerves locked up. Can't move or act. Bosses shake it off in half the time.
 func paralyze(duration: float) -> void:
+	if net_remote:
+		Net.get_node_in(get_tree()).enemy_request(self, "paralyze", [duration])
+		return
 	if state == State.DEAD or state == State.SPAWNING:
 		return
 	stun(duration)

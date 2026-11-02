@@ -7,6 +7,12 @@ signal died
 const Juice = preload("res://scenes/effects/juice.gd")
 const Pickup = preload("res://scenes/items/pickup.gd")
 const LightningBolt = preload("res://scenes/effects/lightning_bolt.gd")
+const Net = preload("res://scenes/core/net.gd")
+## co-op: true = this is a client's copy of a bat the host is running
+var net_remote: bool = false
+var net_eid: int = 0
+var _net_target: Vector2 = Vector2.ZERO
+var _net_has_target: bool = false
 ## Toxic Storm combo: frozen, takes 30% more damage
 var paralyzed: bool = false
 var _dmg_carry: float = 0.0
@@ -68,8 +74,17 @@ func _ready() -> void:
 	sprite.animation_finished.connect(_on_animation_finished)
 	sprite.play("fly")
 	sprite.frame = randi() % 6  # so a group of bats don't flap in sync
+	if not net_remote and Net.online(get_tree()) and multiplayer.is_server():
+		Net.get_node_in(get_tree()).register_enemy.call_deferred(self)
 
 func _physics_process(delta: float) -> void:
+	if net_remote:
+		if _net_has_target and state != State.DEAD:
+			if global_position.distance_to(_net_target) > 250.0:
+				global_position = _net_target
+			else:
+				global_position = global_position.lerp(_net_target, 1.0 - exp(-14.0 * delta))
+		return
 	cooldown = max(cooldown - delta, 0.0)
 	var player := _get_player()
 	var to_player := Vector2.ZERO
@@ -176,11 +191,18 @@ func _wall_slam(n: Vector2) -> void:
 	tw.parallel().tween_property(sprite, "rotation", 0.0, 0.16)
 	tw.tween_callback(_land)
 
+## the closest living player (in co-op that can be a teammate)
 func _get_player() -> Node2D:
-	var p = get_tree().get_first_node_in_group("player")
-	if p and p.get("state") != null and p.state == p.State.DEAD:
-		return null
-	return p
+	var best: Node2D = null
+	var best_d := INF
+	for p in get_tree().get_nodes_in_group("players_all"):
+		if p.get("state") != null and p.state == p.State.DEAD:
+			continue
+		var d: float = global_position.distance_squared_to(p.global_position)
+		if d < best_d:
+			best_d = d
+			best = p
+	return best
 
 func _wander(delta: float) -> void:
 	wander_timer -= delta
@@ -211,7 +233,7 @@ func _try_bite() -> void:
 	if hit_this_attack:
 		return
 	for body in bite_area.get_overlapping_bodies():
-		if body.is_in_group("player") and body.has_method("take_damage"):
+		if body.is_in_group("players_all") and body.has_method("take_damage"):
 			hit_this_attack = true
 			body.take_damage(damage, global_position, self)
 			velocity = -lunge_dir * 120.0  # bounce off after biting
@@ -219,6 +241,11 @@ func _try_bite() -> void:
 
 ## knock_scale: combo starters nudge (keeps the bat in reach), finishers launch
 func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) -> void:
+	if net_remote:
+		if state != State.DEAD:
+			_flash()
+			Net.get_node_in(get_tree()).enemy_request(self, "damage", [amount, from_position, knock_scale])
+		return
 	if state == State.DEAD:
 		return
 	if state == State.STUNNED:
@@ -243,6 +270,11 @@ func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) 
 
 ## poison ticks: hurts without knocking it around
 func dot_damage(amount: int, color: Color = Color(0.55, 1.0, 0.35)) -> void:
+	if net_remote:
+		if state != State.DEAD:
+			Juice.damage_number(get_parent(), global_position + Vector2(0, -50), str(amount), color, 16)
+			Net.get_node_in(get_tree()).enemy_request(self, "dot", [amount, color])
+		return
 	if state == State.DEAD:
 		return
 	health -= amount
@@ -254,6 +286,9 @@ func dot_damage(amount: int, color: Color = Color(0.55, 1.0, 0.35)) -> void:
 ## parried! knocked out of the air and dazed
 ## Toxic Storm: drops out of the air, locked up
 func paralyze(duration: float) -> void:
+	if net_remote:
+		Net.get_node_in(get_tree()).enemy_request(self, "paralyze", [duration])
+		return
 	if state == State.DEAD:
 		return
 	stun(duration)
@@ -264,6 +299,9 @@ func paralyze(duration: float) -> void:
 	sprite.modulate = Color(0.7, 1.0, 0.85)
 
 func stun(duration: float) -> void:
+	if net_remote:
+		Net.get_node_in(get_tree()).enemy_request(self, "stun", [duration])
+		return
 	if state == State.DEAD:
 		return
 	paralyzed = false
@@ -278,6 +316,33 @@ func stun(duration: float) -> void:
 	knockback = -lunge_dir * 260.0
 	var drop := create_tween()
 	drop.tween_property(sprite, "position:y", -6.0, 0.18).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
+
+# ---------------------------------------------------------------- co-op copies
+
+func apply_enemy_state(st: Array) -> void:
+	if state == State.DEAD:
+		return
+	_net_target = st[1]
+	_net_has_target = true
+	var anim: String = st[2]
+	if sprite.sprite_frames.has_animation(anim) and sprite.animation != anim:
+		sprite.animation = anim
+	sprite.pause()
+	sprite.frame = st[3]
+	sprite.flip_h = st[4]
+	sprite.modulate = st[5]
+	state = st[6] as State
+	health = st[7]
+
+
+## the host's bat died: home-run it here too, and roll YOUR wing drop
+func remote_die(dir: Vector2) -> void:
+	if state == State.DEAD:
+		return
+	sprite.modulate = Color.WHITE
+	knockback = dir
+	_die()
+
 
 func _flash() -> void:
 	sprite.modulate = Color(3, 3, 3)

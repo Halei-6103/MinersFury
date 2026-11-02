@@ -45,6 +45,8 @@ func _build() -> void:
 		add_child(fallback)
 	add_child(bg)
 
+	_build_stamp()
+
 	var veil := ColorRect.new()
 	veil.color = Color(0.02, 0.03, 0.06, 0.42)
 	veil.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -321,3 +323,20 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _options:
 			get_viewport().set_input_as_handled()
 			_toggle_options()
+
+
+## bottom-right corner: a short code for this exact build (a fingerprint of the
+## game files). Co-op needs everyone on the same build, so if joining fails,
+## compare these. Same code = same version.
+func _build_stamp() -> void:
+	var txt := "build " + Net.build_id()
+	var l := UI.label(txt, 11, UI.DIM)
+	l.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	l.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	l.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	l.offset_left = -220
+	l.offset_top = -24
+	l.offset_right = -10
+	l.offset_bottom = -6
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	add_child.call_deferred(l)

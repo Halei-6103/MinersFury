@@ -12,6 +12,8 @@ const MAP := "res://scenes/levels/map/road_map.tscn"
 
 var _boss: Node2D
 var _over: bool = false
+## co-op: who's down right now (peer id -> true). Everyone down at once = loss
+var _down: Dictionary = {}
 
 
 func _ready() -> void:
@@ -31,10 +33,22 @@ func _ready() -> void:
 	var p := _player()
 	if p:
 		p.hold_on_death = true
-		p.died.connect(_lose)
-	round_info.text = "WEAPON PROFICIENCY     Attempt %d" % attempt
+		if _coop():
+			# co-op: going down isn't the end. Lose only if the whole team is down
+			p.died.connect(func() -> void: _net().host_call("_net_down", [true]))
+			p.health_changed.connect(func(h: int, _m: int) -> void:
+				if h > 0 and _down_me:
+					_down_me = false
+					_net().host_call("_net_down", [false]))
+			p.died.connect(func() -> void: _down_me = true)
+		else:
+			p.died.connect(_lose)
+	round_info.text = ("GROUP TRIAL     Attempt %d" if _coop() else "WEAPON PROFICIENCY     Attempt %d") % attempt
 	await get_tree().create_timer(0.6, false).timeout
 	_banner("PROFICIENCY TRIAL", "The Pufferfish knows your secret", Color(0.6, 1.0, 0.75), 1.8, 0.9)
+	# co-op: the host spawns the fish, everyone else gets a copy
+	if _net_client():
+		return
 	await get_tree().create_timer(2.2, false).timeout
 	_spawn_boss()
 
@@ -50,6 +64,10 @@ func _spawn_boss() -> void:
 	_boss_bar.boss = e
 	_boss_bar.title = "PUFFERFISH"
 	_boss_bar.visible = true
+	_landing(e)
+
+
+func _landing(e: Node2D) -> void:
 	Juice.shake(self, 0.7)
 	Juice.shockwave(self, e.global_position, 30.0)
 	# superhero landing. The impact is right at the start of the sound, so wait
@@ -61,6 +79,40 @@ func _spawn_boss() -> void:
 
 func _on_enemy_died() -> void:
 	pass
+
+
+# ---------------------------------------------------------------- co-op
+
+var _down_me: bool = false
+
+
+func _coop() -> bool:
+	return Net.online(get_tree())
+
+
+## a copy of the host's fish just showed up here
+func net_enemy_spawned(e: Node) -> void:
+	if str(e.get("kind")) != "pufferfish":
+		return
+	_boss = e
+	e.died.connect(_win)
+	_boss_bar.boss = e
+	_boss_bar.title = "PUFFERFISH"
+	_boss_bar.visible = true
+	_landing(e)
+
+
+## host: someone went down (or got back up). Whole team down = everyone loses
+func _net_down(peer: int, is_down: bool) -> void:
+	if _over:
+		return
+	if is_down:
+		_down[peer] = true
+	else:
+		_down.erase(peer)
+	if _down.size() >= _net().player_count():
+		_net().scene_call("_lose")
+		_lose()
 
 
 # ---------------------------------------------------------------- win
@@ -88,6 +140,7 @@ func _win() -> void:
 	how.add_child(UIK.label("Two waves fly out the sides of the rune.\nAnything they touch is paralyzed and takes 30% more damage.", 13, UIK.DIM))
 	v.add_child(how)
 	_buttons(v, [["BACK TO CAMP", UIK.GOLD, CAMP, "Start"], ["ROAD MAP", UIK.EDGE, MAP, ""]])
+	_host_note(v)
 
 
 # ---------------------------------------------------------------- lose
@@ -100,21 +153,22 @@ func _lose() -> void:
 	Juice.slow_mo(self, 1.0, 0.25)
 	await get_tree().create_timer(1.6, true, false, true).timeout
 	_boss_bar.visible = false
-	get_tree().paused = true
 	var v := _card(UIK.BAD)
-	_title(v, "THE PUFFERFISH WINS", 32, UIK.BAD)
+	_title(v, "THE PUFFERFISH WINS" if not _coop() else "THE TEAM WAS WIPED", 32, UIK.BAD)
 	if _boss and is_instance_valid(_boss):
 		_line(v, "It had %d%% health left." % int(100.0 * _boss.health / _boss.max_health), 15, UIK.DIM)
 	var tip := UIK.section("TIP")
 	tip.add_child(UIK.label("When it puffs up, watch the glowing lines on the floor.\nStep off them (toward it or away) or roll through the wave.", 14))
 	v.add_child(tip)
 	_buttons(v, [["TRY AGAIN", UIK.GOOD, SELF, "Start"], ["BACK TO CAMP", UIK.GOLD, CAMP, "Start"]])
+	_host_note(v)
 
 
 # ---------------------------------------------------------------- card bits
 
 func _card(edge: Color) -> VBoxContainer:
-	get_tree().paused = true
+	if not _coop():
+		get_tree().paused = true
 	var layer := CanvasLayer.new()
 	layer.layer = 90
 	layer.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -158,7 +212,15 @@ func _buttons(v: VBoxContainer, list: Array) -> void:
 	v.add_child(row)
 
 
+func _host_note(v: VBoxContainer) -> void:
+	if _net_client():
+		_line(v, "The host picks where the team goes next.", 13, UIK.DIM)
+
+
 func _leave(scene: String, spawn: String) -> void:
+	if _coop():
+		Net.change_scene(get_tree(), scene, spawn)
+		return
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	if spawn != "":

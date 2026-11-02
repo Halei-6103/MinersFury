@@ -395,7 +395,9 @@ func _puppet_ready() -> void:
 	hud = null
 	aim_indicator.queue_free()
 	sword_hitbox.monitoring = false
-	collision_layer = 0
+	# monsters can find and hit a teammate's character (on the host), but it
+	# doesn't bump into anything itself
+	collision_layer = 8
 	collision_mask = 0
 	_iron_fx = swing_fx.sprite_frames
 	_net_target = position
@@ -425,14 +427,16 @@ func _net_send() -> void:
 		position, String(animated_sprite.animation), animated_sprite.frame, animated_sprite.flip_h,
 		animated_sprite.visible, animated_sprite.modulate, weapon,
 		swing_fx.visible, String(swing_fx.animation), swing_fx.frame, swing_fx.flip_h, swing_fx.rotation,
-		int(state), health, max_health,
+		int(state), health, max_health, _paralysis,
 	]
-	rpc("_net_state", st)
+	# goes through /root/Net (never freed) instead of this node, so a message
+	# that lands mid scene change can't point at a node that's already gone
+	Net.get_node_in(get_tree()).send_player_state(st)
 
 
-@rpc("any_peer", "unreliable_ordered")
-func _net_state(st: Array) -> void:
-	if not puppet or multiplayer.get_remote_sender_id() != net_id or st.size() < 15:
+## a teammate's latest state, handed over by Net
+func apply_net_state(st: Array) -> void:
+	if not puppet or st.size() < 15:
 		return
 	_net_target = st[0]
 	if not _net_has_target:
@@ -467,6 +471,8 @@ func _net_state(st: Array) -> void:
 	state = st[12] as State
 	health = st[13]
 	max_health = st[14]
+	# so the host's pufferfish knows a teammate is frozen (its "geh" follow-up)
+	_paralysis = float(st[15]) if st.size() > 15 else 0.0
 
 
 func _puppet_tick(delta: float) -> void:
@@ -1075,6 +1081,11 @@ func _on_animation_finished() -> void:
 		State.HURT:
 			state = State.MOVE
 		State.DEAD:
+			# co-op: get back up after a few seconds instead of leaving the team
+			# (until the revive system is in)
+			if Net.online(get_tree()):
+				_coop_get_up()
+				return
 			# endless maps show a score card instead of sending you home
 			if hold_on_death:
 				return
@@ -1087,6 +1098,11 @@ func is_untargetable() -> bool:
 	return untargetable_timer > 0.0 or state == State.ROLL or state == State.DEAD
 
 func take_damage(amount: int, from_position: Vector2, attacker: Node = null) -> void:
+	if puppet:
+		# a monster on the host hit your teammate: tell them (their game does block/parry)
+		if multiplayer.is_server() and state != State.DEAD and state != State.ROLL:
+			Net.get_node_in(get_tree()).player_hit(net_id, amount, from_position, attacker)
+		return
 	if is_untargetable() or invincible_timer > 0.0:
 		return
 	if _blocks_from(from_position):
@@ -1124,8 +1140,27 @@ func take_damage(amount: int, from_position: Vector2, attacker: Node = null) -> 
 	animated_sprite.speed_scale = 1.0
 	animated_sprite.play("hurt")
 
+## co-op: down for a few seconds, then back up with full hearts
+func _coop_get_up() -> void:
+	Juice.damage_number(get_parent(), global_position + Vector2(0, -60), "DOWN! Back in 5", Color(1, 0.6, 0.5), 22)
+	await get_tree().create_timer(5.0, false).timeout
+	if not is_inside_tree() or state != State.DEAD:
+		return
+	health = max_health
+	health_changed.emit(health, max_health)
+	state = State.MOVE
+	animated_sprite.visible = true
+	animated_sprite.play("idle")
+	invincible_timer = 2.0
+	Juice.damage_number(get_parent(), global_position + Vector2(0, -60), "BACK UP!", Color(0.6, 1, 0.6), 24)
+
+
 ## nerves locked up by a Tetrodotoxin wave
 func paralyze(duration: float) -> void:
+	if puppet:
+		if multiplayer.is_server() and state != State.DEAD and state != State.ROLL:
+			Net.get_node_in(get_tree()).player_paralyzed(net_id, duration)
+		return
 	if state == State.DEAD or is_untargetable():
 		return
 	if state == State.BLOCK:

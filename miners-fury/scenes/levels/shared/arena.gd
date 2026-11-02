@@ -12,6 +12,7 @@ const BossBar = preload("res://scenes/ui/boss_bar.gd")
 const Pickup = preload("res://scenes/items/pickup.gd")
 const GameState = preload("res://scenes/core/game_state.gd")
 const GameUI = preload("res://scenes/ui/game_ui.gd")
+const Net = preload("res://scenes/core/net.gd")
 
 ## each round: a subtitle and a list of [monster, count]
 const LEVELS := {
@@ -71,6 +72,9 @@ func _ready() -> void:
 	_boss_bar.visible = false
 	$UI.add_child(_boss_bar)
 	round_info.text = ""
+	# co-op: only the host runs the rounds; everyone else just mirrors them
+	if _net_client():
+		return
 	await get_tree().create_timer(1.2, false).timeout
 	_next_round()
 
@@ -91,6 +95,7 @@ func _update_info() -> void:
 	if round_index < 0 or _finished:
 		return
 	round_info.text = "ROUND %d / %d     Enemies: %d" % [round_index + 1, rounds.size(), _alive()]
+	_net().scene_call("_set_round_info", [round_info.text])
 
 
 func _next_round() -> void:
@@ -155,6 +160,8 @@ func _spawn_point(far: bool) -> Vector2:
 
 
 func _on_enemy_died() -> void:
+	if _net_client():
+		return
 	await get_tree().process_frame
 	_update_info()
 	if _spawning or _finished or _clearing or _alive() > 0:
@@ -181,6 +188,8 @@ func _round_clear() -> void:
 		p.heal(HEAL_BETWEEN)
 		Juice.damage_number(p.get_parent(), p.global_position + Vector2(0, -50), "+%d" % HEAL_BETWEEN, Color(0.5, 1, 0.5), 26)
 	_pull_loot(1.2)
+	_net().scene_call("_net_heal", [HEAL_BETWEEN])
+	_net().scene_call("_pull_loot", [1.2])
 	await get_tree().create_timer(BREAK_TIME, false).timeout
 	_next_round()
 
@@ -197,6 +206,7 @@ func _drop_boss_loot(boss: Node2D) -> void:
 
 ## big text slammed onto the screen. scale = how big, hold = seconds on screen
 func _banner(text: String, sub: String, color: Color, hold: float = 1.6, scale_k: float = 1.0) -> void:
+	_net().scene_call("_banner", [text, sub, color, hold, scale_k])
 	var box := VBoxContainer.new()
 	box.set_anchors_preset(Control.PRESET_CENTER)
 	box.offset_left = -420
@@ -232,6 +242,7 @@ func _banner(text: String, sub: String, color: Color, hold: float = 1.6, scale_k
 
 ## won all 5: heavy slow-mo, camera pushes in, VICTORY
 func _finale() -> void:
+	_net().scene_call("_finale")
 	var first_time := not GameState.is_cleared(level_id)
 	GameState.mark_cleared(level_id)
 	Juice.slow_mo(self, 1.6, 0.12)
@@ -249,3 +260,36 @@ func _finale() -> void:
 	_banner("VICTORY", "New area unlocked on the road map" if first_time else "The area is yours", Color(1, 0.85, 0.3), 2.6, 1.2)
 	# anything you didn't grab flies to you
 	_pull_loot(3.0)
+
+
+# ---------------------------------------------------------------- co-op
+
+func _net() -> Node:
+	return Net.get_node_in(get_tree())
+
+
+## true on a client in co-op (the host runs this level, we mirror it)
+func _net_client() -> bool:
+	return Net.online(get_tree()) and not multiplayer.is_server()
+
+
+func _set_round_info(text: String) -> void:
+	round_info.text = text
+
+
+## the host cleared a round: heal yourself too
+func _net_heal(n: int) -> void:
+	var p := _player()
+	if p and p.health < p.max_health and n > 0:
+		var got: int = mini(n, p.max_health - p.health)
+		p.heal(got)
+		Juice.damage_number(p.get_parent(), p.global_position + Vector2(0, -50), "+%d" % got, Color(0.5, 1, 0.5), 26)
+
+
+## a monster copy just showed up on this client: bosses get the big bar
+func net_enemy_spawned(e: Node) -> void:
+	var c = e.get("cfg")
+	if typeof(c) == TYPE_DICTIONARY and c.get("boss", false):
+		_boss_bar.boss = e
+		_boss_bar.title = str(cfg.get("boss_title", "BOSS"))
+		_boss_bar.visible = true
