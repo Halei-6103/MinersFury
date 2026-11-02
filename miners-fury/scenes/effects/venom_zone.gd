@@ -18,10 +18,13 @@ var _t: float = 0.0
 var _pulse: float = 0.0
 var _rune: AnimatedSprite2D
 var _ending: bool = false
+## co-op: a teammate's rune on your screen (looks the same, doesn't stack poison)
+var remote: bool = false
 
 
-static func place(parent: Node, at: Vector2) -> Node2D:
+static func place(parent: Node, at: Vector2, is_remote: bool = false) -> Node2D:
 	var z = load("res://scenes/effects/venom_zone.gd").new()
+	z.remote = is_remote
 	# lives on the floor layer: under every character, over the ground art
 	var ground = parent.get_tree().current_scene.get_node_or_null("Ground")
 	(ground if ground else parent).add_child(z)
@@ -87,11 +90,13 @@ func _process(delta: float) -> void:
 	_pulse -= delta
 	if _pulse <= 0.0:
 		_pulse = PULSE
-		for e in get_tree().get_nodes_in_group("enemy"):
-			if e.get("state") != null and e.state == e.State.DEAD:
-				continue
-			if contains(e.global_position):
-				PoisonStatus.apply(e, 1)
+		# teammate copies are visual only; the caster's rune does the poison
+		if not remote:
+			for e in get_tree().get_nodes_in_group("enemy"):
+				if e.get("state") != null and e.state == e.State.DEAD:
+					continue
+				if contains(e.global_position):
+					PoisonStatus.apply(e, 1)
 	queue_redraw()
 
 

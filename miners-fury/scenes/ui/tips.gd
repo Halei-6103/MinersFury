@@ -10,7 +10,7 @@ const UI = preload("res://scenes/ui/ui_kit.gd")
 
 const CAMP := "res://scenes/levels/hub/hub.tscn"
 const MAP := "res://scenes/levels/map/road_map.tscn"
-const FIGHT_MAPS := ["forest", "wasteland", "colosseum", "trial"]
+const FIGHT_MAPS := ["forest", "wasteland", "colosseum", "trial", "volcano"]
 ## how long a tip stays if you don't click "Got it"
 const STAY := 16.0
 

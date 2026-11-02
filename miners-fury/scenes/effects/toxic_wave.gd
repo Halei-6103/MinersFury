@@ -23,6 +23,8 @@ var distance: float = 260.0
 var paralysis: float = 4.0
 ## "enemy" when you cast it, "player" when the pufferfish casts it at you
 var target_group: String = "enemy"
+## co-op: teammate's wave on your screen (looks the same, doesn't paralyze)
+var remote: bool = false
 var _travelled: float = 0.0
 var _hit: Array = []
 var _head: AnimatedSprite2D
@@ -32,9 +34,10 @@ var _fade: float = 0.0
 var _next_drop: float = 0.0
 
 
-static func fire(parent: Node, at: Vector2, flat_dir: Vector2, dist: float, para: float, group: String = "enemy") -> void:
+static func fire(parent: Node, at: Vector2, flat_dir: Vector2, dist: float, para: float, group: String = "enemy", is_remote: bool = false) -> void:
 	var w = load("res://scenes/effects/toxic_wave.gd").new()
 	w.target_group = group
+	w.remote = is_remote
 	w.start = at
 	w.dir = flat_dir.normalized()
 	w.distance = dist
@@ -90,6 +93,8 @@ func _process(delta: float) -> void:
 
 ## anyone between the rune and the head, within the wave's thickness
 func _check_hits() -> void:
+	if remote:
+		return
 	for e in get_tree().get_nodes_in_group(target_group):
 		if e in _hit or (e.get("state") != null and e.state == e.State.DEAD) or not e.has_method("paralyze"):
 			continue

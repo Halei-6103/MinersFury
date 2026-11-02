@@ -101,6 +101,46 @@ const KINDS := {
 		"knock_resist": 0.9, "armored_attacks": true, "boss": true, "launch": false,
 		"ichor": Color(0.35, 0.65, 0.9), "foot_y": 67.0, "body_y": 52.0, "radius": 22.0,
 	},
+	# ---- Ember Caldera (cultist pack). Their frames aren't 100x100, so "frame_c"
+	# says where the middle of the canvas is
+	"twisted_cultist": {
+		"frames": "res://assets/sprites/enemies/twisted_cultist/twisted_cultist_frames.tres",
+		"hp": 7, "damage": 1, "speed": 60.0, "scale": 1.15,
+		"attack_range": 92.0, "reach": 64.0, "windup": 0.55, "cooldown": 1.9,
+		"attacks": ["attack1"], "hits": {"attack1": [[3, 4]]}, "lunge": 0.0,
+		"knock_resist": 0.3, "armored_attacks": false, "boss": false, "launch": true,
+		"ichor": Color(0.45, 0.15, 0.55), "foot_y": 46.0, "body_y": 28.0, "frame_c": 26.0, "radius": 12.0,
+		"drops": [["cultist_cloth", 0.8], ["ember", 0.4]],
+	},
+	"assassin_cultist": {
+		"frames": "res://assets/sprites/enemies/assassin_cultist/assassin_cultist_frames.tres",
+		"hp": 5, "damage": 1, "speed": 125.0, "scale": 1.25,
+		"attack_range": 64.0, "reach": 42.0, "windup": 0.3, "cooldown": 1.3,
+		"attacks": ["attack1"], "hits": {"attack1": [[8, 9]]}, "lunge": 240.0,
+		"knock_resist": 0.1, "armored_attacks": false, "boss": false, "launch": true,
+		"ichor": Color(0.55, 0.08, 0.12), "foot_y": 42.0, "body_y": 28.0, "frame_c": 24.0, "radius": 11.0,
+		"arise": true,
+		"drops": [["cultist_cloth", 0.6], ["ember", 0.5]],
+	},
+	"big_cultist": {
+		"frames": "res://assets/sprites/enemies/big_cultist/big_cultist_frames.tres",
+		"hp": 14, "damage": 2, "speed": 50.0, "scale": 1.35,
+		"attack_range": 82.0, "reach": 60.0, "windup": 0.6, "cooldown": 2.1,
+		"attacks": ["attack1"], "hits": {"attack1": [[4, 5], [13, 14]]}, "lunge": 70.0,
+		"knock_resist": 0.75, "armored_attacks": true, "boss": false, "launch": false,
+		"ichor": Color(0.5, 0.06, 0.1), "foot_y": 63.0, "body_y": 42.0, "frame_c": 34.5, "radius": 17.0,
+		"drops": [["ember", 1.0], ["cultist_cloth", 1.0]],
+	},
+	# the Ember Caldera boss. Its own brain lives in cultist/fire_cultist_boss.gd
+	"fire_cultist": {
+		"frames": "res://assets/sprites/enemies/fire_cultist/fire_cultist_frames.tres",
+		"hp": 45, "damage": 1, "speed": 70.0, "scale": 1.9,
+		"attack_range": 0.0, "reach": 30.0, "windup": 0.5, "cooldown": 1.0,
+		"attacks": ["attack1"], "hits": {"attack1": []}, "lunge": 0.0,
+		"knock_resist": 0.9, "armored_attacks": true, "boss": true, "launch": false,
+		"ichor": Color(0.9, 0.35, 0.1), "foot_y": 46.0, "body_y": 28.0, "frame_c": 26.0, "radius": 18.0,
+		"drops": [["ember", 1.0], ["ember", 1.0], ["cultist_cloth", 1.0]],
+	},
 }
 
 @export var kind: String = "skeleton"
@@ -172,7 +212,7 @@ func _ready() -> void:
 	sprite.sprite_frames = load(cfg.frames)
 	sprite.scale = Vector2(s, s)
 	# feet (baked shadow) sit on the node's position
-	sprite.position = Vector2(0, -(cfg.foot_y - 50.0) * s)
+	sprite.position = Vector2(0, -(cfg.foot_y - float(cfg.get("frame_c", 50.0))) * s)
 	var body_h: float = (cfg.foot_y - cfg.body_y) * s
 	($Body.shape as CircleShape2D).radius = cfg.radius
 	hurtbox.position = Vector2(0, -body_h)
@@ -188,7 +228,7 @@ func _ready() -> void:
 
 func _spawn_in() -> void:
 	state = State.SPAWNING
-	if summoned and sprite.sprite_frames.has_animation("summon"):
+	if (summoned or cfg.get("arise", false)) and sprite.sprite_frames.has_animation("summon"):
 		# claw out of the ground (the animation ends -> CHASE)
 		sprite.play("summon")
 		return
@@ -245,12 +285,18 @@ func _physics_process(delta: float) -> void:
 			elif cfg.get("caster", false) and _try_cast(to_p, delta):
 				pass
 			else:
-				var dir := (to_p.normalized() + _separation() * 0.8).normalized()
-				velocity = velocity.move_toward(dir * cfg.speed, 900.0 * delta)
-				_play("walk")
+				var flat_d: float = Vector2(to_p.x, to_p.y * 2.0).length()
 				_face(to_p.x)
-				if to_p.length() < cfg.attack_range and cooldown <= 0.0:
-					_start_windup(to_p)
+				# in range: stop and wait for the swing instead of walking through them
+				if flat_d < cfg.attack_range:
+					velocity = velocity.move_toward(Vector2.ZERO, 1400.0 * delta)
+					_play("idle")
+					if cooldown <= 0.0:
+						_start_windup(to_p)
+				else:
+					var dir := (to_p.normalized() + _separation() * 0.8).normalized()
+					velocity = velocity.move_toward(dir * cfg.speed, 900.0 * delta)
+					_play("walk")
 		State.WINDUP:
 			velocity = velocity.move_toward(Vector2.ZERO, 1200.0 * delta)
 			windup_timer -= delta
@@ -398,12 +444,11 @@ func _big_tell() -> void:
 
 
 func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) -> void:
-	if net_remote:
-		if state != State.DEAD:
-			_flash()
-			Net.get_node_in(get_tree()).enemy_request(self, "damage", [amount, from_position, knock_scale])
-		return
 	if state == State.DEAD or state == State.SPAWNING:
+		return
+	if net_remote:
+		_flash()
+		Net.get_node_in(get_tree()).enemy_request(self, "damage", [amount, from_position, knock_scale])
 		return
 	if state == State.STUNNED:
 		if paralyzed:
@@ -441,12 +486,11 @@ func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) 
 
 ## poison ticks: hurts without interrupting what it's doing
 func dot_damage(amount: int, color: Color = Color(0.55, 1.0, 0.35)) -> void:
-	if net_remote:
-		if state != State.DEAD:
-			Juice.damage_number(get_parent(), global_position + Vector2(0, hurtbox.position.y * 2.0 - 6.0), str(amount), color, 16)
-			Net.get_node_in(get_tree()).enemy_request(self, "dot", [amount, color])
-		return
 	if state == State.DEAD or state == State.SPAWNING:
+		return
+	if net_remote:
+		Juice.damage_number(get_parent(), global_position + Vector2(0, hurtbox.position.y * 2.0 - 6.0), str(amount), color, 16)
+		Net.get_node_in(get_tree()).enemy_request(self, "dot", [amount, color])
 		return
 	health -= amount
 	_bar_timer = 2.5
@@ -569,10 +613,10 @@ func _flash() -> void:
 
 ## parried! dazed, can't act, takes double damage
 func stun(duration: float) -> void:
+	if state == State.DEAD or state == State.SPAWNING:
+		return
 	if net_remote:
 		Net.get_node_in(get_tree()).enemy_request(self, "stun", [duration])
-		return
-	if state == State.DEAD or state == State.SPAWNING:
 		return
 	paralyzed = false
 	state = State.STUNNED
@@ -588,10 +632,10 @@ func stun(duration: float) -> void:
 
 ## Toxic Storm: nerves locked up. Can't move or act. Bosses shake it off in half the time.
 func paralyze(duration: float) -> void:
+	if state == State.DEAD or state == State.SPAWNING:
+		return
 	if net_remote:
 		Net.get_node_in(get_tree()).enemy_request(self, "paralyze", [duration])
-		return
-	if state == State.DEAD or state == State.SPAWNING:
 		return
 	stun(duration)
 	paralyzed = true

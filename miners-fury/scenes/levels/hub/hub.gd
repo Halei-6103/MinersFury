@@ -15,6 +15,7 @@ const Juice = preload("res://scenes/effects/juice.gd")
 const LightningBolt = preload("res://scenes/effects/lightning_bolt.gd")
 const FxSprite = preload("res://scenes/effects/fx_sprite.gd")
 const Station = preload("res://scenes/levels/hub/station.gd")
+const Sfx = preload("res://scenes/audio/sfx.gd")
 
 const ROAD_MAP := "res://scenes/levels/map/road_map.tscn"
 ## where the crafting station stands in camp (move it here if it's in the way)
@@ -209,7 +210,7 @@ func _open_uplink() -> void:
 	var right := UI.section("BLUEPRINTS")
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cols.add_child(right)
-	var where := {"storm_crystal": "the Werebear in Mossback Woods", "tomb_crystal": "the Necromancer in the Bone Wastes"}
+	var where := {"storm_crystal": "the Werebear in Mossback Woods", "tomb_crystal": "the Necromancer in the Bone Wastes", "fire_crystal": "the Fire Cultist in the Ember Caldera"}
 	for bp in GameState.BLUEPRINTS:
 		var info: Dictionary = GameState.BLUEPRINTS[bp]
 		var card := UI.card()
@@ -320,6 +321,9 @@ func _craft(w: String) -> void:
 		await get_tree().create_timer(0.35).timeout
 	if GameState.WEAPONS[w].effect == "venom":
 		FxSprite.spawn(self, "poison_burst", at + Vector2(0, 20), {"scale": 2.0, "z": 60})
+	elif GameState.WEAPONS[w].effect == "flame":
+		FxSprite.spawn(self, "cult_fire_impact", at + Vector2(0, -6), {"scale": 4.0, "z": 60})
+		Sfx.play(self, "flame_wall", at, -4.0)
 	else:
 		FxSprite.spawn(self, "storm_strike", at + Vector2(0, 26), {"z": 60})
 	Juice.impact_flash(self, 0.5, col.lightened(0.5))

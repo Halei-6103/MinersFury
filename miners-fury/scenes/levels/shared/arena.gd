@@ -36,6 +36,21 @@ const LEVELS := {
 			{"sub": "BOSS: Necromancer", "spawns": [["necromancer", 1], ["skeleton", 2]]},
 		],
 	},
+	"volcano": {
+		"boss": "fire_cultist", "boss_title": "FIRE CULTIST", "shard": "fire_crystal",
+		"rounds": [
+			{"sub": "Red Robes", "spawns": [["twisted_cultist", 3], ["bat", 2]]},
+			{"sub": "Out of the Smoke", "spawns": [["assassin_cultist", 3], ["twisted_cultist", 1]]},
+			{"sub": "The Big One", "spawns": [["big_cultist", 1], ["twisted_cultist", 2], ["bat", 2]]},
+			{"sub": "The Whole Cult", "spawns": [["big_cultist", 1], ["assassin_cultist", 2], ["twisted_cultist", 2], ["bat", 2]]},
+			{"sub": "BOSS: Fire Cultist", "spawns": [["fire_cultist", 1], ["twisted_cultist", 2]]},
+		],
+	},
+}
+## monsters that run their own script on top of melee_enemy.gd
+const BOSS_SCRIPTS := {
+	"fire_cultist": "res://scenes/enemies/cultist/fire_cultist_boss.gd",
+	"pufferfish": "res://scenes/enemies/pufferfish/puffer_boss.gd",
 }
 ## seconds of breathing room between rounds
 const BREAK_TIME := 3.5
@@ -130,6 +145,9 @@ func _spawn(kind: String) -> void:
 		e = BatScene.instantiate()
 	else:
 		e = MeleeScene.instantiate()
+		# bosses with their own brain (set BEFORE it enters the tree)
+		if BOSS_SCRIPTS.has(kind):
+			e.set_script(load(BOSS_SCRIPTS[kind]))
 		e.kind = kind
 	e.position = _spawn_point(kind == cfg.boss)
 	monsters.add_child(e)

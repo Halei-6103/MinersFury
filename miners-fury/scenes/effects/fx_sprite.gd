@@ -41,6 +41,28 @@ const FX := {
 	"water_ball_start": [9, 20, Vector2(32, 32)],
 	"water_ball_fly": [13, 16, Vector2(32, 32)],
 	"water_ball_end": [8, 18, Vector2(32, 32)],
+	# Fire Cultist fireball (cultist pack, flies right, loops) + its burst
+	"cult_fireball": [4, 14, Vector2(12, 12)],
+	"cult_fire_impact": [5, 16, Vector2(13, 13)],
+	# Fire Cultist flame walls (fire pack v10: left cap, middle, right cap)
+	"flamewall_l_coming": [6, 16, Vector2(32, 62)],
+	"flamewall_l_idle": [10, 12, Vector2(32, 62)],
+	"flamewall_l_fade": [7, 14, Vector2(32, 62)],
+	"flamewall_m_coming": [6, 16, Vector2(32, 62)],
+	"flamewall_m_idle": [10, 12, Vector2(32, 62)],
+	"flamewall_m_fade": [7, 14, Vector2(32, 62)],
+	"flamewall_r_coming": [6, 16, Vector2(32, 62)],
+	"flamewall_r_idle": [10, 12, Vector2(32, 62)],
+	"flamewall_r_fade": [7, 14, Vector2(32, 62)],
+	# Flame Blade ultimate: fire tornado (fire pack v6)
+	"tornado_coming": [19, 26, Vector2(28, 63)],
+	"tornado_idle": [16, 16, Vector2(28, 63)],
+	"tornado_fade": [12, 16, Vector2(28, 63)],
+	# combo: tornado through a Venom rune turns toxic (green recolor)
+	"toxic_tornado_idle": [16, 16, Vector2(28, 63)],
+	"toxic_tornado_fade": [12, 16, Vector2(28, 63)],
+	# combo: thunderclap on a tornado blows it up (fire pack v4 mushroom blast)
+	"fire_boom": [13, 18, Vector2(32, 63)],
 }
 
 static var _cache: Dictionary = {}

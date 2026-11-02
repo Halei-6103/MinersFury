@@ -9,6 +9,8 @@ extends "res://scenes/levels/shared/arena.gd"
 
 const UIK = preload("res://scenes/ui/ui_kit.gd")
 const FxSprite = preload("res://scenes/effects/fx_sprite.gd")
+const PufferBoss = preload("res://scenes/enemies/pufferfish/puffer_boss.gd")
+const Sfx = preload("res://scenes/audio/sfx.gd")
 
 # ---------------------------------------------------------------- TUNING
 ## monster health: +10% per round (round 10 = 1.9x, round 20 = 2.9x)
@@ -21,8 +23,8 @@ const COUNT_PER_ROUND := 0.8
 const MAX_COUNT := 32
 ## never more than this many alive at once (the rest wait their turn)
 const MAX_ALIVE := 10
-const BOSSES := ["werebear", "necromancer"]
-const BOSS_TITLES := {"werebear": "WEREBEAR", "necromancer": "NECROMANCER"}
+const BOSSES := ["werebear", "necromancer", "fire_cultist"]
+const BOSS_TITLES := {"werebear": "WEREBEAR", "necromancer": "NECROMANCER", "pufferfish": "PUFFERFISH", "fire_cultist": "FIRE CULTIST"}
 ## [kind, first round it shows up, base weight, extra weight per round]
 const POOL := [
 	["slime", 1, 3.0, 0.0],
@@ -32,6 +34,9 @@ const POOL := [
 	["orc", 3, 2.0, 0.05],
 	["armored_skeleton", 6, 1.0, 0.1],
 	["greatsword_skeleton", 9, 0.5, 0.08],
+	["twisted_cultist", 5, 1.5, 0.05],
+	["assassin_cultist", 7, 1.0, 0.06],
+	["big_cultist", 11, 0.5, 0.06],
 ]
 const SUBS := ["Fresh Meat", "The Crowd Wants More", "Warm Up", "No Mercy", "Blood on the Sand",
 	"Hold the Line", "They Keep Coming", "Thumbs Down", "Glory or Death", "Feed the Lions",
@@ -47,6 +52,9 @@ var _run_time: float = 0.0
 var _boss_round: bool = false
 var _bars: Array = []
 var _dead: bool = false
+## co-op: who's down right now (peer id -> true). Whole team down = wipe
+var _down: Dictionary = {}
+var _down_me: bool = false
 
 
 func _ready() -> void:
@@ -63,7 +71,15 @@ func _ready() -> void:
 	var p := _player()
 	if p:
 		p.hold_on_death = true
-		p.died.connect(_on_player_died)
+		if _coop():
+			p.died.connect(func() -> void: _net().host_call("_net_down", [true]))
+			p.health_changed.connect(func(h: int, _m: int) -> void:
+				if h > 0 and _down_me:
+					_down_me = false
+					_net().host_call("_net_down", [false]))
+			p.died.connect(func() -> void: _down_me = true)
+		else:
+			p.died.connect(_on_player_died)
 	_light_braziers()
 	round_info.text = ""
 	# co-op: the host runs the rounds, clients mirror them
@@ -71,6 +87,10 @@ func _ready() -> void:
 		return
 	await get_tree().create_timer(1.2, false).timeout
 	_next_round()
+
+
+func _coop() -> bool:
+	return Net.online(get_tree())
 
 
 func _light_braziers() -> void:
@@ -165,9 +185,13 @@ func _next_round() -> void:
 	var color := Color(1, 0.85, 0.3)
 	var queue: Array = []
 	if nb > 0:
+		var pool: Array = BOSSES.duplicate()
+		# round 30+: the pufferfish can show up as a colosseum boss too
+		if round_no >= 30:
+			pool.append("pufferfish")
 		var picks: Array = []
 		for i in nb:
-			picks.append(BOSSES[(i + round_no / 5) % BOSSES.size()])
+			picks.append(pool[(i + round_no / 5) % pool.size()])
 		for b in picks:
 			queue.append(b)
 		match nb:
@@ -196,17 +220,22 @@ func _next_round() -> void:
 			return
 		_spawn(kind)
 		_update_info()
-		await get_tree().create_timer(0.35 if not BOSSES.has(kind) else 0.8, false).timeout
+		await get_tree().create_timer(0.35 if not BOSS_TITLES.has(kind) else 0.8, false).timeout
 	_spawning = false
 	_update_info()
 	_on_enemy_died()
 
 
 func _spawn(kind: String) -> void:
-	var boss := BOSSES.has(kind)
+	var boss: bool = BOSS_TITLES.has(kind)
 	var e: Node2D
 	if kind == "bat":
 		e = BatScene.instantiate()
+	elif kind == "pufferfish" or kind == "fire_cultist":
+		# same trick as the trial: melee scene + its own brain, BEFORE add_child
+		e = MeleeScene.instantiate()
+		e.set_script(PufferBoss if kind == "pufferfish" else load(BOSS_SCRIPTS[kind]))
+		e.kind = kind
 	else:
 		e = MeleeScene.instantiate()
 		e.kind = kind
@@ -220,6 +249,14 @@ func _spawn(kind: String) -> void:
 	if boss:
 		_add_boss_bar(e, BOSS_TITLES[kind])
 		Juice.shake(self, 0.8)
+	if kind == "pufferfish":
+		_puffer_landing(e)
+
+
+func _puffer_landing(e: Node2D) -> void:
+	var at: Vector2 = e.global_position
+	get_tree().create_timer(0.28, false).timeout.connect(func() -> void:
+		Sfx.play(self, "boss_landing", at, 0.0, 0.02))
 
 
 func _add_boss_bar(e: Node, title: String) -> void:
@@ -295,11 +332,46 @@ func _round_clear() -> void:
 	_next_round()
 
 
-# ---------------------------------------------------------------- death card
+# ---------------------------------------------------------------- death card / team wipe
+
+## host: someone went down (or got back up). Whole team down = everyone loses
+func _net_down(peer: int, is_down: bool) -> void:
+	if _dead:
+		return
+	if is_down:
+		_down[peer] = true
+	else:
+		_down.erase(peer)
+	if _down.size() >= _net().player_count():
+		var survived := maxi(round_no - 1, 0)
+		_net().scene_call("_team_wipe", [survived, round_no, kills, bosses_slain, _run_time])
+		_team_wipe(survived, round_no, kills, bosses_slain, _run_time)
+
+
+## everyone runs this (host + clients via scene_call)
+func _team_wipe(survived: int, died_on: int, kill_count: int, bosses: int, run_t: float) -> void:
+	if _dead:
+		return
+	_dead = true
+	_spawning = false
+	round_no = died_on
+	kills = kill_count
+	bosses_slain = bosses
+	_run_time = run_t
+	for b in _bars:
+		if is_instance_valid(b):
+			b.queue_free()
+	_bars.clear()
+	round_info.text = ""
+	var best_before := GameState.best_round
+	var new_best := GameState.record_run(died_on, kill_count)
+	Juice.slow_mo(self, 1.2, 0.2)
+	await get_tree().create_timer(1.8, true, false, true).timeout
+	_show_card(survived, best_before, new_best, true)
+
 
 func _on_player_died() -> void:
-	# co-op: you get back up instead (revives coming later), the run keeps going
-	if _dead or Net.online(get_tree()):
+	if _dead or _coop():
 		return
 	_dead = true
 	_spawning = false
@@ -313,11 +385,13 @@ func _on_player_died() -> void:
 	var new_best := GameState.record_run(round_no, kills)
 	Juice.slow_mo(self, 1.2, 0.2)
 	await get_tree().create_timer(1.8, true, false, true).timeout
-	_show_card(survived, best_before, new_best)
+	_show_card(survived, best_before, new_best, false)
 
 
-func _show_card(survived: int, best_before: int, new_best: bool) -> void:
-	get_tree().paused = true
+func _show_card(survived: int, best_before: int, new_best: bool, team_wipe: bool = false) -> void:
+	# pausing the tree in co-op kills networking
+	if not _coop():
+		get_tree().paused = true
 	var layer := CanvasLayer.new()
 	layer.layer = 90
 	layer.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -329,7 +403,7 @@ func _show_card(survived: int, best_before: int, new_best: bool) -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	panel.add_child(v)
-	var title := UIK.label("YOU FELL", 44, UIK.BAD)
+	var title := UIK.label("THE TEAM WAS WIPED" if team_wipe else "YOU FELL", 40 if team_wipe else 44, UIK.BAD)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(title)
 	var sub := UIK.label("The crowd goes wild", 15, UIK.DIM)
@@ -368,6 +442,10 @@ func _show_card(survived: int, best_before: int, new_best: bool) -> void:
 	camp.pressed.connect(_leave.bind("res://scenes/levels/hub/hub.tscn", "Start"))
 	btns.add_child(camp)
 	v.add_child(btns)
+	if _net_client():
+		var note := UIK.label("The host picks where the team goes next.", 13, UIK.DIM)
+		note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(note)
 	panel.pivot_offset = Vector2(230, 200)
 	panel.scale = Vector2(0.6, 0.6)
 	panel.modulate.a = 0.0
@@ -377,6 +455,9 @@ func _show_card(survived: int, best_before: int, new_best: bool) -> void:
 
 
 func _leave(scene: String, spawn: String) -> void:
+	if _coop():
+		Net.change_scene(get_tree(), scene, spawn)
+		return
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 	if spawn != "":
@@ -389,3 +470,5 @@ func net_enemy_spawned(e: Node) -> void:
 	var k := str(e.get("kind"))
 	if BOSS_TITLES.has(k) and e.get("summoned") != true:
 		_add_boss_bar(e, BOSS_TITLES[k])
+	if k == "pufferfish":
+		_puffer_landing(e)

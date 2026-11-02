@@ -18,9 +18,10 @@ const STOPS := [
 	{"id": "wasteland", "pos": Vector2(992, 452)},
 	{"id": "colosseum", "pos": Vector2(1120, 192)},
 	{"id": "trial", "pos": Vector2(578, 628)},
+	{"id": "volcano", "pos": Vector2(1128, 604)},
 ]
 ## which stops are joined by a line
-const LINKS := [[0, 1], [1, 2], [2, 3], [0, 4]]
+const LINKS := [[0, 1], [1, 2], [2, 3], [0, 4], [2, 5]]
 ## the Weapon Proficiency trial (not part of the main road): opens once you own
 ## both blades, and you can replay it as often as you like after beating it
 const TRIAL := {"id": "trial", "name": "Pufferfish Trial", "boss": "Pufferfish",
@@ -187,11 +188,14 @@ func _fill_tip() -> void:
 			_tip_box.add_child(UI.label("Drops: Wolf Pelt, Orc Tusk, Slime Goo,\nBat Wing. Boss: Storm Shard", 12, UI.DIM))
 		elif id == "wasteland":
 			_tip_box.add_child(UI.label("Drops: Bone, Slime Goo, Bat Wing.\nBoss: Tomb Shard", 12, UI.DIM))
+		elif id == "volcano":
+			_tip_box.add_child(UI.label("Drops: Ember, Cultist Cloth, Bat Wing.\nBoss: Fire Shard", 12, UI.DIM))
 	match st:
 		"locked" when m.get("trial", false):
 			_tip_box.add_child(UI.label("LOCKED: craft the Storm Blade\nand the Venom Blade first", 14, RED))
 		"locked":
-			_tip_box.add_child(UI.label("LOCKED: clear %s first" % _map_info(STOPS[_hover - 1].id).get("name", "the last area"), 14, RED))
+			var before: String = m.get("after", STOPS[_hover - 1].id)
+			_tip_box.add_child(UI.label("LOCKED: clear %s first" % _map_info(before).get("name", "the last area"), 14, RED))
 		"done":
 			var again := "CLEARED. Click to fight again"
 			if m.get("endless", false):

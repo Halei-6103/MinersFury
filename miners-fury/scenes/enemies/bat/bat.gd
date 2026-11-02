@@ -106,12 +106,15 @@ func _physics_process(delta: float) -> void:
 			elif hidden:
 				# lost you: hover in place, confused
 				velocity = velocity.move_toward(Vector2.ZERO, 300.0 * delta)
+			elif dist < attack_range:
+				# close enough: hang and dive instead of bowling into them
+				velocity = velocity.move_toward(Vector2.ZERO, 600.0 * delta)
+				if cooldown <= 0.0:
+					_start_attack(to_player)
 			else:
 				# swoop in on a slight curve so they don't beeline
 				var dir := to_player.normalized().rotated(sin(Time.get_ticks_msec() / 300.0) * 0.35)
 				velocity = velocity.move_toward(dir * speed, 400.0 * delta)
-				if dist < attack_range and cooldown <= 0.0:
-					_start_attack(to_player)
 		State.ATTACK:
 			if windup_timer > 0.0:
 				# hang in the air and shake a little so you can see the dive coming
@@ -241,12 +244,11 @@ func _try_bite() -> void:
 
 ## knock_scale: combo starters nudge (keeps the bat in reach), finishers launch
 func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) -> void:
-	if net_remote:
-		if state != State.DEAD:
-			_flash()
-			Net.get_node_in(get_tree()).enemy_request(self, "damage", [amount, from_position, knock_scale])
-		return
 	if state == State.DEAD:
+		return
+	if net_remote:
+		_flash()
+		Net.get_node_in(get_tree()).enemy_request(self, "damage", [amount, from_position, knock_scale])
 		return
 	if state == State.STUNNED:
 		if paralyzed:
@@ -270,12 +272,11 @@ func take_damage(amount: int, from_position: Vector2, knock_scale: float = 1.0) 
 
 ## poison ticks: hurts without knocking it around
 func dot_damage(amount: int, color: Color = Color(0.55, 1.0, 0.35)) -> void:
-	if net_remote:
-		if state != State.DEAD:
-			Juice.damage_number(get_parent(), global_position + Vector2(0, -50), str(amount), color, 16)
-			Net.get_node_in(get_tree()).enemy_request(self, "dot", [amount, color])
-		return
 	if state == State.DEAD:
+		return
+	if net_remote:
+		Juice.damage_number(get_parent(), global_position + Vector2(0, -50), str(amount), color, 16)
+		Net.get_node_in(get_tree()).enemy_request(self, "dot", [amount, color])
 		return
 	health -= amount
 	Juice.damage_number(get_parent(), global_position + Vector2(0, -50), str(amount), color, 16)
@@ -286,10 +287,10 @@ func dot_damage(amount: int, color: Color = Color(0.55, 1.0, 0.35)) -> void:
 ## parried! knocked out of the air and dazed
 ## Toxic Storm: drops out of the air, locked up
 func paralyze(duration: float) -> void:
+	if state == State.DEAD:
+		return
 	if net_remote:
 		Net.get_node_in(get_tree()).enemy_request(self, "paralyze", [duration])
-		return
-	if state == State.DEAD:
 		return
 	stun(duration)
 	paralyzed = true
@@ -299,10 +300,10 @@ func paralyze(duration: float) -> void:
 	sprite.modulate = Color(0.7, 1.0, 0.85)
 
 func stun(duration: float) -> void:
+	if state == State.DEAD:
+		return
 	if net_remote:
 		Net.get_node_in(get_tree()).enemy_request(self, "stun", [duration])
-		return
-	if state == State.DEAD:
 		return
 	paralyzed = false
 	state = State.STUNNED

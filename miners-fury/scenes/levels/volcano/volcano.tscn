@@ -1,0 +1,1438 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/levels/volcano/volcano.gd" id="1_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/volcano/basalt_ground.png" id="2_v"]
+[ext_resource type="PackedScene" path="res://scenes/levels/shared/transfer_board.tscn" id="3_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/volcano/altar.png" id="4_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/colosseum/brazier.png" id="5_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/volcano/lava_pool2.png" id="6_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/volcano/basalt_med.png" id="7_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/volcano/basalt_big.png" id="8_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/volcano/basalt_small.png" id="9_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/volcano/obsidian.png" id="10_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/volcano/charred_tree1.png" id="11_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/volcano/charred_tree2.png" id="12_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/volcano/charred_tree3.png" id="13_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/wasteland/skull.png" id="14_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/volcano/volcano_big.png" id="15_v"]
+[ext_resource type="Texture2D" path="res://assets/sprites/volcano/volcano_small.png" id="16_v"]
+[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="17_v"]
+
+
+
+[node name="Volcano" type="Node2D"]
+script = ExtResource("1_v")
+
+[node name="Ground" type="Node2D" parent="."]
+
+[node name="Fill" type="Polygon2D" parent="Ground"]
+color = Color(0.55, 0.16, 0.06, 1)
+polygon = PackedVector2Array(-3000, -2000, 3000, -2000, 3000, 2000, -3000, 2000)
+
+[node name="Basalt" type="Sprite2D" parent="Ground"]
+texture = ExtResource("2_v")
+centered = false
+position = Vector2(-1400, -900)
+
+[node name="Bounds" type="StaticBody2D" parent="."]
+collision_layer = 5
+
+[node name="Edge" type="CollisionPolygon2D" parent="Bounds"]
+build_mode = 1
+polygon = PackedVector2Array(0, -450.0, 900.0, 0, 0, 450.0, -900.0, 0)
+
+[node name="Entities" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="TransferBoard" parent="Entities" instance=ExtResource("3_v")]
+position = Vector2(-640, 120)
+label = "Return to Camp"
+target_scene = "res://scenes/levels/hub/hub.tscn"
+arrival_spawn = "FromWasteland"
+
+[node name="SpawnPoints" type="Node2D" parent="."]
+
+[node name="FromHub" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(-590, 154)
+
+[node name="Start" type="Marker2D" parent="SpawnPoints"]
+position = Vector2(-590, 154)
+
+[node name="Altar1" type="Node2D" parent="Entities"]
+position = Vector2(300, -200)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Altar1"]
+texture = ExtResource("4_v")
+offset = Vector2(0.5, -7.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Altar1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Altar1/Body"]
+polygon = PackedVector2Array(-5.0, -17.5, 35.0, 2.5, 5.0, 17.5, -35.0, -2.5)
+
+[node name="Brazier1" type="Node2D" parent="Entities"]
+position = Vector2(240, -250)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Brazier1"]
+texture = ExtResource("5_v")
+offset = Vector2(0.5, -21.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Brazier1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Brazier1/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="Brazier2" type="Node2D" parent="Entities"]
+position = Vector2(380, -170)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Brazier2"]
+texture = ExtResource("5_v")
+offset = Vector2(0.5, -21.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Brazier2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Brazier2/Body"]
+polygon = PackedVector2Array(0.0, -7.0, 14.0, 0.0, 0.0, 7.0, -14.0, 0.0)
+
+[node name="LavaPool21" type="Sprite2D" parent="Ground"]
+position = Vector2(-150, 230)
+texture = ExtResource("6_v")
+offset = Vector2(-1.0, 0.0)
+
+[node name="LavaPool21Body" type="StaticBody2D" parent="."]
+position = Vector2(-150, 230)
+
+[node name="Shape" type="CollisionPolygon2D" parent="LavaPool21Body"]
+polygon = PackedVector2Array(-18.0, -26.0, 52.0, 9.0, 18.0, 26.0, -52.0, -9.0)
+
+[node name="LavaPool22" type="Sprite2D" parent="Ground"]
+position = Vector2(520, 120)
+texture = ExtResource("6_v")
+offset = Vector2(-1.0, 0.0)
+
+[node name="LavaPool22Body" type="StaticBody2D" parent="."]
+position = Vector2(520, 120)
+
+[node name="Shape" type="CollisionPolygon2D" parent="LavaPool22Body"]
+polygon = PackedVector2Array(-18.0, -26.0, 52.0, 9.0, 18.0, 26.0, -52.0, -9.0)
+
+[node name="LavaPool23" type="Sprite2D" parent="Ground"]
+position = Vector2(100, 60)
+texture = ExtResource("6_v")
+offset = Vector2(-1.0, 0.0)
+
+[node name="LavaPool23Body" type="StaticBody2D" parent="."]
+position = Vector2(100, 60)
+
+[node name="Shape" type="CollisionPolygon2D" parent="LavaPool23Body"]
+polygon = PackedVector2Array(-18.0, -26.0, 52.0, 9.0, 18.0, 26.0, -52.0, -9.0)
+
+[node name="BasaltMed1" type="Node2D" parent="Entities"]
+position = Vector2(-630.7, 11.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed1"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BasaltMed1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BasaltMed1/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BasaltMed2" type="Node2D" parent="Entities"]
+position = Vector2(307.8, 115.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed2"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BasaltMed2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BasaltMed2/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BasaltMed3" type="Node2D" parent="Entities"]
+position = Vector2(181.9, -304.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed3"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BasaltMed3"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BasaltMed3/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BasaltBig1" type="Node2D" parent="Entities"]
+position = Vector2(280.6, -0.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig1"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BasaltBig1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BasaltBig1/Body"]
+polygon = PackedVector2Array(0.0, -15.0, 30.0, 0.0, 0.0, 15.0, -30.0, 0.0)
+
+[node name="BasaltBig2" type="Node2D" parent="Entities"]
+position = Vector2(-85.3, -221.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig2"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BasaltBig2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BasaltBig2/Body"]
+polygon = PackedVector2Array(0.0, -15.0, 30.0, 0.0, 0.0, 15.0, -30.0, 0.0)
+
+[node name="BasaltMed4" type="Node2D" parent="Entities"]
+position = Vector2(-105.2, -309.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed4"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BasaltMed4"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BasaltMed4/Body"]
+polygon = PackedVector2Array(0.0, -10.0, 20.0, 0.0, 0.0, 10.0, -20.0, 0.0)
+
+[node name="BasaltSmall1" type="Node2D" parent="Entities"]
+position = Vector2(-161.5, -116.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall1"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BasaltSmall1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BasaltSmall1/Body"]
+polygon = PackedVector2Array(0.0, -6.0, 12.0, 0.0, 0.0, 6.0, -12.0, 0.0)
+
+[node name="BasaltBig3" type="Node2D" parent="Entities"]
+position = Vector2(-342.1, -203.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig3"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/BasaltBig3"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/BasaltBig3/Body"]
+polygon = PackedVector2Array(0.0, -15.0, 30.0, 0.0, 0.0, 15.0, -30.0, 0.0)
+
+[node name="Obsidian1" type="Node2D" parent="Entities"]
+position = Vector2(-262.6, 122.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian1"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Obsidian1"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Obsidian1/Body"]
+polygon = PackedVector2Array(-1.0, -7.5, 15.0, 0.5, 1.0, 7.5, -15.0, -0.5)
+
+[node name="Obsidian2" type="Node2D" parent="Entities"]
+position = Vector2(220.9, 225.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian2"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Obsidian2"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Obsidian2/Body"]
+polygon = PackedVector2Array(-1.0, -7.5, 15.0, 0.5, 1.0, 7.5, -15.0, -0.5)
+
+[node name="Obsidian3" type="Node2D" parent="Entities"]
+position = Vector2(107.9, 187.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian3"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Obsidian3"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Obsidian3/Body"]
+polygon = PackedVector2Array(-1.0, -7.5, 15.0, 0.5, 1.0, 7.5, -15.0, -0.5)
+
+[node name="Obsidian4" type="Node2D" parent="Entities"]
+position = Vector2(-223.6, -17.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian4"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Obsidian4"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Obsidian4/Body"]
+polygon = PackedVector2Array(-1.0, -7.5, 15.0, 0.5, 1.0, 7.5, -15.0, -0.5)
+
+[node name="Obsidian5" type="Node2D" parent="Entities"]
+position = Vector2(-41.4, 153.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian5"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="Body" type="StaticBody2D" parent="Entities/Obsidian5"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/Obsidian5/Body"]
+polygon = PackedVector2Array(-1.0, -7.5, 15.0, 0.5, 1.0, 7.5, -15.0, -0.5)
+
+[node name="CharredTree11" type="Node2D" parent="Entities"]
+position = Vector2(-177.1, -250.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree11"]
+texture = ExtResource("11_v")
+offset = Vector2(2.0, -32.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/CharredTree11"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/CharredTree11/Body"]
+polygon = PackedVector2Array(0.0, -4.0, 8.0, 0.0, 0.0, 4.0, -8.0, 0.0)
+
+[node name="CharredTree12" type="Node2D" parent="Entities"]
+position = Vector2(382.4, 84.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree12"]
+texture = ExtResource("11_v")
+offset = Vector2(2.0, -32.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/CharredTree12"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/CharredTree12/Body"]
+polygon = PackedVector2Array(0.0, -4.0, 8.0, 0.0, 0.0, 4.0, -8.0, 0.0)
+
+[node name="CharredTree21" type="Node2D" parent="Entities"]
+position = Vector2(-50.4, -142.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree21"]
+texture = ExtResource("12_v")
+offset = Vector2(0.0, -32.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/CharredTree21"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/CharredTree21/Body"]
+polygon = PackedVector2Array(0.0, -4.0, 8.0, 0.0, 0.0, 4.0, -8.0, 0.0)
+
+[node name="CharredTree31" type="Node2D" parent="Entities"]
+position = Vector2(92.2, 237.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree31"]
+texture = ExtResource("13_v")
+offset = Vector2(-2.5, -28.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/CharredTree31"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/CharredTree31/Body"]
+polygon = PackedVector2Array(0.0, -4.0, 8.0, 0.0, 0.0, 4.0, -8.0, 0.0)
+
+[node name="CharredTree13" type="Node2D" parent="Entities"]
+position = Vector2(324.5, -120.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree13"]
+texture = ExtResource("11_v")
+offset = Vector2(2.0, -32.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/CharredTree13"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/CharredTree13/Body"]
+polygon = PackedVector2Array(0.0, -4.0, 8.0, 0.0, 0.0, 4.0, -8.0, 0.0)
+
+[node name="CharredTree32" type="Node2D" parent="Entities"]
+position = Vector2(161.9, -59.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree32"]
+texture = ExtResource("13_v")
+offset = Vector2(-2.5, -28.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/CharredTree32"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/CharredTree32/Body"]
+polygon = PackedVector2Array(0.0, -4.0, 8.0, 0.0, 0.0, 4.0, -8.0, 0.0)
+
+[node name="CharredTree33" type="Node2D" parent="Entities"]
+position = Vector2(-38.1, -269.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree33"]
+texture = ExtResource("13_v")
+offset = Vector2(-2.5, -28.0)
+
+[node name="Body" type="StaticBody2D" parent="Entities/CharredTree33"]
+
+[node name="Shape" type="CollisionPolygon2D" parent="Entities/CharredTree33/Body"]
+polygon = PackedVector2Array(0.0, -4.0, 8.0, 0.0, 0.0, 4.0, -8.0, 0.0)
+
+[node name="Skull1" type="Node2D" parent="Entities"]
+position = Vector2(36.8, 253.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Skull1"]
+texture = ExtResource("14_v")
+offset = Vector2(5.5, -3.0)
+
+[node name="Skull2" type="Node2D" parent="Entities"]
+position = Vector2(40.0, 172.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Skull2"]
+texture = ExtResource("14_v")
+offset = Vector2(5.5, -3.0)
+
+[node name="Skull3" type="Node2D" parent="Entities"]
+position = Vector2(249.6, -179.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Skull3"]
+texture = ExtResource("14_v")
+offset = Vector2(5.5, -3.0)
+
+[node name="Skull4" type="Node2D" parent="Entities"]
+position = Vector2(215.1, 178.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Skull4"]
+texture = ExtResource("14_v")
+offset = Vector2(5.5, -3.0)
+
+[node name="Skull5" type="Node2D" parent="Entities"]
+position = Vector2(-437.9, -145.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Skull5"]
+texture = ExtResource("14_v")
+offset = Vector2(5.5, -3.0)
+
+[node name="Skull6" type="Node2D" parent="Entities"]
+position = Vector2(298.6, 64.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Skull6"]
+texture = ExtResource("14_v")
+offset = Vector2(5.5, -3.0)
+
+[node name="BasaltBig4" type="Node2D" parent="Entities"]
+position = Vector2(4.2, -489.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig4"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig5" type="Node2D" parent="Entities"]
+position = Vector2(36.3, -490.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig5"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig6" type="Node2D" parent="Entities"]
+position = Vector2(109.9, -451.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig6"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Obsidian6" type="Node2D" parent="Entities"]
+position = Vector2(148.5, -426.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian6"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig7" type="Node2D" parent="Entities"]
+position = Vector2(214.8, -395.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig7"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig8" type="Node2D" parent="Entities"]
+position = Vector2(252.0, -359.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig8"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig9" type="Node2D" parent="Entities"]
+position = Vector2(305.4, -343.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig9"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Obsidian7" type="Node2D" parent="Entities"]
+position = Vector2(330.8, -320.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian7"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig10" type="Node2D" parent="Entities"]
+position = Vector2(411.5, -307.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig10"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig11" type="Node2D" parent="Entities"]
+position = Vector2(452.8, -280.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig11"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltMed5" type="Node2D" parent="Entities"]
+position = Vector2(499.6, -262.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed5"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltBig12" type="Node2D" parent="Entities"]
+position = Vector2(531.5, -227.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig12"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Obsidian8" type="Node2D" parent="Entities"]
+position = Vector2(593.6, -200.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian8"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig13" type="Node2D" parent="Entities"]
+position = Vector2(650.3, -175.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig13"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig14" type="Node2D" parent="Entities"]
+position = Vector2(701.2, -159.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig14"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig15" type="Node2D" parent="Entities"]
+position = Vector2(757.7, -132.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig15"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Obsidian9" type="Node2D" parent="Entities"]
+position = Vector2(808.6, -92.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian9"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig16" type="Node2D" parent="Entities"]
+position = Vector2(849.1, -79.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig16"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltMed6" type="Node2D" parent="Entities"]
+position = Vector2(856.6, -50.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed6"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Obsidian10" type="Node2D" parent="Entities"]
+position = Vector2(929.9, -26.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian10"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig17" type="Node2D" parent="Entities"]
+position = Vector2(951.9, -0.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig17"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltSmall2" type="Node2D" parent="Entities"]
+position = Vector2(954.8, -1.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall2"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="CharredTree22" type="Node2D" parent="Entities"]
+position = Vector2(966.4, 28.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree22"]
+texture = ExtResource("12_v")
+offset = Vector2(0.0, -32.0)
+
+[node name="CharredTree23" type="Node2D" parent="Entities"]
+position = Vector2(902.6, 44.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree23"]
+texture = ExtResource("12_v")
+offset = Vector2(0.0, -32.0)
+
+[node name="BasaltSmall3" type="Node2D" parent="Entities"]
+position = Vector2(827.8, 80.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall3"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltSmall4" type="Node2D" parent="Entities"]
+position = Vector2(780.5, 102.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall4"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltMed7" type="Node2D" parent="Entities"]
+position = Vector2(736.3, 129.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed7"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltSmall5" type="Node2D" parent="Entities"]
+position = Vector2(711.5, 153.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall5"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltMed8" type="Node2D" parent="Entities"]
+position = Vector2(642.9, 168.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed8"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltSmall6" type="Node2D" parent="Entities"]
+position = Vector2(582.4, 189.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall6"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltSmall7" type="Node2D" parent="Entities"]
+position = Vector2(529.2, 218.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall7"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltSmall8" type="Node2D" parent="Entities"]
+position = Vector2(499.1, 249.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall8"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="CharredTree24" type="Node2D" parent="Entities"]
+position = Vector2(428.0, 262.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree24"]
+texture = ExtResource("12_v")
+offset = Vector2(0.0, -32.0)
+
+[node name="BasaltSmall9" type="Node2D" parent="Entities"]
+position = Vector2(410.3, 309.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall9"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltSmall10" type="Node2D" parent="Entities"]
+position = Vector2(352.1, 326.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall10"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="CharredTree25" type="Node2D" parent="Entities"]
+position = Vector2(283.3, 351.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree25"]
+texture = ExtResource("12_v")
+offset = Vector2(0.0, -32.0)
+
+[node name="BasaltMed9" type="Node2D" parent="Entities"]
+position = Vector2(253.8, 367.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed9"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="CharredTree26" type="Node2D" parent="Entities"]
+position = Vector2(209.3, 406.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree26"]
+texture = ExtResource("12_v")
+offset = Vector2(0.0, -32.0)
+
+[node name="CharredTree27" type="Node2D" parent="Entities"]
+position = Vector2(143.1, 407.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree27"]
+texture = ExtResource("12_v")
+offset = Vector2(0.0, -32.0)
+
+[node name="BasaltMed10" type="Node2D" parent="Entities"]
+position = Vector2(98.8, 462.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed10"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltSmall11" type="Node2D" parent="Entities"]
+position = Vector2(45.2, 491.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall11"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltSmall12" type="Node2D" parent="Entities"]
+position = Vector2(8.9, 479.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall12"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="CharredTree28" type="Node2D" parent="Entities"]
+position = Vector2(5.2, 491.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree28"]
+texture = ExtResource("12_v")
+offset = Vector2(0.0, -32.0)
+
+[node name="BasaltSmall13" type="Node2D" parent="Entities"]
+position = Vector2(-38.5, 485.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall13"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltMed11" type="Node2D" parent="Entities"]
+position = Vector2(-110.5, 444.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed11"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltSmall14" type="Node2D" parent="Entities"]
+position = Vector2(-159.2, 430.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall14"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltMed12" type="Node2D" parent="Entities"]
+position = Vector2(-192.9, 395.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed12"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltMed13" type="Node2D" parent="Entities"]
+position = Vector2(-255.9, 381.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed13"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltMed14" type="Node2D" parent="Entities"]
+position = Vector2(-306.3, 355.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed14"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltSmall15" type="Node2D" parent="Entities"]
+position = Vector2(-345.1, 332.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall15"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltSmall16" type="Node2D" parent="Entities"]
+position = Vector2(-401.9, 286.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall16"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltMed15" type="Node2D" parent="Entities"]
+position = Vector2(-445.8, 259.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed15"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltMed16" type="Node2D" parent="Entities"]
+position = Vector2(-491.5, 234.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed16"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="CharredTree29" type="Node2D" parent="Entities"]
+position = Vector2(-515.8, 220.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree29"]
+texture = ExtResource("12_v")
+offset = Vector2(0.0, -32.0)
+
+[node name="CharredTree210" type="Node2D" parent="Entities"]
+position = Vector2(-597.7, 209.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree210"]
+texture = ExtResource("12_v")
+offset = Vector2(0.0, -32.0)
+
+[node name="BasaltMed17" type="Node2D" parent="Entities"]
+position = Vector2(-655.5, 175.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed17"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltSmall17" type="Node2D" parent="Entities"]
+position = Vector2(-700.4, 152.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall17"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltSmall18" type="Node2D" parent="Entities"]
+position = Vector2(-734.6, 130.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall18"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltSmall19" type="Node2D" parent="Entities"]
+position = Vector2(-834.7, 96.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall19"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltSmall20" type="Node2D" parent="Entities"]
+position = Vector2(-856.8, 72.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall20"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="BasaltMed18" type="Node2D" parent="Entities"]
+position = Vector2(-904.5, 50.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed18"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltSmall21" type="Node2D" parent="Entities"]
+position = Vector2(-948.1, 20.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltSmall21"]
+texture = ExtResource("9_v")
+offset = Vector2(1.0, -6.0)
+
+[node name="CharredTree211" type="Node2D" parent="Entities"]
+position = Vector2(-980.3, 6.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree211"]
+texture = ExtResource("12_v")
+offset = Vector2(0.0, -32.0)
+
+[node name="BasaltBig18" type="Node2D" parent="Entities"]
+position = Vector2(-975.0, 5.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig18"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Obsidian11" type="Node2D" parent="Entities"]
+position = Vector2(-924.0, -19.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian11"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig19" type="Node2D" parent="Entities"]
+position = Vector2(-849.6, -54.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig19"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig20" type="Node2D" parent="Entities"]
+position = Vector2(-864.8, -69.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig20"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltMed19" type="Node2D" parent="Entities"]
+position = Vector2(-773.2, -101.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed19"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltBig21" type="Node2D" parent="Entities"]
+position = Vector2(-735.9, -121.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig21"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig22" type="Node2D" parent="Entities"]
+position = Vector2(-662.9, -144.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig22"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltMed20" type="Node2D" parent="Entities"]
+position = Vector2(-617.0, -173.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed20"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltBig23" type="Node2D" parent="Entities"]
+position = Vector2(-591.9, -193.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig23"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig24" type="Node2D" parent="Entities"]
+position = Vector2(-523.7, -217.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig24"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltMed21" type="Node2D" parent="Entities"]
+position = Vector2(-483.5, -236.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed21"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Obsidian12" type="Node2D" parent="Entities"]
+position = Vector2(-432.4, -266.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian12"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig25" type="Node2D" parent="Entities"]
+position = Vector2(-379.4, -295.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig25"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltMed22" type="Node2D" parent="Entities"]
+position = Vector2(-346.9, -332.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed22"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Obsidian13" type="Node2D" parent="Entities"]
+position = Vector2(-303.7, -336.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian13"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltMed23" type="Node2D" parent="Entities"]
+position = Vector2(-244.7, -383.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed23"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Obsidian14" type="Node2D" parent="Entities"]
+position = Vector2(-201.4, -381.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian14"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="Obsidian15" type="Node2D" parent="Entities"]
+position = Vector2(-149.4, -404.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian15"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig26" type="Node2D" parent="Entities"]
+position = Vector2(-87.2, -467.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig26"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Obsidian16" type="Node2D" parent="Entities"]
+position = Vector2(-59.5, -483.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian16"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig27" type="Node2D" parent="Entities"]
+position = Vector2(-4.9, -499.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig27"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="VolcanoBig1" type="Node2D" parent="Entities"]
+position = Vector2(-380, -560)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/VolcanoBig1"]
+texture = ExtResource("15_v")
+offset = Vector2(0.5, -101.5)
+
+[node name="VolcanoBig2" type="Node2D" parent="Entities"]
+position = Vector2(420, -620)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/VolcanoBig2"]
+texture = ExtResource("15_v")
+offset = Vector2(0.5, -101.5)
+
+[node name="VolcanoSmall1" type="Node2D" parent="Entities"]
+position = Vector2(-1050, -120)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/VolcanoSmall1"]
+texture = ExtResource("16_v")
+offset = Vector2(0.5, -63.0)
+
+[node name="VolcanoSmall2" type="Node2D" parent="Entities"]
+position = Vector2(1000, -330)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/VolcanoSmall2"]
+texture = ExtResource("16_v")
+offset = Vector2(0.5, -63.0)
+
+[node name="VolcanoSmall3" type="Node2D" parent="Entities"]
+position = Vector2(60, -720)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/VolcanoSmall3"]
+texture = ExtResource("16_v")
+offset = Vector2(0.5, -63.0)
+
+[node name="BasaltBig28" type="Node2D" parent="Entities"]
+position = Vector2(1499.7, 270.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig28"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig29" type="Node2D" parent="Entities"]
+position = Vector2(785.2, 912.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig29"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Obsidian17" type="Node2D" parent="Entities"]
+position = Vector2(-1155.7, -744.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian17"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="CharredTree14" type="Node2D" parent="Entities"]
+position = Vector2(-1348.6, -578.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree14"]
+texture = ExtResource("11_v")
+offset = Vector2(2.0, -32.0)
+
+[node name="BasaltMed24" type="Node2D" parent="Entities"]
+position = Vector2(-1467.7, -458.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed24"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="CharredTree15" type="Node2D" parent="Entities"]
+position = Vector2(1216.9, 95.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree15"]
+texture = ExtResource("11_v")
+offset = Vector2(2.0, -32.0)
+
+[node name="BasaltBig30" type="Node2D" parent="Entities"]
+position = Vector2(1401.4, 129.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig30"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig31" type="Node2D" parent="Entities"]
+position = Vector2(414.0, 588.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig31"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Obsidian18" type="Node2D" parent="Entities"]
+position = Vector2(1366.0, -215.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian18"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="CharredTree16" type="Node2D" parent="Entities"]
+position = Vector2(-342.3, 893.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree16"]
+texture = ExtResource("11_v")
+offset = Vector2(2.0, -32.0)
+
+[node name="BasaltMed25" type="Node2D" parent="Entities"]
+position = Vector2(1288.4, 310.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed25"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltBig32" type="Node2D" parent="Entities"]
+position = Vector2(-1419.4, 517.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig32"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltMed26" type="Node2D" parent="Entities"]
+position = Vector2(553.0, -849.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed26"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltMed27" type="Node2D" parent="Entities"]
+position = Vector2(745.1, -854.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed27"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="CharredTree17" type="Node2D" parent="Entities"]
+position = Vector2(-1279.5, 770.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree17"]
+texture = ExtResource("11_v")
+offset = Vector2(2.0, -32.0)
+
+[node name="Obsidian19" type="Node2D" parent="Entities"]
+position = Vector2(657.4, -473.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian19"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="CharredTree18" type="Node2D" parent="Entities"]
+position = Vector2(-1363.7, -762.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree18"]
+texture = ExtResource("11_v")
+offset = Vector2(2.0, -32.0)
+
+[node name="Obsidian20" type="Node2D" parent="Entities"]
+position = Vector2(-1066.9, 873.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian20"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="CharredTree19" type="Node2D" parent="Entities"]
+position = Vector2(310.9, -731.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree19"]
+texture = ExtResource("11_v")
+offset = Vector2(2.0, -32.0)
+
+[node name="BasaltBig33" type="Node2D" parent="Entities"]
+position = Vector2(-132.9, -563.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig33"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltMed28" type="Node2D" parent="Entities"]
+position = Vector2(-429.9, -656.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed28"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Obsidian21" type="Node2D" parent="Entities"]
+position = Vector2(1492.9, 860.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian21"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltMed29" type="Node2D" parent="Entities"]
+position = Vector2(-784.8, -733.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed29"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltMed30" type="Node2D" parent="Entities"]
+position = Vector2(852.9, 237.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed30"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Obsidian22" type="Node2D" parent="Entities"]
+position = Vector2(675.2, 378.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian22"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="Obsidian23" type="Node2D" parent="Entities"]
+position = Vector2(399.3, 481.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian23"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="Obsidian24" type="Node2D" parent="Entities"]
+position = Vector2(1355.7, 4.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian24"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig34" type="Node2D" parent="Entities"]
+position = Vector2(1136.3, -874.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig34"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig35" type="Node2D" parent="Entities"]
+position = Vector2(-1471.6, -456.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig35"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltMed31" type="Node2D" parent="Entities"]
+position = Vector2(370.0, -755.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed31"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Obsidian25" type="Node2D" parent="Entities"]
+position = Vector2(-1282.5, -785.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian25"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="Obsidian26" type="Node2D" parent="Entities"]
+position = Vector2(-868.1, -297.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian26"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig36" type="Node2D" parent="Entities"]
+position = Vector2(1015.7, -808.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig36"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Obsidian27" type="Node2D" parent="Entities"]
+position = Vector2(-158.1, 611.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian27"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="Obsidian28" type="Node2D" parent="Entities"]
+position = Vector2(-329.6, -663.7)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian28"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltMed32" type="Node2D" parent="Entities"]
+position = Vector2(461.0, 929.4)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed32"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Obsidian29" type="Node2D" parent="Entities"]
+position = Vector2(-627.3, 492.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian29"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig37" type="Node2D" parent="Entities"]
+position = Vector2(-1208.9, 712.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig37"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="CharredTree110" type="Node2D" parent="Entities"]
+position = Vector2(203.9, 599.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree110"]
+texture = ExtResource("11_v")
+offset = Vector2(2.0, -32.0)
+
+[node name="BasaltBig38" type="Node2D" parent="Entities"]
+position = Vector2(-603.4, 523.5)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig38"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig39" type="Node2D" parent="Entities"]
+position = Vector2(-569.6, 780.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig39"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Obsidian30" type="Node2D" parent="Entities"]
+position = Vector2(792.4, -326.9)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian30"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltMed33" type="Node2D" parent="Entities"]
+position = Vector2(-843.7, 298.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed33"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="CharredTree111" type="Node2D" parent="Entities"]
+position = Vector2(-400.8, -727.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree111"]
+texture = ExtResource("11_v")
+offset = Vector2(2.0, -32.0)
+
+[node name="BasaltMed34" type="Node2D" parent="Entities"]
+position = Vector2(207.8, 795.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed34"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltMed35" type="Node2D" parent="Entities"]
+position = Vector2(-186.0, 575.8)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed35"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="Obsidian31" type="Node2D" parent="Entities"]
+position = Vector2(1403.3, 436.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian31"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="BasaltBig40" type="Node2D" parent="Entities"]
+position = Vector2(-1247.1, 624.2)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig40"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltMed36" type="Node2D" parent="Entities"]
+position = Vector2(-337.3, -579.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed36"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltMed37" type="Node2D" parent="Entities"]
+position = Vector2(-970.2, 492.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltMed37"]
+texture = ExtResource("7_v")
+offset = Vector2(3.0, -15.0)
+
+[node name="BasaltBig41" type="Node2D" parent="Entities"]
+position = Vector2(935.6, -529.6)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig41"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="CharredTree112" type="Node2D" parent="Entities"]
+position = Vector2(1399.2, 287.3)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/CharredTree112"]
+texture = ExtResource("11_v")
+offset = Vector2(2.0, -32.0)
+
+[node name="BasaltBig42" type="Node2D" parent="Entities"]
+position = Vector2(-1307.8, 89.0)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig42"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="BasaltBig43" type="Node2D" parent="Entities"]
+position = Vector2(-496.4, -430.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/BasaltBig43"]
+texture = ExtResource("8_v")
+offset = Vector2(-2.0, -22.5)
+
+[node name="Obsidian32" type="Node2D" parent="Entities"]
+position = Vector2(1197.2, -789.1)
+
+[node name="Sprite" type="Sprite2D" parent="Entities/Obsidian32"]
+texture = ExtResource("10_v")
+offset = Vector2(1.0, -25.5)
+
+[node name="Monsters" type="Node2D" parent="Entities"]
+y_sort_enabled = true
+
+[node name="SpawnArea" type="Marker2D" parent="."]
+
+[node name="Player" parent="Entities" instance=ExtResource("17_v")]
+position = Vector2(-590, 154)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="RoundInfo" type="Label" parent="UI"]
+offset_left = 18
+offset_top = 14
+offset_right = 500
+offset_bottom = 40
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 18
+text = ""

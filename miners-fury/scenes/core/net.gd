@@ -611,10 +611,112 @@ func _fx_call(what: String, args: Array) -> void:
 			load("res://scenes/enemies/pufferfish/water_ball.gd").shoot(parent if parent else cs, args[1], args[2], args[3], args[4])
 		"puffer_ult":
 			load("res://scenes/enemies/pufferfish/puffer_ult.gd").cast(cs, args[0], args[1])
+		# Fire Cultist spells: same deal, each copy only burns its own player
+		"fireball":
+			var fparent: Node = cs.get_node_or_null(NodePath(args[0]))
+			load("res://scenes/enemies/cultist/fireball.gd").shoot(fparent if fparent else cs, args[1], args[2], args[3], args[4])
+		"flame_wall":
+			load("res://scenes/effects/flame_wall.gd").raise(cs, args[0], args[1], args[2])
 		"puffer_geh":
 			var e = enemies.get(int(args[0]))
 			if e and is_instance_valid(e) and e.has_method("net_geh"):
 				e.net_geh()
+
+
+## any player: show an ult / combo on everyone else's screen (visual only)
+func peer_fx(what: String, args: Array) -> void:
+	if not online(get_tree()):
+		return
+	rpc("_peer_fx", what, args)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _peer_fx(what: String, args: Array) -> void:
+	var cs := get_tree().current_scene
+	if cs == null:
+		return
+	var parent: Node = cs.get_node_or_null("Entities") if cs.has_node("Entities") else cs
+	match what:
+		"venom_zone":
+			load("res://scenes/effects/venom_zone.gd").place(parent, args[0], true)
+			load("res://scenes/audio/sfx.gd").play(cs, "venom_slam", args[0], 1.0, 0.05)
+		"fire_tornado":
+			load("res://scenes/effects/fire_tornado.gd").launch(cs, args[0], args[1], float(args[2]), true)
+		"tornado_boom":
+			# a teammate blew up a tornado: find our copy of it and set it off (visual only)
+			var best = null
+			var bd := 120.0
+			for t in get_tree().get_nodes_in_group("fire_tornado"):
+				var d: float = t.global_position.distance_to(args[0])
+				if d < bd and t.can_detonate():
+					bd = d
+					best = t
+			if best:
+				best.detonate(false)
+		"thunderclap":
+			var tc = load("res://scenes/effects/thunderclap.gd").new()
+			tc.radius = float(args[1])
+			parent.add_child(tc)
+			tc.global_position = args[0]
+			load("res://scenes/audio/sfx.gd").play(cs, "storm_ult", args[0], 1.0, 0.04)
+		"toxic_storm":
+			# visual-only waves; the caster's game already damaged the copies
+			var c: Vector2 = args[0]
+			var side: Vector2 = args[1]
+			var dist: float = float(args[2])
+			var para: float = float(args[3])
+			# the rune got used up on the caster's screen: use up your copy too
+			for z in get_tree().get_nodes_in_group("venom_zone"):
+				if z.contains(c) and z.has_method("consume"):
+					z.consume()
+					break
+			var ToxicWave = load("res://scenes/effects/toxic_wave.gd")
+			ToxicWave.fire(parent, c, side, dist, para, "enemy", true)
+			ToxicWave.fire(parent, c, -side, dist, para, "enemy", true)
+			var title = load("res://scenes/effects/paralysis_wave.gd").new()
+			parent.add_child(title)
+			title.global_position = c
+
+
+## revive progress ring over a downed teammate (0..1). Everyone sees it.
+func revive_progress(target_id: int, progress: float) -> void:
+	if not online(get_tree()):
+		return
+	rpc("_revive_progress", target_id, progress)
+
+
+@rpc("any_peer", "call_local", "unreliable_ordered")
+func _revive_progress(target_id: int, progress: float) -> void:
+	var p := _player_by_id(target_id)
+	if p and p.has_method("set_revive_progress"):
+		p.set_revive_progress(float(progress))
+
+
+## reviver finished: tell that player's own game to get up
+func revive_peer(target_id: int) -> void:
+	if not online(get_tree()):
+		return
+	rpc_id(target_id, "_you_got_revived")
+
+
+@rpc("any_peer", "reliable")
+func _you_got_revived() -> void:
+	var p = get_tree().get_first_node_in_group("player")
+	if p and p.has_method("coop_revive"):
+		p.coop_revive(2)
+
+
+func _player_by_id(id: int) -> Node:
+	var cs := get_tree().current_scene
+	if cs == null:
+		return null
+	var p := cs.find_child("P%d" % id, true, false)
+	if p:
+		return p
+	var local = get_tree().get_first_node_in_group("player")
+	if local and int(local.get("net_id")) == id:
+		return local
+	return null
 
 
 ## client -> host: run a function on the host's level (sender id goes first)

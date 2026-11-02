@@ -144,3 +144,27 @@ func _draw() -> void:
 			draw_rect(r, Color(GREEN.r * pulse, GREEN.g * pulse, GREEN.b * pulse))
 		else:
 			draw_rect(r, Color(0.15, 0.25, 0.12))
+
+
+## Toxic Tornado hit an already-poisoned enemy: maxes out right away and the
+## poison flies to the `count` closest enemies (wider reach than a normal burst)
+func toxic_burst(count: int = 4) -> void:
+	var me := get_parent() as Node2D
+	if me == null or _dead(me):
+		return
+	stacks = MAX_STACKS
+	_time_left = DURATION
+	var lvl := me.get_parent()
+	FxSprite.spawn(lvl, "poison_burst", me.global_position, {"scale": 2.0, "z": 32})
+	Juice.damage_number(lvl, me.global_position + Vector2(0, -70), "SPREAD x%d!" % count, GREEN, 20)
+	var near: Array = []
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if e == me or _dead(e):
+			continue
+		var d: float = me.global_position.distance_to(e.global_position)
+		if d <= SPREAD_RANGE * 1.8:
+			near.append([d, e])
+	near.sort_custom(func(a, b): return a[0] < b[0])
+	for i in mini(count, near.size()):
+		PoisonGlob.throw(lvl, me.global_position + Vector2(0, -20), near[i][1], SPREAD_STACKS + 1)
+	_tint()

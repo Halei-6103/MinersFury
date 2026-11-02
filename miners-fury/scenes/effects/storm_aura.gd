@@ -10,6 +10,8 @@ const BLADE_B := Vector2(33, 9)
 
 ## Venom Blade uses the same aura in green: poison drips instead of sparks
 var venom: bool = false
+## Flame Blade: embers float up off the blade instead
+var flame: bool = false
 var _bolts: Array = []   # [points, life, max_life, width]
 var _drips: Array = []   # [pos, vel, life, max_life]
 var _spawn_t: float = 0.0
@@ -33,7 +35,7 @@ func _process(delta: float) -> void:
 		_spawn_t = randf_range(0.02, 0.05) if attacking else randf_range(0.06, 0.14)
 		# only while swinging: the blade sprite itself carries the color now
 		if attacking:
-			if venom:
+			if venom or flame:
 				_spawn_drip(p, true)
 			else:
 				_spawn_swing(p)
@@ -42,7 +44,7 @@ func _process(delta: float) -> void:
 	_bolts = _bolts.filter(func(b): return b[1] > 0.0)
 	for d in _drips:
 		d[2] -= real
-		d[1].y += 260.0 * real
+		d[1].y += (-40.0 if flame else 260.0) * real
 		d[0] += d[1] * real
 	_drips = _drips.filter(func(d): return d[2] > 0.0)
 	queue_redraw()
@@ -74,7 +76,10 @@ func _spawn_drip(p, attacking: bool) -> void:
 			b.x = -b.x
 		at = a.lerp(b, randf())
 	var life := randf_range(0.25, 0.45)
-	_drips.append([at, Vector2(randf_range(-10, 10), randf_range(-20, 5)), life, life])
+	var vel := Vector2(randf_range(-10, 10), randf_range(-20, 5))
+	if flame:
+		vel = Vector2(randf_range(-14, 14), randf_range(-70, -35))
+	_drips.append([at, vel, life, life])
 
 
 func _spawn_swing(p) -> void:
@@ -90,6 +95,10 @@ func _spawn_swing(p) -> void:
 func _draw() -> void:
 	for d in _drips:
 		var al: float = d[2] / d[3]
+		if flame:
+			var c := Color(1.0, 0.9, 0.5).lerp(Color(0.95, 0.25, 0.05), 1.0 - al)
+			draw_rect(Rect2(d[0] - Vector2(1.5, 1.5), Vector2(3, 3)), Color(c.r, c.g, c.b, al))
+			continue
 		draw_rect(Rect2(d[0] - Vector2(1.5, 1.5), Vector2(3, 4)), Color(0.12, 0.25, 0.08, al))
 		draw_rect(Rect2(d[0] - Vector2(1, 1), Vector2(2, 3)), Color(0.55, 1.0, 0.35, al))
 	for b in _bolts:

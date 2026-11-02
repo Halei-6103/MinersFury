@@ -27,6 +27,11 @@ const ITEMS := {
 		"desc": "The Necromancer's heart. Cold, green, and humming with rot.",
 		"icon": ICONS + "tomb_crystal.png", "frames": 6, "color": Color(0.55, 1.0, 0.35),
 	},
+	"fire_crystal": {
+		"name": "Fire Shard", "type": "shard",
+		"desc": "The Fire Cultist's ember heart. Too hot to hold for long.",
+		"icon": ICONS + "fire_crystal.png", "frames": 6, "color": Color(1.0, 0.55, 0.15),
+	},
 	"wolf_pelt": {
 		"name": "Wolf Pelt", "type": "material", "desc": "Thick, coarse fur from a werewolf.",
 		"icon": ICONS + "wolf_pelt.png", "frames": 1, "color": Color(0.75, 0.6, 0.45),
@@ -47,6 +52,14 @@ const ITEMS := {
 		"name": "Bone", "type": "material", "desc": "Old skeleton bone. Surprisingly sturdy.",
 		"icon": ICONS + "bone.png", "frames": 1, "color": Color(0.95, 0.92, 0.82),
 	},
+	"ember": {
+		"name": "Ember", "type": "material", "desc": "A coal that never goes out. Cultists carry them.",
+		"icon": ICONS + "ember.png", "frames": 1, "color": Color(1.0, 0.5, 0.15),
+	},
+	"cultist_cloth": {
+		"name": "Cultist Cloth", "type": "material", "desc": "Torn red robe. Smells like smoke.",
+		"icon": ICONS + "cultist_cloth.png", "frames": 1, "color": Color(0.8, 0.2, 0.25),
+	},
 }
 
 ## blueprints Earth sends down. "shard" = what you have to send up for it
@@ -58,6 +71,10 @@ const BLUEPRINTS := {
 	"venom_blade": {
 		"name": "Venom Blade Blueprint", "shard": "tomb_crystal",
 		"icon": ICONS + "blueprint_venom.png", "frames": 12, "color": Color(0.6, 1.0, 0.45),
+	},
+	"flame_blade": {
+		"name": "Flame Blade Blueprint", "shard": "fire_crystal",
+		"icon": ICONS + "blueprint_flame.png", "frames": 12, "color": Color(1.0, 0.6, 0.25),
 	},
 }
 
@@ -86,6 +103,14 @@ const WEAPONS := {
 		"color": Color(0.55, 1.0, 0.35),
 		"recipe": {"blueprint": "venom_blade", "items": {"bone": 5, "slime_goo": 3, "bat_wing": 2}},
 	},
+	"flame_blade": {
+		"name": "Flame Blade", "effect": "flame",
+		"desc": "Hits set enemies on fire (1 damage a second for 3s).\nR (ultimate): a fire tornado that runs out in a line, burning everything it passes.",
+		"swing_fx": "res://assets/sprites/player/flame_fx_frames.tres",
+		"body": "res://assets/sprites/player/flame_swordsman_frames.tres",
+		"color": Color(1.0, 0.55, 0.15),
+		"recipe": {"blueprint": "flame_blade", "items": {"ember": 4, "cultist_cloth": 3, "bat_wing": 2}},
+	},
 }
 
 ## maps on the road map, in order. Each one unlocks after the one before it is cleared.
@@ -93,6 +118,8 @@ const MAPS := [
 	{"id": "forest", "name": "Mossback Woods", "scene": "res://scenes/levels/forest/forest.tscn", "boss": "Werebear"},
 	{"id": "wasteland", "name": "Bone Wastes", "scene": "res://scenes/levels/wasteland/wasteland.tscn", "boss": "Necromancer"},
 	{"id": "colosseum", "name": "The Colosseum", "scene": "res://scenes/levels/colosseum/colosseum.tscn", "boss": "Everything", "endless": true},
+	# "after": opens once that map is cleared (instead of the one before it in this list)
+	{"id": "volcano", "name": "Ember Caldera", "scene": "res://scenes/levels/volcano/volcano.tscn", "boss": "Fire Cultist", "after": "wasteland"},
 ]
 
 static var inventory: Dictionary = {}
@@ -338,6 +365,8 @@ static func mark_cleared(map_id: String) -> void:
 static func is_unlocked(map_id: String) -> bool:
 	for i in MAPS.size():
 		if MAPS[i].id == map_id:
+			if MAPS[i].has("after"):
+				return is_cleared(MAPS[i].after)
 			return i == 0 or is_cleared(MAPS[i - 1].id)
 	return false
 

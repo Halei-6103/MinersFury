@@ -92,6 +92,10 @@ var hold_on_death: bool = false
 @export var storm_ult_cooldown: float = 10.0
 ## Venom Blade: poison rune where you aim (lasts 5s)
 @export var venom_ult_cooldown: float = 12.0
+## Flame Blade: fire tornado
+@export var flame_ult_cooldown: float = 12.0
+## how far the tornado runs (flat floor units)
+@export var tornado_distance: float = 430.0
 ## COMBO "Tetrodotoxin": thunderclap on a poison rune (bosses get half)
 @export var paralysis_time: float = 4.0
 ## swapping weapons (Q) cancels a swing; you can't swing again for this long
@@ -159,6 +163,8 @@ var _ult_cd: Dictionary = {}
 var _aim_node: Node2D = null
 const UltAim = preload("res://scenes/effects/ult_aim.gd")
 const VenomZone = preload("res://scenes/effects/venom_zone.gd")
+const FireTornado = preload("res://scenes/effects/fire_tornado.gd")
+const BurnStatus = preload("res://scenes/effects/burn_status.gd")
 const ParalysisWave = preload("res://scenes/effects/paralysis_wave.gd")
 const ToxicWave = preload("res://scenes/effects/toxic_wave.gd")
 const Net = preload("res://scenes/core/net.gd")
@@ -176,6 +182,16 @@ var _net_send_t: float = 0.0
 var _net_last_anim: String = ""
 var _net_last_frame: int = -1
 const NET_SEND_RATE := 1.0 / 30.0
+## co-op downed / revive
+const BLEED_TIME := 30.0
+const REVIVE_TIME := 8.0
+const REVIVE_RANGE := 70.0
+var _bleed_left: float = 0.0
+var _revive_progress: float = 0.0
+var _reviving_id: int = 0
+var _revive_hold: float = 0.0
+var _down_label: Label = null
+var _revive_bar: ProgressBar = null
 
 func _ready() -> void:
 	if puppet:
@@ -193,6 +209,7 @@ func _ready() -> void:
 	_build_hurt_flash()
 	_build_combo_label()
 	_ensure_block_action()
+	_ensure_revive_action()
 	_guard = GuardArc.new()
 	_guard.position = Vector2(0, -10)
 	_guard.z_index = 5
@@ -232,10 +249,12 @@ func set_weapon(w: String) -> void:
 	match info.effect:
 		"storm": Sfx.loop(self, "storm_hum", -24.0)
 		"venom": Sfx.loop(self, "venom_hum", -29.0)
+		"flame": Sfx.loop(self, "flame_hum", -27.0)
 		_: Sfx.stop_loop(self)
-	if info.effect == "storm" or info.effect == "venom":
+	if info.effect in ["storm", "venom", "flame"]:
 		_aura = StormAura.new()
 		_aura.venom = info.effect == "venom"
+		_aura.flame = info.effect == "flame"
 		add_child(_aura)
 	if hud and hud.has_method("set_weapons"):
 		hud.set_weapons()
@@ -248,6 +267,8 @@ func _ult_cooldown_for(w: String) -> float:
 			return storm_ult_cooldown
 		"venom":
 			return venom_ult_cooldown
+		"flame":
+			return flame_ult_cooldown
 	return 0.0
 
 
@@ -282,6 +303,9 @@ func _handle_ultimate(delta: float) -> void:
 			_aim_node.color = GameState.WEAPONS[weapon].color
 			_aim_node.max_range = ult_range
 			_aim_node.target_radius = clap_radius if is_storm() else VenomZone.RADIUS
+			if is_flame():
+				_aim_node.target_radius = FireTornado.HIT_R
+				_aim_node.path_len = tornado_distance
 			get_parent().add_child(_aim_node)
 	if _aim_node:
 		_aim_node.center = global_position
@@ -307,10 +331,16 @@ func _cast_ultimate(at: Vector2) -> void:
 	_face_mouse()
 	if is_storm():
 		_thunderclap(at)
+		if Net.online(get_tree()):
+			Net.get_node_in(get_tree()).peer_fx("thunderclap", [at, clap_radius])
 	elif is_venom():
 		VenomZone.place(get_parent(), at)
 		Sfx.play(self, "venom_slam", at, 1.0, 0.05)
 		Juice.impact_flash(self, 0.12, Color(0.6, 1.0, 0.45))
+		if Net.online(get_tree()):
+			Net.get_node_in(get_tree()).peer_fx("venom_zone", [at])
+	elif is_flame():
+		_fire_tornado(at)
 	if hud and hud.has_method("set_weapons"):
 		hud.set_weapons()
 
@@ -428,6 +458,7 @@ func _net_send() -> void:
 		animated_sprite.visible, animated_sprite.modulate, weapon,
 		swing_fx.visible, String(swing_fx.animation), swing_fx.frame, swing_fx.flip_h, swing_fx.rotation,
 		int(state), health, max_health, _paralysis,
+		_bleed_left, _revive_progress,
 	]
 	# goes through /root/Net (never freed) instead of this node, so a message
 	# that lands mid scene change can't point at a node that's already gone
@@ -473,6 +504,9 @@ func apply_net_state(st: Array) -> void:
 	max_health = st[14]
 	# so the host's pufferfish knows a teammate is frozen (its "geh" follow-up)
 	_paralysis = float(st[15]) if st.size() > 15 else 0.0
+	_bleed_left = float(st[16]) if st.size() > 16 else 0.0
+	_revive_progress = float(st[17]) if st.size() > 17 else 0.0
+	_update_down_ui()
 
 
 func _puppet_tick(delta: float) -> void:
@@ -483,6 +517,7 @@ func _puppet_tick(delta: float) -> void:
 		position = _net_target
 	else:
 		position = position.lerp(_net_target, 1.0 - exp(-18.0 * delta))
+	_update_down_ui()
 
 
 func is_venom() -> bool:
@@ -490,6 +525,23 @@ func is_venom() -> bool:
 
 func is_storm() -> bool:
 	return weapon == "storm_blade"
+
+func is_flame() -> bool:
+	return weapon == "flame_blade"
+
+
+## Flame Blade ultimate: a fire tornado spins up beside you and runs toward the cursor
+func _fire_tornado(at: Vector2) -> void:
+	var to := at - global_position
+	var flat := Vector2(to.x, to.y * 2.0)
+	if flat.length() < 1.0:
+		flat = Vector2.RIGHT if facing_right else Vector2.LEFT
+	var d := flat.normalized()
+	var from := global_position + Vector2(d.x, d.y * 0.5) * 34.0
+	FireTornado.launch(get_tree().current_scene, from, d, tornado_distance)
+	Juice.impact_flash(self, 0.15, Color(1.0, 0.6, 0.2))
+	if Net.online(get_tree()):
+		Net.get_node_in(get_tree()).peer_fx("fire_tornado", [from, d, tornado_distance])
 
 ## "12 HITS" counter on the right side of the screen
 func _build_combo_label() -> void:
@@ -612,6 +664,15 @@ func _local_physics(delta: float) -> void:
 		untargetable_timer -= delta
 		if untargetable_timer <= 0.0:
 			_phase_in()
+	# co-op: bleed out / hold E·F to revive a teammate
+	if Net.online(get_tree()):
+		if state == State.DEAD:
+			_tick_bleed(delta)
+			velocity = velocity.move_toward(Vector2.ZERO, friction * delta)
+			move_and_slide()
+			_update_down_ui()
+			return
+		_tick_revive(delta)
 	if _paralysis > 0.0:
 		_paralysis -= delta
 		velocity = velocity.move_toward(Vector2.ZERO, 2400.0 * delta)
@@ -923,9 +984,10 @@ func _check_sword_hits() -> void:
 		if enemy.is_in_group("enemy") and enemy.has_method("take_damage"):
 			_hit_this_strike.append(enemy)
 			var finisher: bool = idx == windows.size() - 1 and animated_sprite.animation == "attack2"
+			var was_dead: bool = _is_dead(enemy)
 			# small shove on combo hits so the bat stays in reach, big launch on the finisher
 			enemy.take_damage(sword_damage, global_position, 1.3 if finisher else 0.4)
-			_on_sword_hit(enemy, finisher)
+			_on_sword_hit(enemy, finisher, was_dead)
 
 func _hit_point(e: Node2D) -> Vector2:
 	var hb = e.get_node_or_null("Hurtbox")
@@ -953,19 +1015,30 @@ func _chain_lightning(origin: Node2D) -> void:
 		zapped.append(best)
 		var to_pos := _hit_point(best)
 		LightningBolt.zap(get_parent(), from_pos, to_pos, 1.4, 0.28)
+		var was_dead: bool = _is_dead(best)
 		best.take_damage(chain_damage, from_pos, 0.25)
 		# a little strike lands on them (effect pack 2)
 		FxSprite.spawn(get_parent(), "chain_strike", best.global_position, {"z": 35})
-		if _is_dead(best):
-			Juice.damage_number(get_parent(), to_pos + Vector2(0, -16), "KO!", Color(0.5, 0.85, 1.0), 30)
+		if not was_dead and _is_dead(best):
+			_show_ko(best, to_pos + Vector2(0, -16), Color(0.5, 0.85, 1.0), 30)
 		else:
 			Juice.damage_number(get_parent(), to_pos + Vector2(0, -14), str(chain_damage), Color(0.55, 0.85, 1.0), 22)
 		from_pos = to_pos
 
+
+## once per enemy so co-op copies don't spam KO while the death sync catches up
+func _show_ko(enemy: Node, at: Vector2, color: Color, size: int) -> void:
+	if enemy == null or not is_instance_valid(enemy):
+		return
+	if enemy.has_meta("ko_shown"):
+		return
+	enemy.set_meta("ko_shown", true)
+	Juice.damage_number(get_parent(), at, "KO!", color, size)
+
 ## Storm ultimate: lightning from the sky where you aimed, hurts and stuns everything in the ring
 func _thunderclap(center: Vector2) -> void:
 	var aim: Vector2 = (center - global_position).normalized()
-	# thunderclap landing in a poison rune = Toxic Storm
+	# thunderclap landing in a poison rune = Toxic Storm (works on a teammate's rune too)
 	var rune: Node2D = null
 	for z in get_tree().get_nodes_in_group("venom_zone"):
 		if z.contains(center):
@@ -994,6 +1067,14 @@ func _thunderclap(center: Vector2) -> void:
 		Juice.damage_number(get_parent(), hp + Vector2(0, -14), str(clap_damage), Color(0.55, 0.85, 1.0), 26)
 		if not _is_dead(e) and e.has_method("stun") and e.state != e.State.STUNNED:
 			e.stun(clap_stun)
+	# thunderclap on a fire tornado (yours or a teammate's): blow it up
+	for t in get_tree().get_nodes_in_group("fire_tornado"):
+		var toff: Vector2 = t.global_position - center
+		if t.can_detonate() and Vector2(toff.x, toff.y * 2.0).length() <= clap_radius + 30.0:
+			var tat: Vector2 = t.global_position
+			t.detonate(true)
+			if Net.online(get_tree()):
+				Net.get_node_in(get_tree()).peer_fx("tornado_boom", [tat])
 	if rune:
 		if GameState.has_mastery("tetrodotoxin"):
 			_toxic_storm(rune)
@@ -1024,16 +1105,19 @@ func _toxic_storm(rune: Node2D) -> void:
 	Juice.hit_stop(self, 0.12)
 	Juice.shake(self, 0.8)
 	Juice.zoom_punch(self, 0.08)
+	# teammates see the waves; their copies are visual-only
+	if Net.online(get_tree()):
+		Net.get_node_in(get_tree()).peer_fx("toxic_storm", [c, side, ult_range, paralysis_time])
 
 
 ## all the feedback for landing a hit. Everything turned up.
-func _on_sword_hit(enemy: Node2D, finisher: bool) -> void:
+func _on_sword_hit(enemy: Node2D, finisher: bool, was_dead: bool = false) -> void:
 	var hit_pos: Vector2 = enemy.global_position
 	var hurtbox = enemy.get_node_or_null("Hurtbox")
 	if hurtbox:
 		hit_pos = hurtbox.global_position
 	var dir := (hit_pos - global_position).normalized()
-	var kill: bool = enemy.get("state") != null and enemy.state == enemy.State.DEAD
+	var kill: bool = not was_dead and enemy.get("state") != null and enemy.state == enemy.State.DEAD
 	var heavy := finisher or kill
 	_bump_combo()
 	Sfx.play(self, "hit", hit_pos, 0.0 if heavy else -3.0)
@@ -1042,9 +1126,15 @@ func _on_sword_hit(enemy: Node2D, finisher: bool) -> void:
 		Sfx.play(self, "storm_zap" if heavy else "storm_crack", hit_pos, -2.0)
 	elif is_venom():
 		Sfx.play(self, "venom_bubble", hit_pos, -3.0)
+	elif is_flame():
+		Sfx.play(self, "flame_hit", hit_pos, -4.0)
 	if is_storm():
 		_chain_lightning(enemy)
 		FxSprite.spawn(get_parent(), "chain_strike", enemy.global_position, {"z": 35})
+	elif is_flame() and not kill:
+		# sets them on fire (the finisher burns longer)
+		BurnStatus.apply(enemy, 4.0 if finisher else 3.0)
+		FxSprite.spawn(get_parent(), "cult_fire_impact", hit_pos, {"scale": 1.6, "z": 35})
 	elif is_venom() and not kill:
 		# every hit stacks poison, the finisher stacks two
 		PoisonStatus.apply(enemy, 2 if finisher else 1)
@@ -1054,7 +1144,7 @@ func _on_sword_hit(enemy: Node2D, finisher: bool) -> void:
 	Juice.spark(get_parent(), hit_pos, dir, heavy, ichor)
 	Juice.splat(self, enemy.global_position, dir, 5 if kill else (3 if finisher else 2), ichor.darkened(0.2))
 	if kill:
-		Juice.damage_number(get_parent(), hit_pos + Vector2(0, -18), "KO!", Color(1, 0.25, 0.3), 40)
+		_show_ko(enemy, hit_pos + Vector2(0, -18), Color(1, 0.25, 0.3), 40)
 		Juice.hit_stop(self, hit_stop_kill)
 		Juice.shake(self, 0.95, dir)
 		Juice.zoom_punch(self, 0.12)
@@ -1081,12 +1171,9 @@ func _on_animation_finished() -> void:
 		State.HURT:
 			state = State.MOVE
 		State.DEAD:
-			# co-op: get back up after a few seconds instead of leaving the team
-			# (until the revive system is in)
+			# co-op: stay down (bleed / revive). Solo endless maps show a score card.
 			if Net.online(get_tree()):
-				_coop_get_up()
 				return
-			# endless maps show a score card instead of sending you home
 			if hold_on_death:
 				return
 			await get_tree().create_timer(1.0).timeout
@@ -1130,9 +1217,14 @@ func take_damage(amount: int, from_position: Vector2, attacker: Node = null) -> 
 	if health <= 0:
 		state = State.DEAD
 		invincible_timer = 0.0
+		_bleed_left = BLEED_TIME
+		_revive_progress = 0.0
+		_revive_hold = 0.0
+		_reviving_id = 0
 		animated_sprite.visible = true
 		animated_sprite.speed_scale = 1.0
 		animated_sprite.play("death")
+		_update_down_ui()
 		died.emit()
 		return
 	state = State.HURT
@@ -1140,19 +1232,127 @@ func take_damage(amount: int, from_position: Vector2, attacker: Node = null) -> 
 	animated_sprite.speed_scale = 1.0
 	animated_sprite.play("hurt")
 
-## co-op: down for a few seconds, then back up with full hearts
-func _coop_get_up() -> void:
-	Juice.damage_number(get_parent(), global_position + Vector2(0, -60), "DOWN! Back in 5", Color(1, 0.6, 0.5), 22)
-	await get_tree().create_timer(5.0, false).timeout
-	if not is_inside_tree() or state != State.DEAD:
+
+## E or F: hold next to a downed teammate to get them up
+func _ensure_revive_action() -> void:
+	if InputMap.has_action("revive"):
 		return
-	health = max_health
+	InputMap.add_action("revive")
+	for k in [KEY_E, KEY_F]:
+		var ev := InputEventKey.new()
+		ev.physical_keycode = k
+		InputMap.action_add_event("revive", ev)
+	# hubs already use "interact" (E); keep that working too
+	if not InputMap.has_action("interact"):
+		InputMap.add_action("interact")
+		var ie := InputEventKey.new()
+		ie.physical_keycode = KEY_E
+		InputMap.action_add_event("interact", ie)
+
+
+func _flat_dist_to(other: Node2D) -> float:
+	var off: Vector2 = other.global_position - global_position
+	return Vector2(off.x, off.y * 2.0).length()
+
+
+## you're down: countdown, then crawl back up with 2 hearts
+func _tick_bleed(delta: float) -> void:
+	_bleed_left = maxf(_bleed_left - delta, 0.0)
+	if _bleed_left <= 0.0:
+		coop_revive(2)
+
+
+## hold E/F near a downed teammate for REVIVE_TIME seconds
+func _tick_revive(delta: float) -> void:
+	_ensure_revive_action()
+	var holding: bool = Input.is_action_pressed("revive") or Input.is_action_pressed("interact")
+	var target: Node2D = null
+	var best_d: float = REVIVE_RANGE
+	for p in get_tree().get_nodes_in_group("players_all"):
+		if p == self or p.get("state") != p.State.DEAD:
+			continue
+		var d: float = _flat_dist_to(p)
+		if d < best_d:
+			best_d = d
+			target = p
+	if target == null or not holding:
+		if _reviving_id != 0:
+			Net.get_node_in(get_tree()).revive_progress(_reviving_id, 0.0)
+		_reviving_id = 0
+		_revive_hold = 0.0
+		return
+	var tid: int = int(target.get("net_id"))
+	if tid != _reviving_id:
+		_reviving_id = tid
+		_revive_hold = 0.0
+	_revive_hold += delta
+	var prog: float = clampf(_revive_hold / REVIVE_TIME, 0.0, 1.0)
+	Net.get_node_in(get_tree()).revive_progress(tid, prog)
+	if prog >= 1.0:
+		Net.get_node_in(get_tree()).revive_peer(tid)
+		Net.get_node_in(get_tree()).revive_progress(tid, 0.0)
+		_reviving_id = 0
+		_revive_hold = 0.0
+
+
+## Net (or bleed-out) puts you back on your feet
+func coop_revive(hp: int = 2) -> void:
+	if state != State.DEAD:
+		return
+	health = clampi(hp, 1, max_health)
 	health_changed.emit(health, max_health)
 	state = State.MOVE
+	_bleed_left = 0.0
+	_revive_progress = 0.0
 	animated_sprite.visible = true
+	animated_sprite.speed_scale = 1.0
 	animated_sprite.play("idle")
 	invincible_timer = 2.0
+	_update_down_ui()
 	Juice.damage_number(get_parent(), global_position + Vector2(0, -60), "BACK UP!", Color(0.6, 1, 0.6), 24)
+
+
+func set_revive_progress(p: float) -> void:
+	_revive_progress = clampf(p, 0.0, 1.0)
+	_update_down_ui()
+
+
+func _update_down_ui() -> void:
+	var downed: bool = state == State.DEAD
+	if not downed:
+		if _down_label:
+			_down_label.visible = false
+		if _revive_bar:
+			_revive_bar.visible = false
+		return
+	if _down_label == null:
+		_down_label = Label.new()
+		_down_label.name = "DownLabel"
+		_down_label.add_theme_font_size_override("font_size", 14)
+		_down_label.add_theme_constant_override("outline_size", 6)
+		_down_label.add_theme_color_override("font_outline_color", Color(0.05, 0.02, 0.04))
+		_down_label.add_theme_color_override("font_color", Color(1.0, 0.45, 0.4))
+		_down_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_down_label.size = Vector2(100, 18)
+		_down_label.position = Vector2(-50, -78)
+		_down_label.z_index = 55
+		add_child(_down_label)
+	_down_label.visible = true
+	_down_label.text = "DOWN %d" % maxi(ceili(_bleed_left), 0)
+	if _revive_bar == null:
+		_revive_bar = ProgressBar.new()
+		_revive_bar.name = "ReviveBar"
+		_revive_bar.min_value = 0.0
+		_revive_bar.max_value = 1.0
+		_revive_bar.show_percentage = false
+		_revive_bar.custom_minimum_size = Vector2(56, 8)
+		_revive_bar.size = Vector2(56, 8)
+		_revive_bar.position = Vector2(-28, -88)
+		_revive_bar.z_index = 55
+		_revive_bar.modulate = Color(0.55, 1.0, 0.6)
+		add_child(_revive_bar)
+	_revive_bar.visible = _revive_progress > 0.02
+	_revive_bar.value = _revive_progress
 
 
 ## nerves locked up by a Tetrodotoxin wave
