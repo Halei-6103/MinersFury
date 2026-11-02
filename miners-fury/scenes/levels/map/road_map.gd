@@ -9,6 +9,7 @@ const GameState = preload("res://scenes/core/game_state.gd")
 const Music = preload("res://scenes/audio/music.gd")
 const GameUI = preload("res://scenes/ui/game_ui.gd")
 const UI = preload("res://scenes/ui/ui_kit.gd")
+const Net = preload("res://scenes/core/net.gd")
 
 const CAMP_SCENE := "res://scenes/levels/hub/hub.tscn"
 const STOPS := [
@@ -227,6 +228,9 @@ func _say(at: Vector2, text: String) -> void:
 
 
 func _go(i: int) -> void:
+	if not Net.is_host(get_tree()):
+		Net.get_node_in(get_tree())._toast("The host picks where to go")
+		return
 	_leaving = true
 	_tip.visible = false
 	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
@@ -247,8 +251,7 @@ func _go(i: int) -> void:
 	var tw := create_tween()
 	tw.tween_property(flash, "color:a", 1.0, 0.3)
 	tw.tween_callback(func() -> void:
-		Engine.set_meta("arrival_spawn", spawn)
-		get_tree().change_scene_to_file(scene))
+		Net.change_scene(get_tree(), scene, spawn))
 
 
 func _draw() -> void:

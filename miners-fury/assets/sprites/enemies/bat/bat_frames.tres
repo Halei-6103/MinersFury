@@ -1,34 +1,10 @@
-[gd_resource type="SpriteFrames" format=3]
+[gd_resource type="SpriteFrames" format=3 uid="uid://bsquy05rweebn"]
 
-[ext_resource type="Texture2D" path="res://assets/sprites/enemies/bat/fly.png" id="1_t"]
-[ext_resource type="Texture2D" path="res://assets/sprites/enemies/bat/attack1.png" id="2_t"]
-[ext_resource type="Texture2D" path="res://assets/sprites/enemies/bat/attack2.png" id="3_t"]
-[ext_resource type="Texture2D" path="res://assets/sprites/enemies/bat/hurt.png" id="4_t"]
-[ext_resource type="Texture2D" path="res://assets/sprites/enemies/bat/death.png" id="5_t"]
-
-[sub_resource type="AtlasTexture" id="fly_0"]
-atlas = ExtResource("1_t")
-region = Rect2(0, 0, 100, 100)
-
-[sub_resource type="AtlasTexture" id="fly_1"]
-atlas = ExtResource("1_t")
-region = Rect2(100, 0, 100, 100)
-
-[sub_resource type="AtlasTexture" id="fly_2"]
-atlas = ExtResource("1_t")
-region = Rect2(200, 0, 100, 100)
-
-[sub_resource type="AtlasTexture" id="fly_3"]
-atlas = ExtResource("1_t")
-region = Rect2(300, 0, 100, 100)
-
-[sub_resource type="AtlasTexture" id="fly_4"]
-atlas = ExtResource("1_t")
-region = Rect2(400, 0, 100, 100)
-
-[sub_resource type="AtlasTexture" id="fly_5"]
-atlas = ExtResource("1_t")
-region = Rect2(500, 0, 100, 100)
+[ext_resource type="Texture2D" uid="uid://d2g1lcj36md2q" path="res://assets/sprites/enemies/bat/fly.png" id="1_t"]
+[ext_resource type="Texture2D" uid="uid://caxnhhdkh5u04" path="res://assets/sprites/enemies/bat/attack1.png" id="2_t"]
+[ext_resource type="Texture2D" uid="uid://bhp6j8n57dhis" path="res://assets/sprites/enemies/bat/attack2.png" id="3_t"]
+[ext_resource type="Texture2D" uid="uid://siyh0u23nopk" path="res://assets/sprites/enemies/bat/hurt.png" id="4_t"]
+[ext_resource type="Texture2D" uid="uid://br3tqaxys6fh7" path="res://assets/sprites/enemies/bat/death.png" id="5_t"]
 
 [sub_resource type="AtlasTexture" id="attack1_0"]
 atlas = ExtResource("2_t")
@@ -82,22 +58,6 @@ region = Rect2(500, 0, 100, 100)
 atlas = ExtResource("3_t")
 region = Rect2(600, 0, 100, 100)
 
-[sub_resource type="AtlasTexture" id="hurt_0"]
-atlas = ExtResource("4_t")
-region = Rect2(0, 0, 100, 100)
-
-[sub_resource type="AtlasTexture" id="hurt_1"]
-atlas = ExtResource("4_t")
-region = Rect2(100, 0, 100, 100)
-
-[sub_resource type="AtlasTexture" id="hurt_2"]
-atlas = ExtResource("4_t")
-region = Rect2(200, 0, 100, 100)
-
-[sub_resource type="AtlasTexture" id="hurt_3"]
-atlas = ExtResource("4_t")
-region = Rect2(300, 0, 100, 100)
-
 [sub_resource type="AtlasTexture" id="death_0"]
 atlas = ExtResource("5_t")
 region = Rect2(0, 0, 100, 100)
@@ -114,31 +74,48 @@ region = Rect2(200, 0, 100, 100)
 atlas = ExtResource("5_t")
 region = Rect2(300, 0, 100, 100)
 
+[sub_resource type="AtlasTexture" id="fly_0"]
+atlas = ExtResource("1_t")
+region = Rect2(0, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="fly_1"]
+atlas = ExtResource("1_t")
+region = Rect2(100, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="fly_2"]
+atlas = ExtResource("1_t")
+region = Rect2(200, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="fly_3"]
+atlas = ExtResource("1_t")
+region = Rect2(300, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="fly_4"]
+atlas = ExtResource("1_t")
+region = Rect2(400, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="fly_5"]
+atlas = ExtResource("1_t")
+region = Rect2(500, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="hurt_0"]
+atlas = ExtResource("4_t")
+region = Rect2(0, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="hurt_1"]
+atlas = ExtResource("4_t")
+region = Rect2(100, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="hurt_2"]
+atlas = ExtResource("4_t")
+region = Rect2(200, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="hurt_3"]
+atlas = ExtResource("4_t")
+region = Rect2(300, 0, 100, 100)
+
 [resource]
 animations = [{
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("fly_0")
-}, {
-"duration": 1.0,
-"texture": SubResource("fly_1")
-}, {
-"duration": 1.0,
-"texture": SubResource("fly_2")
-}, {
-"duration": 1.0,
-"texture": SubResource("fly_3")
-}, {
-"duration": 1.0,
-"texture": SubResource("fly_4")
-}, {
-"duration": 1.0,
-"texture": SubResource("fly_5")
-}],
-"loop": true,
-"name": &"fly",
-"speed": 10.0
-}, {
 "frames": [{
 "duration": 1.0,
 "texture": SubResource("attack1_0")
@@ -158,7 +135,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("attack1_5")
 }],
-"loop": false,
+"loop": 0,
 "name": &"attack1",
 "speed": 10.0
 }, {
@@ -184,25 +161,8 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("attack2_6")
 }],
-"loop": false,
+"loop": 0,
 "name": &"attack2",
-"speed": 12.0
-}, {
-"frames": [{
-"duration": 1.0,
-"texture": SubResource("hurt_0")
-}, {
-"duration": 1.0,
-"texture": SubResource("hurt_1")
-}, {
-"duration": 1.0,
-"texture": SubResource("hurt_2")
-}, {
-"duration": 1.0,
-"texture": SubResource("hurt_3")
-}],
-"loop": false,
-"name": &"hurt",
 "speed": 12.0
 }, {
 "frames": [{
@@ -218,7 +178,47 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("death_3")
 }],
-"loop": false,
+"loop": 0,
 "name": &"death",
 "speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("fly_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("fly_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("fly_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("fly_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("fly_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("fly_5")
+}],
+"loop": 1,
+"name": &"fly",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("hurt_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("hurt_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("hurt_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("hurt_3")
+}],
+"loop": 0,
+"name": &"hurt",
+"speed": 12.0
 }]

@@ -9,6 +9,7 @@ const Juice = preload("res://scenes/effects/juice.gd")
 const ToxicWave = preload("res://scenes/effects/toxic_wave.gd")
 const Thunderclap = preload("res://scenes/effects/thunderclap.gd")
 const ParalysisWave = preload("res://scenes/effects/paralysis_wave.gd")
+const Sfx = preload("res://scenes/audio/sfx.gd")
 
 ## seconds from the rune landing to the waves firing
 const WARN := 1.6
@@ -28,6 +29,8 @@ static func cast(level: Node, at: Vector2, from: Vector2) -> void:
 	var u = load("res://scenes/enemies/pufferfish/puffer_ult.gd").new()
 	u.caster_pos = from
 	var ground = level.get_node_or_null("Ground")
+	# know where we are BEFORE _ready runs (it spawns the rune art and sound there)
+	u.position = at
 	(ground if ground else level).add_child(u)
 	u.global_position = at
 
@@ -38,7 +41,9 @@ func _ready() -> void:
 	if flat.length() < 1.0:
 		flat = Vector2.DOWN
 	_side = Vector2(-flat.y, flat.x).normalized()
-	FxSprite.spawn(self, "venom_zone_start", Vector2.ZERO, {"scale": 1.4, "z": 0})
+	FxSprite.spawn(self, "venom_zone_start", global_position, {"scale": 1.4, "z": 0})
+	# the poison rune slams down first (same sound as your Venom ult)
+	Sfx.play(self, "venom_slam", global_position, 1.0, 0.05)
 	_rune = AnimatedSprite2D.new()
 	_rune.sprite_frames = FxSprite.frames_for("venom_zone_idle", true)
 	_rune.offset = FxSprite.anchor_offset("venom_zone_idle")
@@ -69,6 +74,7 @@ func _fire() -> void:
 	tc.radius = CLAP_R
 	level.add_child(tc)
 	tc.global_position = at
+	Sfx.play(self, "storm_ult", at, 1.0, 0.04)
 	var title = ParalysisWave.new()
 	level.add_child(title)
 	title.global_position = at
@@ -84,7 +90,7 @@ func _fire() -> void:
 	Juice.shake(self, 0.9)
 	if is_instance_valid(_rune):
 		_rune.queue_free()
-	FxSprite.spawn(self, "venom_zone_end", Vector2.ZERO, {"scale": 1.4, "z": 0})
+	FxSprite.spawn(get_parent(), "venom_zone_end", global_position, {"scale": 1.4, "z": 0})
 
 
 ## the warning: where the waves will run, filling up as the timer runs out

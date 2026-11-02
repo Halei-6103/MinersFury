@@ -1,4 +1,5 @@
 extends Node2D
+const Net = preload("res://scenes/core/net.gd")
 ## Electrical transfer board. Stand on it, press E, get zapped to another map.
 ## Put a Marker2D in the target scene named `arrival_spawn` and you'll land there.
 
@@ -41,6 +42,10 @@ func _process(delta: float) -> void:
 func _on_interacted(_station: Area2D) -> void:
 	if _busy or target_scene == "":
 		return
+	# co-op: the host decides where the team goes
+	if not Net.is_host(get_tree()):
+		Net.get_node_in(get_tree())._toast("Only the host can travel")
+		return
 	_busy = true
 	var player = get_tree().get_first_node_in_group("player")
 	if player:
@@ -61,8 +66,7 @@ func _on_interacted(_station: Area2D) -> void:
 
 
 func _go() -> void:
-	Engine.set_meta("arrival_spawn", arrival_spawn)
-	get_tree().change_scene_to_file(target_scene)
+	Net.change_scene(get_tree(), target_scene, arrival_spawn)
 
 
 ## Call from a level's _ready(). Moves the player to the spawn marker

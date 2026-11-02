@@ -8,6 +8,7 @@ extends CanvasLayer
 
 const GameState = preload("res://scenes/core/game_state.gd")
 const UI = preload("res://scenes/ui/ui_kit.gd")
+const Net = preload("res://scenes/core/net.gd")
 
 const CAMP := "res://scenes/levels/hub/hub.tscn"
 const MAP := "res://scenes/levels/map/road_map.tscn"
@@ -155,8 +156,7 @@ func _show_proficiency() -> void:
 		holder.queue_free()
 		_note = null
 		Engine.set_meta("trial_attempt", 0)
-		Engine.set_meta("arrival_spawn", "Start")
-		get_tree().change_scene_to_file(TRIAL))
+		Net.change_scene(get_tree(), TRIAL, "Start"))
 	row.add_child(go)
 	var later := UI.button("LATER", true, Color(0.6, 0.6, 0.65), 14)
 	later.pressed.connect(func() -> void:
@@ -220,7 +220,8 @@ func _open(kind: String) -> VBoxContainer:
 	if _menu:
 		_menu.queue_free()
 	_kind = kind
-	get_tree().paused = true
+	# online the world keeps going: the menu just sits on top
+	get_tree().paused = not Net.online(get_tree())
 	var center := UI.overlay(self)
 	_menu = center.get_parent()
 	var p := UI.panel(UI.EDGE, 560.0 if kind == "pause" else 760.0)
@@ -247,7 +248,7 @@ func open_pause() -> void:
 	add_settings_controls(v)
 
 	var keys := UI.section("CONTROLS")
-	keys.add_child(UI.label("WASD move     Mouse aim     Left click attack (click again to combo)\nRight click block (just before a hit = PARRY)     Space dodge\nR (hold, aim, let go) weapon ultimate     Q swap weapon\nTab inventory     E interact     Esc pause", 13, UI.DIM))
+	keys.add_child(UI.label("WASD move     Mouse aim     Left click attack (click again to combo)\nRight click block (just before a hit = PARRY)     Space dodge\nR (hold, aim, let go) weapon ultimate     Q / 1 / 2 swap weapon\nTab inventory     E interact     Esc pause", 13, UI.DIM))
 	v.add_child(keys)
 
 	var row2 := HBoxContainer.new()
@@ -257,9 +258,15 @@ func open_pause() -> void:
 		var camp := UI.button("RETURN TO CAMP", true, UI.GOLD)
 		camp.pressed.connect(func() -> void:
 			close()
-			Engine.set_meta("arrival_spawn", "Start")
-			get_tree().change_scene_to_file(CAMP))
+			Net.change_scene(get_tree(), CAMP, "Start"))
 		row2.add_child(camp)
+	if Net.online(get_tree()):
+		var leave := UI.button("LEAVE CO-OP", true, Color(0.9, 0.6, 0.4))
+		leave.pressed.connect(func() -> void:
+			close()
+			Net.get_node_in(get_tree()).leave()
+			get_tree().change_scene_to_file("res://scenes/ui/title_screen.tscn"))
+		row2.add_child(leave)
 	var reset := UI.button("NEW GAME", true, UI.BAD)
 	reset.pressed.connect(func() -> void:
 		if not _confirm_reset:
@@ -268,8 +275,7 @@ func open_pause() -> void:
 			return
 		GameState.reset()
 		close()
-		Engine.set_meta("arrival_spawn", "Start")
-		get_tree().change_scene_to_file(CAMP))
+		Net.change_scene(get_tree(), CAMP, "Start"))
 	row2.add_child(reset)
 	row2.add_child(UI.spacer())
 	if not OS.has_feature("web"):

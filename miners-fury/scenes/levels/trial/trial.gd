@@ -5,6 +5,7 @@ extends "res://scenes/levels/shared/arena.gd"
 
 const UIK = preload("res://scenes/ui/ui_kit.gd")
 const PufferBoss = preload("res://scenes/enemies/pufferfish/puffer_boss.gd")
+const Sfx = preload("res://scenes/audio/sfx.gd")
 const SELF := "res://scenes/levels/trial/trial.tscn"
 const CAMP := "res://scenes/levels/hub/hub.tscn"
 const MAP := "res://scenes/levels/map/road_map.tscn"
@@ -51,6 +52,11 @@ func _spawn_boss() -> void:
 	_boss_bar.visible = true
 	Juice.shake(self, 0.7)
 	Juice.shockwave(self, e.global_position, 30.0)
+	# superhero landing. The impact is right at the start of the sound, so wait
+	# for the fish to finish dropping (~0.3s) and slam it in on touchdown
+	var at: Vector2 = e.global_position
+	get_tree().create_timer(0.28, false).timeout.connect(func() -> void:
+		Sfx.play(self, "boss_landing", at, 0.0, 0.02))
 
 
 func _on_enemy_died() -> void:

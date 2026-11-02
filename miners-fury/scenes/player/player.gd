@@ -70,7 +70,7 @@ const PoisonStatus = preload("res://scenes/effects/poison_status.gd")
 ## Tetrodotoxin cast AT you (the pufferfish trial): can't move or act
 var _paralysis: float = 0.0
 ## seconds before Q can swap weapons again (stops swap spam)
-@export var swap_cooldown: float = 2.0
+@export var swap_cooldown: float = 2.5
 var _swap_cd: float = 0.0
 var _swap_nag: float = 0.0
 ## set by the Colosseum: stay down when you die (it shows the run card)
@@ -161,9 +161,28 @@ const UltAim = preload("res://scenes/effects/ult_aim.gd")
 const VenomZone = preload("res://scenes/effects/venom_zone.gd")
 const ParalysisWave = preload("res://scenes/effects/paralysis_wave.gd")
 const ToxicWave = preload("res://scenes/effects/toxic_wave.gd")
+const Net = preload("res://scenes/core/net.gd")
+const Sfx = preload("res://scenes/audio/sfx.gd")
+
+# ---------------------------------------------------------------- co-op
+## true = this is a teammate's character mirrored on your screen (no input,
+## no camera, no HUD). It just shows whatever its owner sends.
+var puppet: bool = false
+## multiplayer peer id of whoever controls this character
+var net_id: int = 1
+var _net_target: Vector2 = Vector2.ZERO
+var _net_has_target: bool = false
+var _net_send_t: float = 0.0
+var _net_last_anim: String = ""
+var _net_last_frame: int = -1
+const NET_SEND_RATE := 1.0 / 30.0
 
 func _ready() -> void:
+	if puppet:
+		_puppet_ready()
+		return
 	add_to_group("player")
+	add_to_group("players_all")
 	health = max_health
 	_ghost_material.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD  # afterimages glow
 	animated_sprite.animation_finished.connect(_on_animation_finished)
@@ -185,6 +204,9 @@ func _ready() -> void:
 	_ensure_swap_action()
 	_ensure_ult_action()
 	set_weapon(GameState.equipped())
+	if Net.online(get_tree()):
+		# wait a frame: the level is still building its children right now
+		Net.get_node_in(get_tree()).local_ready.call_deferred(self)
 
 ## swap swords: the swoosh, the crackle on the blade, and what hits do
 func set_weapon(w: String) -> void:
@@ -206,6 +228,11 @@ func set_weapon(w: String) -> void:
 	if _aura:
 		_aura.queue_free()
 		_aura = null
+	# quiet hum of the blade in your hand
+	match info.effect:
+		"storm": Sfx.loop(self, "storm_hum", -24.0)
+		"venom": Sfx.loop(self, "venom_hum", -29.0)
+		_: Sfx.stop_loop(self)
 	if info.effect == "storm" or info.effect == "venom":
 		_aura = StormAura.new()
 		_aura.venom = info.effect == "venom"
@@ -282,6 +309,7 @@ func _cast_ultimate(at: Vector2) -> void:
 		_thunderclap(at)
 	elif is_venom():
 		VenomZone.place(get_parent(), at)
+		Sfx.play(self, "venom_slam", at, 1.0, 0.05)
 		Juice.impact_flash(self, 0.12, Color(0.6, 1.0, 0.45))
 	if hud and hud.has_method("set_weapons"):
 		hud.set_weapons()
@@ -298,12 +326,14 @@ func _ensure_ult_action() -> void:
 
 ## Q: swap hands
 func _ensure_swap_action() -> void:
-	if InputMap.has_action("swap_weapon"):
-		return
-	InputMap.add_action("swap_weapon")
-	var ev := InputEventKey.new()
-	ev.physical_keycode = KEY_Q
-	InputMap.action_add_event("swap_weapon", ev)
+	# Q flips hands, 1 / 2 pick a hand directly
+	for pair in [["swap_weapon", KEY_Q], ["weapon_1", KEY_1], ["weapon_2", KEY_2]]:
+		if InputMap.has_action(pair[0]):
+			continue
+		InputMap.add_action(pair[0])
+		var ev := InputEventKey.new()
+		ev.physical_keycode = pair[1]
+		InputMap.action_add_event(pair[0], ev)
 
 ## 0..1 for the HUD: 1 = you can swap, lower = still cooling down
 func swap_charge() -> float:
@@ -340,6 +370,114 @@ func _try_swap() -> void:
 	animated_sprite.modulate = Color(c.r * 2.0, c.g * 2.0, c.b * 2.0)
 	var tw := create_tween()
 	tw.tween_property(animated_sprite, "modulate", Color.WHITE, 0.25)
+
+## whoosh for the blade you're holding
+func _swing_sound(heavy: bool = false) -> void:
+	var sound := "swing"
+	match weapon:
+		"storm_blade": sound = "storm_swing"
+		"venom_blade": sound = "venom_swing"
+	if heavy:
+		# the finisher: lower and louder, which also stretches it out longer
+		Sfx.play(self, sound, null, 1.5, 0.03, 0.8)
+	else:
+		Sfx.play(self, sound, null, -2.0)
+
+
+# ---------------------------------------------------------------- co-op sync
+
+## a teammate's character on your screen: strip out everything that's "you"
+func _puppet_ready() -> void:
+	add_to_group("remote_player")
+	add_to_group("players_all")
+	$Camera2D.enabled = false
+	$HUD.queue_free()
+	hud = null
+	aim_indicator.queue_free()
+	sword_hitbox.monitoring = false
+	collision_layer = 0
+	collision_mask = 0
+	_iron_fx = swing_fx.sprite_frames
+	_net_target = position
+
+
+## floating name over teammates (and over you, small, so you know which is you)
+func show_name_tag(text: String) -> void:
+	var l := get_node_or_null("NameTag") as Label
+	if l == null:
+		l = Label.new()
+		l.name = "NameTag"
+		l.add_theme_font_size_override("font_size", 12)
+		l.add_theme_constant_override("outline_size", 5)
+		l.add_theme_color_override("font_outline_color", Color(0.05, 0.03, 0.06))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.size = Vector2(120, 16)
+		l.position = Vector2(-60, -70)
+		l.z_index = 50
+		add_child(l)
+	l.text = text
+	l.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0) if puppet else Color(1, 0.9, 0.5))
+
+
+## what everyone else needs to draw you (sent ~30 times a second)
+func _net_send() -> void:
+	var st := [
+		position, String(animated_sprite.animation), animated_sprite.frame, animated_sprite.flip_h,
+		animated_sprite.visible, animated_sprite.modulate, weapon,
+		swing_fx.visible, String(swing_fx.animation), swing_fx.frame, swing_fx.flip_h, swing_fx.rotation,
+		int(state), health, max_health,
+	]
+	rpc("_net_state", st)
+
+
+@rpc("any_peer", "unreliable_ordered")
+func _net_state(st: Array) -> void:
+	if not puppet or multiplayer.get_remote_sender_id() != net_id or st.size() < 15:
+		return
+	_net_target = st[0]
+	if not _net_has_target:
+		position = _net_target
+		_net_has_target = true
+	var anim: String = st[1]
+	if weapon != st[6]:
+		set_weapon(st[6])
+	if animated_sprite.sprite_frames.has_animation(anim) and animated_sprite.animation != anim:
+		animated_sprite.animation = anim
+	animated_sprite.pause()
+	animated_sprite.frame = st[2]
+	animated_sprite.flip_h = st[3]
+	animated_sprite.visible = st[4]
+	animated_sprite.modulate = st[5]
+	# a teammate's cuts: you hear them too (frames arrive in jumps, so compare to the last one)
+	if anim.begins_with("attack") and HIT_WINDOWS.has(anim):
+		var last: int = _net_last_frame if anim == _net_last_anim else -1
+		if st[2] != last:
+			_cut_sound(anim, st[2], last)
+	_net_last_anim = anim
+	_net_last_frame = st[2]
+	swing_fx.visible = st[7]
+	if st[7]:
+		var sa: String = st[8]
+		if swing_fx.sprite_frames.has_animation(sa):
+			swing_fx.animation = sa
+		swing_fx.pause()
+		swing_fx.frame = st[9]
+		swing_fx.flip_h = st[10]
+		swing_fx.rotation = st[11]
+	state = st[12] as State
+	health = st[13]
+	max_health = st[14]
+
+
+func _puppet_tick(delta: float) -> void:
+	if not _net_has_target:
+		return
+	# glide toward the last position we heard about; snap if it's way off
+	if position.distance_to(_net_target) > 300.0:
+		position = _net_target
+	else:
+		position = position.lerp(_net_target, 1.0 - exp(-18.0 * delta))
+
 
 func is_venom() -> bool:
 	return weapon == "venom_blade"
@@ -436,6 +574,18 @@ func _consume(action: String) -> bool:
 	return false
 
 func _physics_process(delta: float) -> void:
+	if puppet:
+		_puppet_tick(delta)
+		return
+	_local_physics(delta)
+	if Net.online(get_tree()):
+		_net_send_t -= delta
+		if _net_send_t <= 0.0:
+			_net_send_t = NET_SEND_RATE
+			_net_send()
+
+
+func _local_physics(delta: float) -> void:
 	roll_cooldown_timer = max(roll_cooldown_timer - delta, 0.0)
 	_swap_cd = maxf(_swap_cd - delta, 0.0)
 	_swap_nag = maxf(_swap_nag - delta, 0.0)
@@ -471,6 +621,10 @@ func _physics_process(delta: float) -> void:
 		return
 	_read_inputs(delta)
 	if Input.is_action_just_pressed("swap_weapon"):
+		_try_swap()
+	elif Input.is_action_just_pressed("weapon_1") and GameState.active_slot != 0:
+		_try_swap()
+	elif Input.is_action_just_pressed("weapon_2") and GameState.active_slot != 1:
 		_try_swap()
 	_handle_ultimate(delta)
 	_attack_lock = maxf(_attack_lock - delta, 0.0)
@@ -721,6 +875,20 @@ func _handle_attack(delta: float) -> void:
 
 func _on_frame_changed() -> void:
 	_check_sword_hits()
+	if state == State.ATTACK:
+		_cut_sound(String(animated_sprite.animation), animated_sprite.frame, animated_sprite.frame - 1)
+
+
+## a whoosh the moment each cut starts. attack1 = one cut, attack2 = three cuts,
+## and the last cut of attack2 (the finisher) is deeper and heavier
+func _cut_sound(anim: String, frame: int, prev_frame: int) -> void:
+	var windows: Array = HIT_WINDOWS.get(anim, [])
+	for i in windows.size():
+		var start: int = windows[i][0] - 1
+		if frame >= start and prev_frame < start:
+			var finisher := anim == "attack2" and i == windows.size() - 1
+			_swing_sound(finisher)
+			return
 
 ## runs every frame of a swing: anything inside the sword area during a strike window gets hit once
 func _check_sword_hits() -> void:
@@ -801,6 +969,7 @@ func _thunderclap(center: Vector2) -> void:
 	tc.radius = clap_radius
 	get_parent().add_child(tc)
 	tc.global_position = center
+	Sfx.play(self, "storm_ult", center, 1.0, 0.04)
 	Juice.shockwave(self, center, 34.0)
 	Juice.impact_flash(self, 0.2, Color(0.6, 0.95, 1.0))
 	Juice.shake(self, 0.85, aim)
@@ -861,6 +1030,12 @@ func _on_sword_hit(enemy: Node2D, finisher: bool) -> void:
 	var kill: bool = enemy.get("state") != null and enemy.state == enemy.State.DEAD
 	var heavy := finisher or kill
 	_bump_combo()
+	Sfx.play(self, "hit", hit_pos, 0.0 if heavy else -3.0)
+	if is_storm():
+		# full lightning strike for finishers and kills, a short crack otherwise
+		Sfx.play(self, "storm_zap" if heavy else "storm_crack", hit_pos, -2.0)
+	elif is_venom():
+		Sfx.play(self, "venom_bubble", hit_pos, -3.0)
 	if is_storm():
 		_chain_lightning(enemy)
 		FxSprite.spawn(get_parent(), "chain_strike", enemy.global_position, {"z": 35})

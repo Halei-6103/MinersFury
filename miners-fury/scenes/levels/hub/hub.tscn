@@ -309,12 +309,15 @@ polygon = PackedVector2Array(0, -8, 16, 0, 0, 8, -16, 0)
 position = Vector2(110, -190)
 
 [node name="Sprite" type="Sprite2D" parent="Entities/Crate6" unique_id=607266509]
+position = Vector2(2.5999985, -23)
 texture = ExtResource("13_hub")
 offset = Vector2(0.5, -7)
 
 [node name="Body" type="StaticBody2D" parent="Entities/Crate6" unique_id=1182026336]
+position = Vector2(-1, 0)
 
 [node name="Shape" type="CollisionPolygon2D" parent="Entities/Crate6/Body" unique_id=1189778159]
+position = Vector2(2.5999985, -23)
 polygon = PackedVector2Array(0, -8, 16, 0, 0, 8, -16, 0)
 
 [node name="Barrel1" type="Node2D" parent="Entities" unique_id=467487857]
@@ -366,16 +369,19 @@ offset = Vector2(0.5, -9)
 polygon = PackedVector2Array(0, -7, 14, 0, 0, 7, -14, 0)
 
 [node name="SandbagsV1" type="Node2D" parent="Entities" unique_id=1703064814]
-position = Vector2(140, -160)
+position = Vector2(140, -162)
 
 [node name="Sprite" type="Sprite2D" parent="Entities/SandbagsV1" unique_id=1576351066]
+position = Vector2(0.19999695, 236.6)
 texture = ExtResource("16_hub")
 offset = Vector2(0, -3.5)
 
 [node name="Body" type="StaticBody2D" parent="Entities/SandbagsV1" unique_id=808635279]
+position = Vector2(-1, -2)
 
 [node name="Shape" type="CollisionPolygon2D" parent="Entities/SandbagsV1/Body" unique_id=313003659]
-polygon = PackedVector2Array(17, -13.5, 27, -8.5, -17, 13.5, -27, 8.5)
+position = Vector2(0.19999695, 236.6)
+polygon = PackedVector2Array(17, -13.5, 27, -8.5, -17, 13.5, -27, 8.5, -2.4000244, -3.7999878)
 
 [node name="BoulderBig1" type="Node2D" parent="Entities" unique_id=1261996238]
 position = Vector2(-540, -157)

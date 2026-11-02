@@ -3,13 +3,14 @@ extends "res://scenes/enemies/melee/melee_enemy.gd"
 ## It floats around you and spits water balls. Every so often it puffs up
 ## (spiky, hurts to touch) and casts Tetrodotoxin AT you: poison rune under
 ## your feet, thunderclap, two paralysis waves out the sides.
-## Below half health it spits three at a time and ults more often.
+## If a wave paralyzes you, it follows up: one spiky body-slam while you're
+## frozen ("geh!"). Below half health it spits three at a time and ults more often.
 ## Spawn: instantiate melee_enemy.tscn, set_script(this), kind = "pufferfish".
 
 const WaterBall = preload("res://scenes/enemies/pufferfish/water_ball.gd")
 const PufferUlt = preload("res://scenes/enemies/pufferfish/puffer_ult.gd")
 
-enum Mode { SWIM, SPIT, ULT }
+enum Mode { SWIM, SPIT, ULT, LUNGE }
 
 ## how far it likes to stay from you (flat floor units)
 const KEEP_AWAY := 250.0
@@ -18,6 +19,12 @@ const FIRST_ULT := 6.0
 const ULT_EVERY := 13.0
 const ULT_EVERY_ANGRY := 9.0
 const SPIKE_R := 62.0
+## the follow-up slam after it paralyzes you
+const LUNGE_TELL := 0.3
+const LUNGE_SPEED := 620.0
+const LUNGE_HIT_R := 58.0
+## drop sound files here and they play (wav / ogg / mp3), e.g. geh.ogg, gurgle.ogg
+const SFX_DIR := "res://assets/audio/sfx/pufferfish/"
 
 var mode: Mode = Mode.SWIM
 var _mode_t: float = 2.0
@@ -32,6 +39,9 @@ var _orbit: float = 1.0
 var _back: bool = false
 var _spike_cd: float = 0.0
 var puffed: bool = false
+var _lunge_t: float = 0.0
+var _lunge_hit: bool = false
+var _lunged: bool = false
 
 
 func _ready() -> void:
@@ -129,12 +139,83 @@ func _brain(delta: float) -> void:
 				_ult_cast = true
 				PufferUlt.cast(get_tree().current_scene, p.global_position, global_position)
 				Juice.damage_number(get_parent(), global_position + Vector2(0, -110), "!!", Color(0.6, 1.0, 0.75), 30)
+			# a wave got you: don't waste it
+			if _ult_cast and not _lunged and p.get("_paralysis") != null and p._paralysis > 0.3:
+				_start_lunge()
+				return
 			if _ult_t >= 0.55 + PufferUlt.WARN + 0.9:
 				puffed = false
 				_play(_fa("deflate"))
 				mode = Mode.SWIM
 				_mode_t = 1.6
 				_ult_cd = ULT_EVERY_ANGRY if _angry() else ULT_EVERY
+
+
+		Mode.LUNGE:
+			_lunge(delta, p, to_p)
+
+
+func _start_lunge() -> void:
+	mode = Mode.LUNGE
+	_lunged = true
+	_lunge_t = 0.0
+	_lunge_hit = false
+	velocity = Vector2.ZERO
+	# wind-up: shiver + flash so it reads as "here it comes"
+	sprite.modulate = Color(2.2, 2.2, 2.0)
+	var tw := create_tween()
+	tw.tween_property(sprite, "modulate", Color.WHITE, LUNGE_TELL)
+
+
+func _lunge(delta: float, p: Node2D, to_p: Vector2) -> void:
+	_lunge_t += delta
+	if _lunge_t < LUNGE_TELL:
+		velocity = Vector2.ZERO
+		sprite.position.x = randf_range(-2.0, 2.0)
+		return
+	sprite.position.x = 0.0
+	if not _lunge_hit:
+		_look(to_p)
+		velocity = to_p.normalized() * LUNGE_SPEED
+		var flat := Vector2(to_p.x, to_p.y * 2.0)
+		if flat.length() < LUNGE_HIT_R:
+			_lunge_hit = true
+			_lunge_t = LUNGE_TELL
+			# the wave's hit gave you i-frames; this slam is the guaranteed punish
+			p.invincible_timer = 0.0
+			p.take_damage(1, global_position, self)
+			_sfx("geh")
+			Juice.shake(self, 0.7, to_p)
+			Juice.hit_stop(self, 0.08)
+			Juice.damage_number(get_parent(), global_position + Vector2(0, -110), "GEH!", Color(1, 0.85, 0.5), 30)
+			velocity = -to_p.normalized() * 340.0
+		elif _lunge_t > LUNGE_TELL + 1.0:
+			_lunge_hit = true   # missed (you got away): give up
+			_lunge_t = LUNGE_TELL
+	else:
+		velocity = velocity.move_toward(Vector2.ZERO, 900.0 * delta)
+		if _lunge_t > LUNGE_TELL + 0.5:
+			puffed = false
+			_play(_fa("deflate"))
+			mode = Mode.SWIM
+			_mode_t = 1.6
+			_ult_cd = ULT_EVERY_ANGRY if _angry() else ULT_EVERY
+
+
+## plays SFX_DIR/<name>.(ogg|wav|mp3) if you've added one, with a little pitch wobble
+func _sfx(name: String) -> void:
+	for ext in ["ogg", "wav", "mp3"]:
+		var path: String = SFX_DIR + name + "." + ext
+		if ResourceLoader.exists(path):
+			var a := AudioStreamPlayer2D.new()
+			a.stream = load(path)
+			a.bus = "SFX" if AudioServer.get_bus_index("SFX") != -1 else "Master"
+			a.pitch_scale = randf_range(0.92, 1.1)
+			get_parent().add_child(a)
+			a.global_position = global_position
+			a.play()
+			a.finished.connect(a.queue_free)
+			return
 
 
 func _start_spit(to_p: Vector2) -> void:
@@ -157,6 +238,7 @@ func _spit(p: Node2D) -> void:
 
 func _start_ult() -> void:
 	mode = Mode.ULT
+	_lunged = false
 	_ult_t = 0.0
 	_ult_cast = false
 	puffed = true
