@@ -132,6 +132,11 @@ func _ready() -> void:
 	layer = 80
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_actions()
+	# hidden recording tools (Shift+2). Lives on the root so hiding the UI can't hide it
+	if get_tree().root.get_node_or_null("TrailerMode") == null:
+		var tm = load("res://scenes/ui/trailer_mode.gd").new()
+		tm.name = "TrailerMode"
+		get_tree().root.add_child.call_deferred(tm)
 
 
 func _process(delta: float) -> void:

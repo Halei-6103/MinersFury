@@ -621,7 +621,8 @@ func _read_inputs(delta: float) -> void:
 	if Input.is_action_just_pressed("dodge"):
 		_buffered = "dodge"
 		_buffer_timer = input_buffer_time
-	elif Input.is_action_just_pressed("attack"):
+	elif Input.is_action_just_pressed("attack") and get_viewport().gui_get_hovered_control() == null:
+		# (clicking a button on screen doesn't swing the sword)
 		_buffered = "attack"
 		_buffer_timer = input_buffer_time
 
@@ -689,9 +690,10 @@ func _local_physics(delta: float) -> void:
 	_read_inputs(delta)
 	if Input.is_action_just_pressed("swap_weapon"):
 		_try_swap()
-	elif Input.is_action_just_pressed("weapon_1") and GameState.active_slot != 0:
+	elif Input.is_action_just_pressed("weapon_1") and GameState.active_slot != 0 and not Input.is_key_pressed(KEY_SHIFT):
 		_try_swap()
-	elif Input.is_action_just_pressed("weapon_2") and GameState.active_slot != 1:
+	# (Shift+2 is the trailer mode hotkey, not a swap)
+	elif Input.is_action_just_pressed("weapon_2") and GameState.active_slot != 1 and not Input.is_key_pressed(KEY_SHIFT):
 		_try_swap()
 	_handle_ultimate(delta)
 	_attack_lock = maxf(_attack_lock - delta, 0.0)
@@ -1192,6 +1194,9 @@ func take_damage(amount: int, from_position: Vector2, attacker: Node = null) -> 
 		return
 	if is_untargetable() or invincible_timer > 0.0:
 		return
+	# trailer mode (Shift+2, F1): can't be hurt
+	if get_meta("trailer_god", false):
+		return
 	if _blocks_from(from_position):
 		if _block_time <= parry_window:
 			_parry(attacker, from_position)
@@ -1361,7 +1366,7 @@ func paralyze(duration: float) -> void:
 		if multiplayer.is_server() and state != State.DEAD and state != State.ROLL:
 			Net.get_node_in(get_tree()).player_paralyzed(net_id, duration)
 		return
-	if state == State.DEAD or is_untargetable():
+	if state == State.DEAD or is_untargetable() or get_meta("trailer_god", false):
 		return
 	if state == State.BLOCK:
 		_end_block()

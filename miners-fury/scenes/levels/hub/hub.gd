@@ -65,10 +65,13 @@ func _build_craft_station() -> void:
 	var root := Node2D.new()
 	root.name = "CraftingStation"
 	root.position = CRAFT_POS
-	var tex: Texture2D = load("res://assets/sprites/hub/craft_station.png")
+	# an anvil on its stump (Pixel Crawler free pack)
+	var tex: Texture2D = load("res://assets/sprites/pc_props/anvil.png")
 	var spr := Sprite2D.new()
 	spr.texture = tex
-	spr.offset = tex.get_size() / 2.0 - CRAFT_ANCHOR
+	spr.scale = Vector2(2, 2)
+	spr.offset = Vector2(0, -tex.get_height() / 2.0)
+	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	root.add_child(spr)
 	var body := StaticBody2D.new()
 	var shape := CollisionPolygon2D.new()

@@ -1,9 +1,8 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scenes/levels/shared/transfer_board.gd" id="1_tb"]
-[ext_resource type="Texture2D" path="res://assets/sprites/hub/transfer_pad.png" id="2_tb"]
-[ext_resource type="Texture2D" path="res://assets/sprites/hub/transfer_cabinet.png" id="3_tb"]
-[ext_resource type="Texture2D" path="res://assets/sprites/hub/transfer_glow.png" id="4_tb"]
+[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/stone_ring.png" id="2_tghkx"]
+[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_rune.png" id="3_31smc"]
 [ext_resource type="Script" path="res://scenes/levels/hub/station.gd" id="5_tb"]
 
 [sub_resource type="CanvasItemMaterial" id="Mat_add"]
@@ -12,46 +11,51 @@ blend_mode = 1
 [sub_resource type="CircleShape2D" id="Circle_pad"]
 radius = 44.0
 
-[node name="TransferBoard" type="Node2D"]
+[node name="TransferBoard" type="Node2D" unique_id=2120430553]
 y_sort_enabled = true
 script = ExtResource("1_tb")
 
-[node name="Pad" type="Sprite2D" parent="."]
-texture = ExtResource("2_tb")
-offset = Vector2(0.0, -4.0)
+[node name="Pad" type="Sprite2D" parent="." unique_id=41911990]
+texture_filter = 1
+scale = Vector2(2.4, 2.4)
+texture = ExtResource("2_tghkx")
 
-[node name="Cabinet" type="Sprite2D" parent="."]
-position = Vector2(-17.0, -22.0)
-texture = ExtResource("3_tb")
-offset = Vector2(0.5, -28.5)
+[node name="Cabinet" type="Sprite2D" parent="." unique_id=135639167]
+texture_filter = 1
+position = Vector2(-44, -6)
+scale = Vector2(2, 2)
+texture = ExtResource("3_31smc")
+offset = Vector2(0, -15.5)
 
-[node name="CabinetBody" type="StaticBody2D" parent="Cabinet"]
+[node name="CabinetBody" type="StaticBody2D" parent="Cabinet" unique_id=463237101]
 
-[node name="Shape" type="CollisionPolygon2D" parent="Cabinet/CabinetBody"]
-polygon = PackedVector2Array(3.0, -15.0, 19.0, -7.0, -3.0, 4.0, -19.0, -4.0)
+[node name="Shape" type="CollisionPolygon2D" parent="Cabinet/CabinetBody" unique_id=412477282]
+polygon = PackedVector2Array(3, -15, 19, -7, -3, 4, -19, -4)
 
-[node name="Glow" type="Sprite2D" parent="."]
+[node name="Glow" type="Sprite2D" parent="." unique_id=232246969]
+modulate = Color(0.4, 0.9, 1, 1)
 z_index = 1
+texture_filter = 1
 material = SubResource("Mat_add")
-texture = ExtResource("4_tb")
-offset = Vector2(0.0, -32.0)
+scale = Vector2(2.4, 2.4)
+texture = ExtResource("2_tghkx")
 
-[node name="Interact" type="Area2D" parent="."]
+[node name="Interact" type="Area2D" parent="." unique_id=1240967434]
 script = ExtResource("5_tb")
 station_id = "transfer"
 station_name = "Transfer"
 prompt_path = NodePath("Prompt")
 
-[node name="Zone" type="CollisionShape2D" parent="Interact"]
+[node name="Zone" type="CollisionShape2D" parent="Interact" unique_id=450302392]
 shape = SubResource("Circle_pad")
 
-[node name="Prompt" type="Label" parent="Interact"]
+[node name="Prompt" type="Label" parent="Interact" unique_id=2090122638]
 z_index = 20
 offset_left = -90.0
-offset_top = -104
+offset_top = -104.0
 offset_right = 90.0
-offset_bottom = -86
+offset_bottom = -86.0
+theme_override_font_sizes/font_size = 12
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 12
 horizontal_alignment = 1

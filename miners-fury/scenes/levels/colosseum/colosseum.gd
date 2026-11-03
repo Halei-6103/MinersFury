@@ -43,7 +43,7 @@ const SUBS := ["Fresh Meat", "The Crowd Wants More", "Warm Up", "No Mercy", "Blo
 	"Show Them Steel", "The Long Night"]
 ## arena floor size (the walkable ellipse is a bit smaller)
 const FLOOR_R := 900.0
-const GATES := [Vector2(500, -290), Vector2(-500, -290)]
+const GATES := [Vector2(512, -350), Vector2(-512, -350)]
 
 var round_no: int = 0
 var kills: int = 0
@@ -81,6 +81,7 @@ func _ready() -> void:
 		else:
 			p.died.connect(_on_player_died)
 	_light_braziers()
+	_hide_board_art()
 	round_info.text = ""
 	# co-op: the host runs the rounds, clients mirror them
 	if _net_client():
@@ -91,6 +92,22 @@ func _ready() -> void:
 
 func _coop() -> bool:
 	return Net.online(get_tree())
+
+
+## the arena is built from the Pixel Crawler desert pack: the exit is the stairs in
+## the middle of the north wall, so the transfer board only keeps its "[E] Leave" zone
+func _hide_board_art() -> void:
+	var b := get_node_or_null("Entities/TransferBoard")
+	if b == null:
+		return
+	for n in ["Pad", "Cabinet", "Glow"]:
+		var c = b.get_node_or_null(n)
+		if c:
+			c.visible = false
+	var body = b.get_node_or_null("Cabinet/CabinetBody")
+	if body:
+		body.collision_layer = 0
+		body.collision_mask = 0
 
 
 func _light_braziers() -> void:

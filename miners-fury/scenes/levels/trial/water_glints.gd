@@ -15,7 +15,8 @@ func _new_glint(age: float) -> Array:
 	var p := Vector2.ZERO
 	while true:
 		p = Vector2(randf_range(-1300, 1300), randf_range(-800, 820))
-		if Vector2(p.x, p.y * 2.0).length() > R + 50.0:
+		# stay off the island (a mesa about 1024 x 608, cliffs at the bottom)
+		if absf(p.x) > 540.0 or p.y < -310.0 or p.y > 340.0:
 			break
 	# [pos, life, age, width]
 	return [p, randf_range(1.2, 2.6), age * 2.0, randf_range(4, 11)]
@@ -41,9 +42,8 @@ func _draw() -> void:
 		draw_line(g[0] - Vector2(w, 0), g[0] + Vector2(w, 0), c, 2.0)
 		if a > 0.8:
 			draw_rect(Rect2(g[0] - Vector2(1, 2), Vector2(2, 2)), Color(1, 1, 1, a))
-	# a soft ring of surf around the shell that breathes in and out
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1, 0.5))
-	var r := R + 34.0 + sin(_t * 1.6) * 6.0
-	draw_arc(Vector2.ZERO, r, 0.0, TAU, 96, Color(0.8, 0.95, 1.0, 0.25), 3.0)
-	draw_arc(Vector2.ZERO, r + 22.0 + sin(_t * 1.6 + 1.0) * 6.0, 0.0, TAU, 96, Color(0.8, 0.95, 1.0, 0.12), 2.0)
-	draw_set_transform(Vector2.ZERO)
+	# soft lines of surf around the island that breathe in and out
+	var isl := Rect2(-512, -288, 1024, 608)
+	var g1 := 10.0 + sin(_t * 1.6) * 4.0
+	draw_rect(isl.grow(g1), Color(0.8, 0.95, 1.0, 0.25), false, 3.0)
+	draw_rect(isl.grow(g1 + 16.0 + sin(_t * 1.6 + 1.0) * 4.0), Color(0.8, 0.95, 1.0, 0.12), false, 2.0)
