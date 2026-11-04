@@ -12,9 +12,10 @@ const BatScene = preload("res://scenes/enemies/bat/bat.tscn")
 const UI = preload("res://scenes/ui/ui_kit.gd")
 
 const MONSTERS := ["slime", "skeleton", "bat", "orc", "werewolf", "armored_skeleton", "greatsword_skeleton",
-	"twisted_cultist", "assassin_cultist", "big_cultist", "werebear", "necromancer", "fire_cultist", "pufferfish"]
+	"lava_slime", "hellbat", "ghostfire", "werebear", "necromancer", "black_knight", "pufferfish"]
 const BRAINS := {
-	"fire_cultist": "res://scenes/enemies/cultist/fire_cultist_boss.gd",
+	"black_knight": "res://scenes/enemies/caldera/black_knight_boss.gd",
+	"ghostfire": "res://scenes/enemies/caldera/ghostfire.gd",
 	"pufferfish": "res://scenes/enemies/pufferfish/puffer_boss.gd",
 }
 const SPEEDS := [1.0, 0.5, 0.25]
@@ -50,7 +51,7 @@ func _ready() -> void:
 	v.add_child(UI.label("Shift+2 to close", 11, UI.DIM))
 	_btn.god = _add(v, "", _toggle_god)
 	_btn.cd = _add(v, "", _toggle_cd)
-	# monster picker:  <  Fire Cultist  >
+	# monster picker:  <  Black Knight  >
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	var prev := UI.button("<", true, UI.EDGE, 15)
@@ -185,8 +186,9 @@ static func spawn_monster(tree: SceneTree, kind: String, at: Vector2) -> void:
 	if parent == null:
 		parent = cs
 	var e: Node2D
-	if kind == "bat":
+	if kind == "bat" or kind == "hellbat":
 		e = BatScene.instantiate()
+		e.kind = kind
 	else:
 		e = MeleeScene.instantiate()
 		if BRAINS.has(kind):
@@ -227,10 +229,11 @@ func _apply_clean() -> void:
 			n.visible = false
 			_hidden.append(n)
 		for p in get_tree().get_nodes_in_group("players_all"):
-			var tag = p.get_node_or_null("NameTag")
-			if tag and tag.visible:
-				tag.visible = false
-				_hidden.append(tag)
+			for nm in ["NameTag", "FootHearts"]:
+				var tag = p.get_node_or_null(nm)
+				if tag and tag.visible:
+					tag.visible = false
+					_hidden.append(tag)
 	else:
 		for n in _hidden:
 			if is_instance_valid(n):

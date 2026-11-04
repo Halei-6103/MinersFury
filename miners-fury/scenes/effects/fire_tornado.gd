@@ -162,7 +162,7 @@ func _burn_things() -> void:
 			var behind := global_position - Vector2(dir.x, dir.y * 0.5) * 30.0
 			e.take_damage(DAMAGE, behind, 0.9)
 			BurnStatus.apply(e, BURN)
-			FxSprite.spawn(get_parent(), "cult_fire_impact", e.global_position + Vector2(0, -20), {"scale": 2.0, "z": 35})
+			FxSprite.spawn(get_parent(), "knight_fireball_end", e.global_position + Vector2(0, -20), {"scale": 0.85, "z": 35})
 			Juice.damage_number(get_parent(), e.global_position + Vector2(0, -50), str(DAMAGE), Color(1.0, 0.6, 0.2), 24)
 
 

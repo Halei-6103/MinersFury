@@ -43,7 +43,7 @@ func _ready() -> void:
 			p.died.connect(func() -> void: _down_me = true)
 		else:
 			p.died.connect(_lose)
-	round_info.text = ("GROUP TRIAL     Attempt %d" if _coop() else "WEAPON PROFICIENCY     Attempt %d") % attempt
+	round_info.text = ("GROUP TRIAL\nAttempt %d" if _coop() else "WEAPON PROFICIENCY\nAttempt %d") % attempt
 	await get_tree().create_timer(0.6, false).timeout
 	_banner("PROFICIENCY TRIAL", "The Pufferfish knows your secret", Color(0.6, 1.0, 0.75), 1.8, 0.9)
 	# co-op: the host spawns the fish, everyone else gets a copy

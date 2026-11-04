@@ -35,6 +35,10 @@ const CAMP_COL := Color(1.0, 0.82, 0.32)
 const OUTLINE := Color(0.08, 0.06, 0.08)
 
 var _hover: int = -1
+## the Colosseum unlocks window (null when closed) and the UI layer it sits on
+var _unlocks: Control = null
+var _layer: CanvasLayer = null
+var _over_ui: bool = false
 var _pop: Array = []     # hover grow per node
 var _shake: Array = []   # "nope" wiggle on locked nodes
 var _t: float = 0.0
@@ -93,6 +97,18 @@ func _build_ui() -> void:
 		h.add_child(dot)
 		h.add_child(UI.label("  " + row[1], 13))
 		lv.add_child(h)
+	# (i) button by the Colosseum: what reaching each round earns you
+	var info := UI.button("i", true, UI.GOLD, 15)
+	info.tooltip_text = "Colosseum unlocks"
+	info.custom_minimum_size = Vector2(28, 28)
+	info.focus_mode = Control.FOCUS_NONE
+	var cpos: Vector2 = STOPS[3].pos
+	info.position = cpos + Vector2(RADIUS + 6, -RADIUS - 18)
+	info.pressed.connect(_open_unlocks)
+	info.mouse_entered.connect(func() -> void: _over_ui = true)
+	info.mouse_exited.connect(func() -> void: _over_ui = false)
+	layer.add_child(info)
+	_layer = layer
 	# hover card
 	_tip = UI.panel(UI.EDGE, 300.0)
 	_tip.visible = false
@@ -137,7 +153,7 @@ func _process(delta: float) -> void:
 	_t += delta
 	var mp := get_global_mouse_position()
 	var h := -1
-	if not _leaving:
+	if not _leaving and _unlocks == null and not _over_ui:
 		for i in STOPS.size():
 			if mp.distance_to(STOPS[i].pos) < RADIUS + 8:
 				h = i
@@ -179,7 +195,8 @@ func _fill_tip() -> void:
 		_tip_box.add_child(UI.label("Beat it to learn Tetrodotoxin\n(Venom rune + Storm thunderclap).", 13, UI.DIM))
 	elif m.get("endless", false):
 		_tip_box.add_child(UI.label("Endless rounds. Bosses every 5.", 14))
-		_tip_box.add_child(UI.label("How long can you last?", 13, UI.DIM))
+		_tip_box.add_child(UI.label("How long can you last? No loot here.", 13, UI.DIM))
+		_tip_box.add_child(UI.label("Press (i) to see the round unlocks", 13, UI.GOLD))
 		if GameState.best_round > 0:
 			_tip_box.add_child(UI.label("Best: round %d   (%d kills)" % [GameState.best_round, GameState.best_kills], 14, UI.GOLD))
 	else:
@@ -189,7 +206,7 @@ func _fill_tip() -> void:
 		elif id == "wasteland":
 			_tip_box.add_child(UI.label("Drops: Bone, Slime Goo, Bat Wing.\nBoss: Tomb Shard", 12, UI.DIM))
 		elif id == "volcano":
-			_tip_box.add_child(UI.label("Drops: Ember, Cultist Cloth, Bat Wing.\nBoss: Fire Shard", 12, UI.DIM))
+			_tip_box.add_child(UI.label("Drops: Lava Goo, Hellbat Wing,\nCharred Skull. Boss: Fire Shard", 12, UI.DIM))
 	match st:
 		"locked" when m.get("trial", false):
 			_tip_box.add_child(UI.label("LOCKED: craft the Storm Blade\nand the Venom Blade first", 14, RED))
@@ -209,6 +226,13 @@ func _fill_tip() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if _leaving:
+		return
+	if _unlocks:
+		if event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:
+			_close_unlocks()
+			get_viewport().set_input_as_handled()
+		return
+	if _over_ui:
 		return
 	if event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:
 		_go(0)
@@ -320,3 +344,69 @@ func _draw() -> void:
 		var np: Vector2 = STOPS[i].pos + Vector2(-w / 2, RADIUS + 26)
 		draw_string_outline(font, np, name_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 7, OUTLINE)
 		draw_string(font, np, name_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col.lightened(0.2))
+
+
+# ---------------------------------------------------------------- Colosseum unlocks (the (i) button)
+
+## every weapon with an "unlock_round" in GameState.WEAPONS, in round order,
+## plus what each one lets you craft
+func _open_unlocks() -> void:
+	if _unlocks:
+		return
+	_tip.visible = false
+	var center := UI.overlay(_layer)
+	_unlocks = center.get_parent()
+	var p := UI.panel(UI.GOLD, 520.0)
+	center.add_child(p)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 12)
+	p.add_child(v)
+	var head := HBoxContainer.new()
+	head.add_child(UI.label("COLOSSEUM UNLOCKS", 24, UI.GOLD))
+	head.add_child(UI.spacer())
+	var x := UI.button("X", true, UI.EDGE, 14)
+	x.pressed.connect(_close_unlocks)
+	head.add_child(x)
+	v.add_child(head)
+	v.add_child(UI.label("Reach a round in one run to earn these for good. Everyone in a co-op run gets them.", 13, UI.DIM))
+	v.add_child(UI.label("Your best: round %d" % GameState.best_round, 15, UI.GOLD if GameState.best_round > 0 else UI.DIM))
+	var rows: Array = []
+	for w in GameState.WEAPONS:
+		var r := int(GameState.WEAPONS[w].get("unlock_round", 0))
+		if r > 0:
+			rows.append([r, w])
+	rows.sort_custom(func(a, b): return a[0] < b[0])
+	for row in rows:
+		var w: String = row[1]
+		var info: Dictionary = GameState.WEAPONS[w]
+		var card := UI.card(info.color.darkened(0.35))
+		var cv := VBoxContainer.new()
+		cv.add_theme_constant_override("separation", 4)
+		card.add_child(cv)
+		var top := HBoxContainer.new()
+		top.add_child(UI.label("ROUND %d" % row[0], 16, UI.GOLD))
+		top.add_child(UI.label("   " + info.name, 18, info.color))
+		top.add_child(UI.spacer())
+		if GameState.owns(w):
+			top.add_child(UI.label("EARNED", 14, UI.GOOD))
+		else:
+			top.add_child(UI.label("%d to go" % maxi(row[0] - GameState.best_round, 0), 14, UI.DIM))
+		cv.add_child(top)
+		cv.add_child(UI.label(info.desc, 13, UI.DIM))
+		# weapons that need this one to be crafted
+		var opens: Array = []
+		for o in GameState.WEAPONS:
+			if str(GameState.WEAPONS[o].get("recipe", {}).get("needs", "")) == w:
+				opens.append(GameState.WEAPONS[o].name)
+		if not opens.is_empty():
+			cv.add_child(UI.label("Also lets you craft: " + ", ".join(opens) + "\n(each needs its blade's blueprint + a fresh boss shard)", 13))
+		v.add_child(card)
+	if rows.is_empty():
+		v.add_child(UI.label("Nothing to unlock yet.", 14, UI.DIM))
+	v.add_child(UI.label("Esc or X to close", 12, UI.DIM))
+
+
+func _close_unlocks() -> void:
+	if _unlocks:
+		_unlocks.queue_free()
+		_unlocks = null

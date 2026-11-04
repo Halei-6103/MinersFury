@@ -1,41 +1,40 @@
-[gd_scene format=4]
+[gd_scene format=4 uid="uid://b2ldb4j3fu7f7"]
 
-[ext_resource type="Script" path="res://scenes/levels/hub/hub.gd" id="1_hub"]
-[ext_resource type="Script" path="res://scenes/levels/hub/station.gd" id="2_hub"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_tiles/garden_tiles.png" id="2_kytuh"]
-[ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="3_hub"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_tiles/floors_tiles.png" id="3_q8d4a"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_reed1.png" id="4_3dggc"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/fp_flower_pink.png" id="5_3ov46"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_reed2.png" id="6_qdawf"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/alchemy_table.png" id="7_m82s1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_rune_big.png" id="9_hestg"]
+[ext_resource type="Script" uid="uid://blju43xh8wh7p" path="res://scenes/levels/hub/hub.gd" id="1_hub"]
+[ext_resource type="Script" uid="uid://ibvr0yibix8e" path="res://scenes/levels/hub/station.gd" id="2_hub"]
+[ext_resource type="Texture2D" uid="uid://dba2yd7h7mkyl" path="res://assets/sprites/pc_tiles/garden_tiles.png" id="2_kytuh"]
+[ext_resource type="PackedScene" uid="uid://bnlgkx1nc0ra2" path="res://scenes/player/player.tscn" id="3_hub"]
+[ext_resource type="Texture2D" uid="uid://3ok7535b3cwi" path="res://assets/sprites/pc_tiles/floors_tiles.png" id="3_q8d4a"]
+[ext_resource type="Texture2D" uid="uid://d3rsauvs5cuwb" path="res://assets/sprites/pc_props/ff_reed1.png" id="4_3dggc"]
+[ext_resource type="Texture2D" uid="uid://clw25m1k0rdqq" path="res://assets/sprites/pc_props/fp_flower_pink.png" id="5_3ov46"]
+[ext_resource type="Texture2D" uid="uid://bag68gwvngvqh" path="res://assets/sprites/pc_props/ff_reed2.png" id="6_qdawf"]
+[ext_resource type="Texture2D" uid="uid://c2itapkjuorof" path="res://assets/sprites/pc_props/alchemy_table.png" id="7_m82s1"]
+[ext_resource type="Texture2D" uid="uid://n22hvqiqpj5q" path="res://assets/sprites/pc_props/ff_rune_big.png" id="9_hestg"]
 [ext_resource type="PackedScene" path="res://scenes/levels/shared/transfer_board.tscn" id="9_hub"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/statue_garden1.png" id="10_rqbg8"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/fountain.png" id="12_6fjt2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/bedroll_red.png" id="13_17nra"]
-[ext_resource type="Script" path="res://scenes/levels/shared/see_through.gd" id="13_kytuh"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/bonfire.png" id="14_67o4m"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/fire_anim.png" id="15_stpsd"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/chest.png" id="16_jbq3n"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/planks.png" id="17_bcds3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/barrel.png" id="18_dei68"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_bush_lush.png" id="19_m2b4u"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/fp_rock_grey.png" id="20_hdfy5"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_stone_grey.png" id="21_0hyrg"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_rock_moss_big.png" id="22_ffhtf"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_rock_moss.png" id="23_n3pgy"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/fp_rock_grey_s.png" id="24_cdxl8"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_rock_big.png" id="25_oi3a8"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/cypress2.png" id="26_id4hy"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/fp_rock_grey_flat.png" id="27_mialf"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/fp_bush_green.png" id="28_kltiw"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_bush_green.png" id="29_04lm1"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_pebble.png" id="30_irnar"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_rock.png" id="31_pbigr"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/ff_stone_grey_s.png" id="32_r85u6"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/cypress.png" id="34_k27n2"]
-[ext_resource type="Texture2D" path="res://assets/sprites/pc_props/bench_garden.png" id="36_c2kmh"]
+[ext_resource type="Texture2D" uid="uid://bev8e0h8oo3rg" path="res://assets/sprites/pc_props/statue_garden1.png" id="10_rqbg8"]
+[ext_resource type="Texture2D" uid="uid://c6ef4vtxewfb8" path="res://assets/sprites/pc_props/fountain.png" id="12_6fjt2"]
+[ext_resource type="Texture2D" uid="uid://2mph0cwwigm2" path="res://assets/sprites/pc_props/bedroll_red.png" id="13_17nra"]
+[ext_resource type="Script" uid="uid://bhcqd0pn8uq0q" path="res://scenes/levels/shared/see_through.gd" id="13_kytuh"]
+[ext_resource type="Texture2D" uid="uid://bcyfbca3ywls" path="res://assets/sprites/pc_props/bonfire.png" id="14_67o4m"]
+[ext_resource type="Texture2D" uid="uid://c37vpyf7ugupi" path="res://assets/sprites/pc_props/fire_anim.png" id="15_stpsd"]
+[ext_resource type="Texture2D" uid="uid://bdoc85nb2iegv" path="res://assets/sprites/pc_props/chest.png" id="16_jbq3n"]
+[ext_resource type="Texture2D" uid="uid://bksw5m3fanm1u" path="res://assets/sprites/pc_props/barrel.png" id="18_dei68"]
+[ext_resource type="Texture2D" uid="uid://b2tis6mawtfx3" path="res://assets/sprites/pc_props/ff_bush_lush.png" id="19_m2b4u"]
+[ext_resource type="Texture2D" uid="uid://xxfw1wg2uk5s" path="res://assets/sprites/pc_props/fp_rock_grey.png" id="20_hdfy5"]
+[ext_resource type="Texture2D" uid="uid://64w36eyxt5bt" path="res://assets/sprites/pc_props/ff_stone_grey.png" id="21_0hyrg"]
+[ext_resource type="Texture2D" uid="uid://bntx7sswk4uih" path="res://assets/sprites/pc_props/ff_rock_moss_big.png" id="22_ffhtf"]
+[ext_resource type="Texture2D" uid="uid://dcpn51ofgcwhl" path="res://assets/sprites/pc_props/ff_rock_moss.png" id="23_n3pgy"]
+[ext_resource type="Texture2D" uid="uid://dytx6vxrb8md4" path="res://assets/sprites/pc_props/fp_rock_grey_s.png" id="24_cdxl8"]
+[ext_resource type="Texture2D" uid="uid://cwyx60r3exdsd" path="res://assets/sprites/pc_props/ff_rock_big.png" id="25_oi3a8"]
+[ext_resource type="Texture2D" uid="uid://byd00od6xuoai" path="res://assets/sprites/pc_props/cypress2.png" id="26_id4hy"]
+[ext_resource type="Texture2D" uid="uid://dsdjsbvykeamy" path="res://assets/sprites/pc_props/fp_rock_grey_flat.png" id="27_mialf"]
+[ext_resource type="Texture2D" uid="uid://c6rhmkblx8epd" path="res://assets/sprites/pc_props/fp_bush_green.png" id="28_kltiw"]
+[ext_resource type="Texture2D" uid="uid://c46o4cgb76nv" path="res://assets/sprites/pc_props/ff_bush_green.png" id="29_04lm1"]
+[ext_resource type="Texture2D" uid="uid://dtxkgyjihel57" path="res://assets/sprites/pc_props/ff_pebble.png" id="30_irnar"]
+[ext_resource type="Texture2D" uid="uid://cf4qe420kd74t" path="res://assets/sprites/pc_props/ff_rock.png" id="31_pbigr"]
+[ext_resource type="Texture2D" uid="uid://06hhtdtv6d3t" path="res://assets/sprites/pc_props/ff_stone_grey_s.png" id="32_r85u6"]
+[ext_resource type="Texture2D" uid="uid://buqijs62ld0bb" path="res://assets/sprites/pc_props/cypress.png" id="34_k27n2"]
+[ext_resource type="Texture2D" uid="uid://58pqy8jjnj52" path="res://assets/sprites/pc_props/bench_garden.png" id="36_c2kmh"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_shiuq"]
 texture = ExtResource("2_kytuh")
@@ -2717,7 +2716,7 @@ polygon = PackedVector2Array(0, -270, 468, -135, 468, 135, 0, 270, -468, 135, -4
 position = Vector2(-290, 10)
 
 [node name="Shape" type="CollisionPolygon2D" parent="FarmFence" unique_id=1058815284]
-polygon = PackedVector2Array(28, -72, 144, -14, -28, 72, -144, 14)
+polygon = PackedVector2Array(-126, -74, 98, -72, 95, 86, -125, 86)
 
 [node name="Entities" type="Node2D" parent="." unique_id=1999492023]
 y_sort_enabled = true
@@ -2755,9 +2754,9 @@ offset_left = -80.0
 offset_top = -89.0
 offset_right = 80.0
 offset_bottom = -71.0
-theme_override_font_sizes/font_size = 12
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 12
 horizontal_alignment = 1
 
 [node name="Telecom" type="Node2D" parent="Entities" unique_id=725564958]
@@ -2793,9 +2792,9 @@ offset_left = -80.0
 offset_top = -89.0
 offset_right = 80.0
 offset_bottom = -71.0
-theme_override_font_sizes/font_size = 12
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 12
 horizontal_alignment = 1
 
 [node name="RadioMast" type="Node2D" parent="Entities" unique_id=35707600]
@@ -2828,6 +2827,7 @@ Some crops attune you to an element so you can wield those weapons, like Zap Ber
 prompt_path = NodePath("Prompt")
 
 [node name="Zone" type="CollisionShape2D" parent="Entities/Greenhouse/Interact" unique_id=156781398]
+position = Vector2(0, 3)
 shape = SubResource("RectangleShape2D_3")
 
 [node name="Prompt" type="Label" parent="Entities/Greenhouse/Interact" unique_id=1883946112]
@@ -2836,9 +2836,9 @@ offset_left = -80.0
 offset_top = -112.0
 offset_right = 80.0
 offset_bottom = -94.0
-theme_override_font_sizes/font_size = 12
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 12
 horizontal_alignment = 1
 
 [node name="TransferBoard" parent="Entities" unique_id=965532689 instance=ExtResource("9_hub")]
@@ -2958,12 +2958,6 @@ polygon = PackedVector2Array(0, -8, 16, 0, 0, 8, -16, 0)
 
 [node name="CrateBroken3" type="Node2D" parent="Entities" unique_id=696619708]
 position = Vector2(330, 186)
-
-[node name="Sprite" type="Sprite2D" parent="Entities/CrateBroken3" unique_id=311537883]
-texture_filter = 1
-scale = Vector2(2, 2)
-texture = ExtResource("17_bcds3")
-offset = Vector2(0, -16)
 
 [node name="Body" type="StaticBody2D" parent="Entities/CrateBroken3" unique_id=134200436]
 
@@ -4299,14 +4293,20 @@ position = Vector2(40, -180)
 [node name="UI" type="CanvasLayer" parent="." unique_id=1001740477]
 
 [node name="Controls" type="Label" parent="UI" unique_id=289346293]
-offset_left = 377.0
-offset_top = -395.0
-offset_right = 781.0
-offset_bottom = -371.0
-theme_override_font_sizes/font_size = 14
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -260.0
+offset_top = -34.0
+offset_right = 260.0
+offset_bottom = -12.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
 text = "WASD - move   Space - dodge   Click - attack   E - interact"
+horizontal_alignment = 1
 
 [node name="InfoPanel" type="PanelContainer" parent="UI" unique_id=508496911]
 visible = false
@@ -4344,6 +4344,6 @@ autowrap_mode = 3
 
 [node name="Hint" type="Label" parent="UI/InfoPanel/Margin/VBox" unique_id=870526480]
 layout_mode = 2
-theme_override_font_sizes/font_size = 12
 theme_override_colors/font_color = Color(0.7, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 12
 text = "[E] close"

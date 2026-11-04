@@ -41,10 +41,7 @@ const FX := {
 	"water_ball_start": [9, 20, Vector2(32, 32)],
 	"water_ball_fly": [13, 16, Vector2(32, 32)],
 	"water_ball_end": [8, 18, Vector2(32, 32)],
-	# Fire Cultist fireball (cultist pack, flies right, loops) + its burst
-	"cult_fireball": [4, 14, Vector2(12, 12)],
-	"cult_fire_impact": [5, 16, Vector2(13, 13)],
-	# Fire Cultist flame walls (fire pack v10: left cap, middle, right cap)
+	# flame walls (fire pack v10: left cap, middle, right cap)
 	"flamewall_l_coming": [6, 16, Vector2(32, 62)],
 	"flamewall_l_idle": [10, 12, Vector2(32, 62)],
 	"flamewall_l_fade": [7, 14, Vector2(32, 62)],
@@ -63,6 +60,15 @@ const FX := {
 	"toxic_tornado_fade": [12, 16, Vector2(28, 63)],
 	# combo: thunderclap on a tornado blows it up (fire pack v4 mushroom blast)
 	"fire_boom": [13, 18, Vector2(32, 63)],
+	# Black Knight fireball (fire pack v2: spark up, fly loop pointing right, explode)
+	"knight_fireball_start": [7, 22, Vector2(32, 32)],
+	"knight_fireball_fly": [12, 16, Vector2(48, 31)],
+	"knight_fireball_end": [8, 18, Vector2(40, 31)],
+	# Black Knight lava eruptions (fire pack v1 pillar, v9 burst)
+	"lava_pillar": [12, 16, Vector2(30, 63)],
+	"lava_burst": [12, 20, Vector2(32, 32)],
+	# Ghostfire beam (Zerie pack 02, starts at the left edge, runs right)
+	"ghost_beam": [3, 14, Vector2(2, 43)],
 }
 
 static var _cache: Dictionary = {}

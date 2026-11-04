@@ -23,8 +23,8 @@ const COUNT_PER_ROUND := 0.8
 const MAX_COUNT := 32
 ## never more than this many alive at once (the rest wait their turn)
 const MAX_ALIVE := 10
-const BOSSES := ["werebear", "necromancer", "fire_cultist"]
-const BOSS_TITLES := {"werebear": "WEREBEAR", "necromancer": "NECROMANCER", "pufferfish": "PUFFERFISH", "fire_cultist": "FIRE CULTIST"}
+const BOSSES := ["werebear", "necromancer", "black_knight"]
+const BOSS_TITLES := {"werebear": "WEREBEAR", "necromancer": "NECROMANCER", "pufferfish": "PUFFERFISH", "black_knight": "BLACK KNIGHT"}
 ## [kind, first round it shows up, base weight, extra weight per round]
 const POOL := [
 	["slime", 1, 3.0, 0.0],
@@ -34,9 +34,9 @@ const POOL := [
 	["orc", 3, 2.0, 0.05],
 	["armored_skeleton", 6, 1.0, 0.1],
 	["greatsword_skeleton", 9, 0.5, 0.08],
-	["twisted_cultist", 5, 1.5, 0.05],
-	["assassin_cultist", 7, 1.0, 0.06],
-	["big_cultist", 11, 0.5, 0.06],
+	["lava_slime", 5, 1.5, 0.05],
+	["hellbat", 7, 1.0, 0.06],
+	["ghostfire", 9, 0.8, 0.06],
 ]
 const SUBS := ["Fresh Meat", "The Crowd Wants More", "Warm Up", "No Mercy", "Blood on the Sand",
 	"Hold the Line", "They Keep Coming", "Thumbs Down", "Glory or Death", "Feed the Lions",
@@ -148,7 +148,7 @@ func _on_kill(e: Node) -> void:
 func _update_info() -> void:
 	if round_no <= 0 or _dead:
 		return
-	round_info.text = "ROUND %d     Kills: %d     Enemies: %d" % [round_no, kills, _alive()]
+	round_info.text = "ROUND %d\n%d kills   %d left" % [round_no, kills, _alive()]
 	_net().scene_call("_set_round_info", [round_info.text])
 
 
@@ -226,6 +226,9 @@ func _next_round() -> void:
 	extra.shuffle()
 	queue.append_array(extra)
 	_banner("ROUND %d" % round_no, sub, color)
+	# everyone in the run earns round unlocks (the Leather Whip at 15)
+	_net().scene_call("_reached_round", [round_no])
+	_reached_round(round_no)
 	await get_tree().create_timer(1.1, false).timeout
 	_spawning = true
 	_update_info()
@@ -246,9 +249,10 @@ func _next_round() -> void:
 func _spawn(kind: String) -> void:
 	var boss: bool = BOSS_TITLES.has(kind)
 	var e: Node2D
-	if kind == "bat":
+	if kind == "bat" or kind == "hellbat":
 		e = BatScene.instantiate()
-	elif kind == "pufferfish" or kind == "fire_cultist":
+		e.kind = kind
+	elif kind == "pufferfish" or BOSS_SCRIPTS.has(kind):
 		# same trick as the trial: melee scene + its own brain, BEFORE add_child
 		e = MeleeScene.instantiate()
 		e.set_script(PufferBoss if kind == "pufferfish" else load(BOSS_SCRIPTS[kind]))
@@ -257,6 +261,8 @@ func _spawn(kind: String) -> void:
 		e = MeleeScene.instantiate()
 		e.kind = kind
 	e.position = _spawn_point(boss)
+	# no loot in the Colosseum: materials and shards come from the maps
+	e.set("no_drops", true)
 	monsters.add_child(e)
 	# tougher, never hits harder
 	var m := hp_mult(round_no, boss)
@@ -484,8 +490,19 @@ func _leave(scene: String, spawn: String) -> void:
 
 ## a monster copy showed up on this client: bosses get their bar
 func net_enemy_spawned(e: Node) -> void:
+	# teammates' copies drop nothing either
+	e.set("no_drops", true)
 	var k := str(e.get("kind"))
 	if BOSS_TITLES.has(k) and e.get("summoned") != true:
 		_add_boss_bar(e, BOSS_TITLES[k])
 	if k == "pufferfish":
 		_puffer_landing(e)
+
+
+## reaching a round can earn a weapon (GameState.unlock_round_weapons).
+## Runs on every player's game.
+func _reached_round(r: int) -> void:
+	var got: Array = GameState.unlock_round_weapons(r)
+	for i in got.size():
+		await get_tree().create_timer(1.6 + i * 1.6, false).timeout
+		_banner("%s UNLOCKED" % String(got[i]).to_upper(), "Equip it from your inventory [Tab]. Elemental versions can now be crafted in camp.", Color(0.9, 0.7, 0.45), 2.4, 0.8)

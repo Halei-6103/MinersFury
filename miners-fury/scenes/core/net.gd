@@ -611,10 +611,15 @@ func _fx_call(what: String, args: Array) -> void:
 			load("res://scenes/enemies/pufferfish/water_ball.gd").shoot(parent if parent else cs, args[1], args[2], args[3], args[4])
 		"puffer_ult":
 			load("res://scenes/enemies/pufferfish/puffer_ult.gd").cast(cs, args[0], args[1])
-		# Fire Cultist spells: same deal, each copy only burns its own player
-		"fireball":
+		# Ember Caldera spells: same deal, each copy only burns its own player
+		"knight_fireball":
 			var fparent: Node = cs.get_node_or_null(NodePath(args[0]))
-			load("res://scenes/enemies/cultist/fireball.gd").shoot(fparent if fparent else cs, args[1], args[2], args[3], args[4])
+			load("res://scenes/enemies/caldera/knight_fireball.gd").shoot(fparent if fparent else cs, args[1], args[2], args[3], args[4])
+		"lava_eruption":
+			load("res://scenes/enemies/caldera/lava_eruption.gd").erupt(cs, args[0], args[1], args[2])
+		"ghost_beam":
+			var gparent: Node = cs.get_node_or_null(NodePath(args[0]))
+			load("res://scenes/enemies/caldera/ghost_beam.gd").fire(gparent if gparent else cs, args[1], args[2], args[3], args[4], args[5])
 		"flame_wall":
 			load("res://scenes/effects/flame_wall.gd").raise(cs, args[0], args[1], args[2])
 		"puffer_geh":

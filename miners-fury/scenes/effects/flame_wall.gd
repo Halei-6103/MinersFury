@@ -1,5 +1,5 @@
 extends Node2D
-## The Fire Cultist's spell: a wall of fire across the floor. Glowing lines warn
+## A wall of fire across the floor. Glowing lines warn
 ## you first, then the flames burst up and burn anyone standing in them.
 ##   FlameWall.raise(level, center, flat_side, length)
 ## Runs on every player's screen; each copy only burns its own player, so you

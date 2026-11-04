@@ -107,7 +107,7 @@ func _show(id: String) -> void:
 	GameState.tips_seen.append(id)
 	GameState.save()
 	var p := UI.panel(UI.GOLD, 340.0)
-	p.position = Vector2(20, 110)
+	p.position = Vector2(20, 190)
 	p.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(p)
 	var v := VBoxContainer.new()

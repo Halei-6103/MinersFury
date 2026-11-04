@@ -10,7 +10,7 @@ extends RefCounted
 ## on the "SFX" bus so the Effects volume slider controls it.
 ## Sounds positioned in the world get quieter with distance (matters in co-op).
 
-const DIRS := ["res://assets/audio/sfx/blades/", "res://assets/audio/sfx/bosses/", "res://assets/audio/sfx/"]
+const DIRS := ["res://assets/audio/sfx/blades/", "res://assets/audio/sfx/bosses/", "res://assets/audio/sfx/footsteps/", "res://assets/audio/sfx/"]
 const EXTS := ["wav", "ogg", "mp3"]
 
 static var _variants: Dictionary = {}

@@ -213,7 +213,7 @@ func _open_uplink() -> void:
 	var right := UI.section("BLUEPRINTS")
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cols.add_child(right)
-	var where := {"storm_crystal": "the Werebear in Mossback Woods", "tomb_crystal": "the Necromancer in the Bone Wastes", "fire_crystal": "the Fire Cultist in the Ember Caldera"}
+	var where := {"storm_crystal": "the Werebear in Mossback Woods", "tomb_crystal": "the Necromancer in the Bone Wastes", "fire_crystal": "the Black Knight in the Ember Caldera"}
 	for bp in GameState.BLUEPRINTS:
 		var info: Dictionary = GameState.BLUEPRINTS[bp]
 		var card := UI.card()
@@ -266,6 +266,15 @@ func _send_shard(bp: String) -> void:
 func _open_crafting() -> void:
 	var main := _menu_box("CRAFTING STATION")
 	main.add_child(UI.label("Blueprints from Earth + materials from monsters = new weapons.", 14, UI.DIM))
+	# the recipe list scrolls so it never runs off the screen
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(0, maxf(get_viewport().get_visible_rect().size.y - 260.0, 200.0))
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 10)
+	scroll.add_child(list)
+	main.add_child(scroll)
 	var shown := 0
 	for w in GameState.WEAPONS:
 		var info: Dictionary = GameState.WEAPONS[w]
@@ -289,22 +298,28 @@ func _open_crafting() -> void:
 			var need := HBoxContainer.new()
 			need.add_theme_constant_override("separation", 18)
 			need.add_child(UI.label(("[x] " if has_bp else "[ ] ") + "Blueprint", 14, UI.GOOD if has_bp else UI.BAD))
+			# elemental whips also need the Leather Whip (Colosseum round 15)
+			if r.has("needs"):
+				var has_base := GameState.owns(r.needs)
+				need.add_child(UI.label(("[x] " if has_base else "[ ] ") + GameState.WEAPONS[r.needs].name, 14, UI.GOOD if has_base else UI.BAD))
 			for id in r.items:
 				var n := int(r.items[id])
 				var have := GameState.count(id)
 				var row := HBoxContainer.new()
-				row.add_child(UI.icon(GameState.ITEMS[id].icon, 1, 1.2))
+				row.add_child(UI.icon(GameState.ITEMS[id].icon, int(GameState.ITEMS[id].get("frames", 1)), 1.2))
 				row.add_child(UI.label("%s %d/%d" % [GameState.ITEMS[id].name, have, n], 14, UI.GOOD if have >= n else UI.BAD))
 				need.add_child(row)
 			v.add_child(need)
 			if not has_bp:
 				v.add_child(UI.label("Get the blueprint from the telecom first.", 13, UI.DIM))
+			if r.has("needs") and not GameState.owns(r.needs):
+				v.add_child(UI.label("Reach round %d in the Colosseum to earn the %s." % [GameState.WHIP_ROUND, GameState.WEAPONS[r.needs].name], 13, UI.DIM))
 			var b := UI.button("CRAFT", GameState.can_craft(w), info.color)
 			b.pressed.connect(_craft.bind(w))
 			v.add_child(b)
-		main.add_child(card)
+		list.add_child(card)
 	if shown == 0:
-		main.add_child(UI.label("Nothing to build yet.", 14, UI.DIM))
+		list.add_child(UI.label("Nothing to build yet.", 14, UI.DIM))
 	main.add_child(UI.label("Swap what's in your hands from the inventory [Tab]. Q swaps in a fight.   [E] / [Esc] close", 12, UI.DIM))
 
 
@@ -325,7 +340,7 @@ func _craft(w: String) -> void:
 	if GameState.WEAPONS[w].effect == "venom":
 		FxSprite.spawn(self, "poison_burst", at + Vector2(0, 20), {"scale": 2.0, "z": 60})
 	elif GameState.WEAPONS[w].effect == "flame":
-		FxSprite.spawn(self, "cult_fire_impact", at + Vector2(0, -6), {"scale": 4.0, "z": 60})
+		FxSprite.spawn(self, "knight_fireball_end", at + Vector2(0, -6), {"scale": 1.7, "z": 60})
 		Sfx.play(self, "flame_wall", at, -4.0)
 	else:
 		FxSprite.spawn(self, "storm_strike", at + Vector2(0, 26), {"z": 60})

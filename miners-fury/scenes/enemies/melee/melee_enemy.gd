@@ -101,45 +101,39 @@ const KINDS := {
 		"knock_resist": 0.9, "armored_attacks": true, "boss": true, "launch": false,
 		"ichor": Color(0.35, 0.65, 0.9), "foot_y": 67.0, "body_y": 52.0, "radius": 22.0,
 	},
-	# ---- Ember Caldera (cultist pack). Their frames aren't 100x100, so "frame_c"
-	# says where the middle of the canvas is
-	"twisted_cultist": {
-		"frames": "res://assets/sprites/enemies/twisted_cultist/twisted_cultist_frames.tres",
-		"hp": 7, "damage": 1, "speed": 60.0, "scale": 1.15,
-		"attack_range": 92.0, "reach": 64.0, "windup": 0.55, "cooldown": 1.9,
-		"attacks": ["attack1"], "hits": {"attack1": [[3, 4]]}, "lunge": 0.0,
-		"knock_resist": 0.3, "armored_attacks": false, "boss": false, "launch": true,
-		"ichor": Color(0.45, 0.15, 0.55), "foot_y": 46.0, "body_y": 28.0, "frame_c": 26.0, "radius": 12.0,
-		"drops": [["cultist_cloth", 0.8], ["ember", 0.4]],
-	},
-	"assassin_cultist": {
-		"frames": "res://assets/sprites/enemies/assassin_cultist/assassin_cultist_frames.tres",
-		"hp": 5, "damage": 1, "speed": 125.0, "scale": 1.25,
-		"attack_range": 64.0, "reach": 42.0, "windup": 0.3, "cooldown": 1.3,
-		"attacks": ["attack1"], "hits": {"attack1": [[8, 9]]}, "lunge": 240.0,
+	# ---- Ember Caldera (Zerie pack 02, "with shadows" frames)
+	# "reach_by" / "lunge_by": per-attack overrides. "flat": attacks that only go
+	# left/right (the art is drawn that way). "ring": hits all around it.
+	"lava_slime": {
+		"frames": "res://assets/sprites/enemies/lava_slime/lava_slime_frames.tres",
+		"hp": 6, "damage": 1, "speed": 52.0, "scale": 2.2,
+		"attack_range": 74.0, "reach": 34.0, "windup": 0.5, "cooldown": 1.8,
+		"attacks": ["attack1", "attack2"], "hits": {"attack1": [[3, 4]], "attack2": [[4, 6]]}, "lunge": 140.0,
+		"reach_by": {"attack2": 84.0}, "lunge_by": {"attack2": 0.0}, "flat": ["attack2"],
 		"knock_resist": 0.1, "armored_attacks": false, "boss": false, "launch": true,
-		"ichor": Color(0.55, 0.08, 0.12), "foot_y": 42.0, "body_y": 28.0, "frame_c": 24.0, "radius": 11.0,
-		"arise": true,
-		"drops": [["cultist_cloth", 0.6], ["ember", 0.5]],
+		"ichor": Color(1.0, 0.45, 0.12), "foot_y": 59.0, "body_y": 51.0, "radius": 13.0,
+		"drops": [["lava_goo", 0.9]],
 	},
-	"big_cultist": {
-		"frames": "res://assets/sprites/enemies/big_cultist/big_cultist_frames.tres",
-		"hp": 14, "damage": 2, "speed": 50.0, "scale": 1.35,
-		"attack_range": 82.0, "reach": 60.0, "windup": 0.6, "cooldown": 2.1,
-		"attacks": ["attack1"], "hits": {"attack1": [[4, 5], [13, 14]]}, "lunge": 70.0,
-		"knock_resist": 0.75, "armored_attacks": true, "boss": false, "launch": false,
-		"ichor": Color(0.5, 0.06, 0.1), "foot_y": 63.0, "body_y": 42.0, "frame_c": 34.5, "radius": 17.0,
-		"drops": [["ember", 1.0], ["cultist_cloth", 1.0]],
+	# floats and shoots a beam. Its own brain lives in caldera/ghostfire.gd
+	"ghostfire": {
+		"frames": "res://assets/sprites/enemies/ghostfire/ghostfire_frames.tres",
+		"hp": 5, "damage": 1, "speed": 64.0, "scale": 2.2,
+		"attack_range": 0.0, "reach": 30.0, "windup": 0.6, "cooldown": 2.6,
+		"attacks": ["attack2"], "hits": {"attack2": []}, "lunge": 0.0,
+		"knock_resist": 0.2, "armored_attacks": false, "boss": false, "launch": true,
+		"ichor": Color(1.0, 0.4, 0.2), "foot_y": 59.0, "body_y": 44.0, "radius": 11.0,
+		"drops": [["charred_skull", 0.85]],
 	},
-	# the Ember Caldera boss. Its own brain lives in cultist/fire_cultist_boss.gd
-	"fire_cultist": {
-		"frames": "res://assets/sprites/enemies/fire_cultist/fire_cultist_frames.tres",
-		"hp": 45, "damage": 1, "speed": 70.0, "scale": 1.9,
-		"attack_range": 0.0, "reach": 30.0, "windup": 0.5, "cooldown": 1.0,
-		"attacks": ["attack1"], "hits": {"attack1": []}, "lunge": 0.0,
+	# the Ember Caldera boss. Its own brain lives in caldera/black_knight_boss.gd
+	"black_knight": {
+		"frames": "res://assets/sprites/enemies/black_knight/black_knight_frames.tres",
+		"hp": 60, "damage": 2, "speed": 72.0, "scale": 3.0,
+		"attack_range": 100.0, "reach": 52.0, "windup": 0.5, "cooldown": 1.3,
+		"attacks": ["attack1"], "hits": {"attack1": [[5, 7], [11, 13]], "attack2": [[2, 4]], "attack3": [[10, 11]]}, "lunge": 90.0,
+		"reach_by": {"attack3": 120.0}, "lunge_by": {"attack2": 30.0, "attack3": 0.0}, "ring": ["attack3"],
 		"knock_resist": 0.9, "armored_attacks": true, "boss": true, "launch": false,
-		"ichor": Color(0.9, 0.35, 0.1), "foot_y": 46.0, "body_y": 28.0, "frame_c": 26.0, "radius": 18.0,
-		"drops": [["ember", 1.0], ["ember", 1.0], ["cultist_cloth", 1.0]],
+		"ichor": Color(0.55, 0.1, 0.1), "foot_y": 59.0, "body_y": 44.0, "radius": 20.0,
+		"drops": [["lava_goo", 1.0], ["charred_skull", 1.0]],
 	},
 }
 
@@ -310,7 +304,7 @@ func _physics_process(delta: float) -> void:
 		State.ATTACK:
 			var w = _window_now()
 			if w >= 0:
-				velocity = attack_dir * cfg.lunge
+				velocity = attack_dir * float(cfg.get("lunge_by", {}).get(_anim, cfg.lunge))
 			else:
 				velocity = velocity.move_toward(Vector2.ZERO, 1400.0 * delta)
 			_check_hits()
@@ -368,7 +362,7 @@ func _play(a: String) -> void:
 func _start_windup(to_p: Vector2) -> void:
 	state = State.WINDUP
 	windup_timer = cfg.windup
-	_anim = cfg.attacks[randi() % cfg.attacks.size()]
+	_anim = _pick_attack(to_p)
 	attack_dir = to_p.normalized()
 	# schedule the bold tell so it always lands TELL_LEAD before the first hit
 	var fps: float = maxf(sprite.sprite_frames.get_animation_speed(_anim), 1.0)
@@ -382,14 +376,28 @@ func _start_windup(to_p: Vector2) -> void:
 	sprite.frame = 0
 
 
+## which attack to wind up (bosses override this)
+func _pick_attack(_to_p: Vector2) -> String:
+	return cfg.attacks[randi() % cfg.attacks.size()]
+
+
 func _start_attack(to_p: Vector2) -> void:
 	state = State.ATTACK
 	sprite.position.x = 0.0
 	sprite.modulate = Color.WHITE
 	if to_p != Vector2.ZERO:
 		attack_dir = to_p.normalized()   # last-second aim
+	if _anim in cfg.get("flat", []):
+		attack_dir = Vector2(signf(attack_dir.x) if attack_dir.x != 0.0 else 1.0, 0.0)
 	_face(attack_dir.x)
-	attack_area.position = attack_dir * cfg.reach * 0.75 + Vector2(0, hurtbox.position.y * 0.5)
+	var reach: float = cfg.get("reach_by", {}).get(_anim, cfg.reach)
+	var shape := attack_area.get_node("Shape").shape as CircleShape2D
+	if _anim in cfg.get("ring", []):
+		attack_area.position = Vector2(0, hurtbox.position.y * 0.5)
+		shape.radius = reach
+	else:
+		attack_area.position = attack_dir * reach * 0.75 + Vector2(0, hurtbox.position.y * 0.5)
+		shape.radius = reach * 0.75
 	_strike = -1
 	_hit_strike = -1
 	sprite.play(_anim)

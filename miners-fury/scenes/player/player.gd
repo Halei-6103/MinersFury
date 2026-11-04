@@ -194,6 +194,10 @@ var _down_label: Label = null
 var _revive_bar: ProgressBar = null
 
 func _ready() -> void:
+	# footstep sounds that change with the ground (scenes/player/footsteps.gd)
+	var fs = load("res://scenes/player/footsteps.gd").new()
+	fs.name = "Footsteps"
+	add_child(fs)
 	if puppet:
 		_puppet_ready()
 		return
@@ -404,9 +408,9 @@ func _try_swap() -> void:
 ## whoosh for the blade you're holding
 func _swing_sound(heavy: bool = false) -> void:
 	var sound := "swing"
-	match weapon:
-		"storm_blade": sound = "storm_swing"
-		"venom_blade": sound = "venom_swing"
+	match _effect():
+		"storm": sound = "storm_swing"
+		"venom": sound = "venom_swing"
 	if heavy:
 		# the finisher: lower and louder, which also stretches it out longer
 		Sfx.play(self, sound, null, 1.5, 0.03, 0.8)
@@ -520,14 +524,18 @@ func _puppet_tick(delta: float) -> void:
 	_update_down_ui()
 
 
+## the element of whatever you're holding (blades and whips share them)
+func _effect() -> String:
+	return String(GameState.WEAPONS.get(weapon, {}).get("effect", "none"))
+
 func is_venom() -> bool:
-	return weapon == "venom_blade"
+	return _effect() == "venom"
 
 func is_storm() -> bool:
-	return weapon == "storm_blade"
+	return _effect() == "storm"
 
 func is_flame() -> bool:
-	return weapon == "flame_blade"
+	return _effect() == "flame"
 
 
 ## Flame Blade ultimate: a fire tornado spins up beside you and runs toward the cursor
@@ -898,7 +906,7 @@ func _start_attack(anim_name: String) -> void:
 	_face_mouse()
 	# the sword reaches out toward the aim marker (up, down, diagonal, anywhere)
 	var aim: Vector2 = aim_indicator.last_direction
-	sword_hitbox.position = aim * sword_reach + Vector2(0, -8)
+	sword_hitbox.position = aim * float(GameState.WEAPONS.get(weapon, {}).get("reach", sword_reach)) + Vector2(0, -8)
 	_strike_index = -1
 	_hit_this_strike.clear()
 	_clapped = false
@@ -925,6 +933,10 @@ func _play_swing_fx(anim_name: String, aim: Vector2) -> void:
 		swing_fx.flip_h = false
 		swing_fx.rotation = angle
 	var k := finisher_fx_scale if anim_name == "attack2" else swing_fx_scale
+	# whips: the crack is drawn at body size so it starts at the hand
+	var fs = GameState.WEAPONS.get(weapon, {}).get("fx_scale", 0.0)
+	if fs > 0.0:
+		k = fs
 	swing_fx.scale = Vector2(k, k)
 	swing_fx.visible = true
 	swing_fx.speed_scale = 1.0
@@ -1136,7 +1148,7 @@ func _on_sword_hit(enemy: Node2D, finisher: bool, was_dead: bool = false) -> voi
 	elif is_flame() and not kill:
 		# sets them on fire (the finisher burns longer)
 		BurnStatus.apply(enemy, 4.0 if finisher else 3.0)
-		FxSprite.spawn(get_parent(), "cult_fire_impact", hit_pos, {"scale": 1.6, "z": 35})
+		FxSprite.spawn(get_parent(), "knight_fireball_end", hit_pos, {"scale": 0.7, "z": 35})
 	elif is_venom() and not kill:
 		# every hit stacks poison, the finisher stacks two
 		PoisonStatus.apply(enemy, 2 if finisher else 1)

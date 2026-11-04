@@ -1,0 +1,171 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/venom_whip_attack1_fx.png" id="1_t"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player/swordsman/venom_whip_attack2_fx.png" id="2_t"]
+
+[sub_resource type="AtlasTexture" id="attack1_0"]
+atlas = ExtResource("1_t")
+region = Rect2(0, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack1_1"]
+atlas = ExtResource("1_t")
+region = Rect2(100, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack1_2"]
+atlas = ExtResource("1_t")
+region = Rect2(200, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack1_3"]
+atlas = ExtResource("1_t")
+region = Rect2(300, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack1_4"]
+atlas = ExtResource("1_t")
+region = Rect2(400, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack1_5"]
+atlas = ExtResource("1_t")
+region = Rect2(500, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack1_6"]
+atlas = ExtResource("1_t")
+region = Rect2(600, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_0"]
+atlas = ExtResource("2_t")
+region = Rect2(0, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_1"]
+atlas = ExtResource("2_t")
+region = Rect2(100, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_2"]
+atlas = ExtResource("2_t")
+region = Rect2(200, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_3"]
+atlas = ExtResource("2_t")
+region = Rect2(300, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_4"]
+atlas = ExtResource("2_t")
+region = Rect2(400, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_5"]
+atlas = ExtResource("2_t")
+region = Rect2(500, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_6"]
+atlas = ExtResource("2_t")
+region = Rect2(600, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_7"]
+atlas = ExtResource("2_t")
+region = Rect2(700, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_8"]
+atlas = ExtResource("2_t")
+region = Rect2(800, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_9"]
+atlas = ExtResource("2_t")
+region = Rect2(900, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_10"]
+atlas = ExtResource("2_t")
+region = Rect2(1000, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_11"]
+atlas = ExtResource("2_t")
+region = Rect2(1100, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_12"]
+atlas = ExtResource("2_t")
+region = Rect2(1200, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_13"]
+atlas = ExtResource("2_t")
+region = Rect2(1300, 0, 100, 100)
+
+[sub_resource type="AtlasTexture" id="attack2_14"]
+atlas = ExtResource("2_t")
+region = Rect2(1400, 0, 100, 100)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("attack1_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack1_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack1_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack1_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack1_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack1_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack1_6")
+}],
+"loop": false,
+"name": &"attack1",
+"speed": 16.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("attack2_0")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_6")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_7")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_8")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_9")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_10")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_11")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_12")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_13")
+}, {
+"duration": 1.0,
+"texture": SubResource("attack2_14")
+}],
+"loop": false,
+"name": &"attack2",
+"speed": 18.0
+}]

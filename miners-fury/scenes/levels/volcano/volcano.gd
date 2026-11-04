@@ -1,5 +1,5 @@
 extends "res://scenes/levels/shared/arena.gd"
-## Ember Caldera: cultists and bats on a volcano, the Fire Cultist is the boss.
+## Ember Caldera: Lava Slimes, Hellbats and Ghostfires. The Black Knight is the boss.
 ## All the round logic is in shared/arena.gd (edit LEVELS there).
 
 const FxSprite = preload("res://scenes/effects/fx_sprite.gd")
@@ -11,7 +11,7 @@ func _init() -> void:
 
 func _ready() -> void:
 	super._ready()
-	# light the braziers by the cult's altar
+	# light the braziers
 	for n in $Entities.get_children():
 		if n.name.begins_with("Brazier"):
 			var f := AnimatedSprite2D.new()

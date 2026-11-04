@@ -37,19 +37,20 @@ const LEVELS := {
 		],
 	},
 	"volcano": {
-		"boss": "fire_cultist", "boss_title": "FIRE CULTIST", "shard": "fire_crystal",
+		"boss": "black_knight", "boss_title": "BLACK KNIGHT", "shard": "fire_crystal",
 		"rounds": [
-			{"sub": "Red Robes", "spawns": [["twisted_cultist", 3], ["bat", 2]]},
-			{"sub": "Out of the Smoke", "spawns": [["assassin_cultist", 3], ["twisted_cultist", 1]]},
-			{"sub": "The Big One", "spawns": [["big_cultist", 1], ["twisted_cultist", 2], ["bat", 2]]},
-			{"sub": "The Whole Cult", "spawns": [["big_cultist", 1], ["assassin_cultist", 2], ["twisted_cultist", 2], ["bat", 2]]},
-			{"sub": "BOSS: Fire Cultist", "spawns": [["fire_cultist", 1], ["twisted_cultist", 2]]},
+			{"sub": "Hot Ground", "spawns": [["lava_slime", 4], ["hellbat", 1]]},
+			{"sub": "Wings of Ash", "spawns": [["hellbat", 3], ["lava_slime", 2]]},
+			{"sub": "Ghostfire", "spawns": [["ghostfire", 2], ["lava_slime", 3]]},
+			{"sub": "The Whole Mountain", "spawns": [["ghostfire", 2], ["hellbat", 2], ["lava_slime", 3]]},
+			{"sub": "BOSS: Black Knight", "spawns": [["black_knight", 1], ["lava_slime", 2]]},
 		],
 	},
 }
-## monsters that run their own script on top of melee_enemy.gd
+## monsters that run their own script on top of melee_enemy.gd (not only bosses)
 const BOSS_SCRIPTS := {
-	"fire_cultist": "res://scenes/enemies/cultist/fire_cultist_boss.gd",
+	"black_knight": "res://scenes/enemies/caldera/black_knight_boss.gd",
+	"ghostfire": "res://scenes/enemies/caldera/ghostfire.gd",
 	"pufferfish": "res://scenes/enemies/pufferfish/puffer_boss.gd",
 }
 ## seconds of breathing room between rounds
@@ -109,7 +110,7 @@ func _alive() -> int:
 func _update_info() -> void:
 	if round_index < 0 or _finished:
 		return
-	round_info.text = "ROUND %d / %d     Enemies: %d" % [round_index + 1, rounds.size(), _alive()]
+	round_info.text = "ROUND %d / %d\n%d left" % [round_index + 1, rounds.size(), _alive()]
 	_net().scene_call("_set_round_info", [round_info.text])
 
 
@@ -141,8 +142,9 @@ func _next_round() -> void:
 
 func _spawn(kind: String) -> void:
 	var e: Node2D
-	if kind == "bat":
+	if kind == "bat" or kind == "hellbat":
 		e = BatScene.instantiate()
+		e.kind = kind
 	else:
 		e = MeleeScene.instantiate()
 		# bosses with their own brain (set BEFORE it enters the tree)
@@ -152,7 +154,7 @@ func _spawn(kind: String) -> void:
 	e.position = _spawn_point(kind == cfg.boss)
 	monsters.add_child(e)
 	e.died.connect(_on_enemy_died)
-	if kind == "bat":
+	if kind == "bat" or kind == "hellbat":
 		Juice.shockwave(self, e.global_position, 16.0)
 	if kind == cfg.boss:
 		_boss_bar.boss = e
@@ -271,7 +273,7 @@ func _finale() -> void:
 		tw.tween_method(cam.set_base_zoom, Vector2.ONE, Vector2(1.6, 1.6), 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		tw.tween_interval(1.0)
 		tw.tween_method(cam.set_base_zoom, Vector2(1.6, 1.6), Vector2.ONE, 0.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-	round_info.text = "AREA CLEARED     Head back to camp on the transfer board"
+	round_info.text = "AREA CLEARED\nHead back to camp on the transfer board"
 	round_info.modulate = Color(1, 0.9, 0.4)
 	await get_tree().create_timer(0.25, true, false, true).timeout
 	Juice.impact_flash(self, 0.5, Color(1, 0.9, 0.5))

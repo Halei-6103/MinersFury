@@ -15,6 +15,8 @@ const MAP := "res://scenes/levels/map/road_map.tscn"
 const TRIAL := "res://scenes/levels/trial/trial.tscn"
 
 var _menu: Control = null
+## how far down the inventory was scrolled (kept while it rebuilds)
+var _inv_scroll: int = 0
 var _kind: String = ""
 var _confirm_reset: bool = false
 ## weapon proficiency popup (shows in camp / on the road map once you own both blades)
@@ -27,6 +29,7 @@ var _tip_check: float = 1.0
 
 
 static func ensure(node: Node) -> void:
+	apply_font()
 	ensure_buses()
 	if node == null or not node.is_inside_tree():
 		return
@@ -36,6 +39,21 @@ static func ensure(node: Node) -> void:
 	var ui = load("res://scenes/ui/game_ui.gd").new()
 	ui.name = "GameUI"
 	root.add_child.call_deferred(ui)
+
+
+## every bit of text in the game uses the HUD font (JetBrains Mono): it
+## becomes Godot's fallback font, which every label, button and drawn string
+## without its own font uses
+static func apply_font() -> void:
+	var f = load("res://scenes/ui/hud_art.gd").font(true)
+	if f == null:
+		return
+	if ThemeDB.fallback_font != f:
+		ThemeDB.fallback_font = f
+	# Godot's built-in theme carries its own font; swap that too
+	var t := ThemeDB.get_default_theme()
+	if t and t.default_font != f:
+		t.default_font = f
 
 
 ## Music + SFX volume buses (made at runtime so no bus layout file is needed)
@@ -349,9 +367,22 @@ func open_inventory() -> void:
 	head.add_child(UI.label("[Tab] close", 13, UI.DIM))
 	v.add_child(head)
 
+	# everything below the title scrolls (mouse wheel or drag the bar), so a
+	# long weapon list never gets cut off the bottom of the screen
+	var scroll := ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(0, maxf(get_viewport().get_visible_rect().size.y - 200.0, 240.0))
+	scroll.follow_focus = true
+	v.add_child(scroll)
 	var cols := HBoxContainer.new()
 	cols.add_theme_constant_override("separation", 26)
-	v.add_child(cols)
+	cols.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(cols)
+	# picking a hand rebuilds the menu: stay where you were scrolled to
+	var keep := _inv_scroll
+	scroll.set_deferred("scroll_vertical", keep)
+	scroll.get_v_scroll_bar().value_changed.connect(func(val: float) -> void: _inv_scroll = int(val))
 
 	# left: stuff you're carrying
 	var left := VBoxContainer.new()

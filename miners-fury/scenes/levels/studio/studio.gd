@@ -24,7 +24,7 @@ func _ready() -> void:
 			p.died.connect(_get_up)
 	_light_braziers()
 	_hide_board_art()
-	round_info.text = "TRAILER ARENA     Shift+2 for the tools"
+	round_info.text = "TRAILER ARENA\nShift+2 for the tools"
 
 
 ## no rounds here, so nothing to count

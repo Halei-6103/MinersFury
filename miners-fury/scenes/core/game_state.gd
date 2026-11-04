@@ -29,7 +29,7 @@ const ITEMS := {
 	},
 	"fire_crystal": {
 		"name": "Fire Shard", "type": "shard",
-		"desc": "The Fire Cultist's ember heart. Too hot to hold for long.",
+		"desc": "Pried off the Black Knight's armor. Too hot to hold for long.",
 		"icon": ICONS + "fire_crystal.png", "frames": 6, "color": Color(1.0, 0.55, 0.15),
 	},
 	"wolf_pelt": {
@@ -52,13 +52,17 @@ const ITEMS := {
 		"name": "Bone", "type": "material", "desc": "Old skeleton bone. Surprisingly sturdy.",
 		"icon": ICONS + "bone.png", "frames": 1, "color": Color(0.95, 0.92, 0.82),
 	},
-	"ember": {
-		"name": "Ember", "type": "material", "desc": "A coal that never goes out. Cultists carry them.",
-		"icon": ICONS + "ember.png", "frames": 1, "color": Color(1.0, 0.5, 0.15),
+	"lava_goo": {
+		"name": "Lava Goo", "type": "material", "desc": "What's left of a Lava Slime. Still warm.",
+		"icon": ICONS + "lava_goo.png", "frames": 1, "color": Color(1.0, 0.5, 0.15),
 	},
-	"cultist_cloth": {
-		"name": "Cultist Cloth", "type": "material", "desc": "Torn red robe. Smells like smoke.",
-		"icon": ICONS + "cultist_cloth.png", "frames": 1, "color": Color(0.8, 0.2, 0.25),
+	"hellbat_wing": {
+		"name": "Hellbat Wing", "type": "material", "desc": "Singed at the edges. Never quite cools down.",
+		"icon": ICONS + "hellbat_wing.png", "frames": 1, "color": Color(0.85, 0.25, 0.25),
+	},
+	"charred_skull": {
+		"name": "Charred Skull", "type": "material", "desc": "A Ghostfire burned out. The flame left, the skull stayed.",
+		"icon": ICONS + "charred_skull.png", "frames": 1, "color": Color(0.7, 0.7, 0.72),
 	},
 }
 
@@ -109,9 +113,60 @@ const WEAPONS := {
 		"swing_fx": "res://assets/sprites/player/flame_fx_frames.tres",
 		"body": "res://assets/sprites/player/flame_swordsman_frames.tres",
 		"color": Color(1.0, 0.55, 0.15),
-		"recipe": {"blueprint": "flame_blade", "items": {"ember": 4, "cultist_cloth": 3, "bat_wing": 2}},
+		"recipe": {"blueprint": "flame_blade", "items": {"lava_goo": 4, "charred_skull": 3, "hellbat_wing": 2}},
+	},
+	# ---- whips: mid range (reach 84, a sword is 44; the lash frames are drawn out that far). The Leather Whip is
+	# earned by reaching round WHIP_ROUND in the Colosseum; that also lets you
+	# craft the elemental whips: same blueprint as the blade + the Leather Whip
+	# + a fresh shard (beat that map's boss again for it) + materials.
+	# The crack (whip + swipe) is its own layer like a sword's swoosh, so it
+	# points at the cursor; "fx_scale" 2 keeps it lined up with the body.
+	# (Demoness_B's whip, Zerie's Tiny RPG pack 02)
+	"leather_whip": {
+		"name": "Leather Whip", "effect": "none",
+		"desc": "Mid range: the lash hits almost twice as far out as a sword.",
+		"swing_fx": "res://assets/sprites/player/whip_fx_frames.tres",
+		"body": "res://assets/sprites/player/whip_swordsman_frames.tres",
+		"color": Color(0.66, 0.45, 0.28),
+		"reach": 84.0,
+		"fx_scale": 2.0,
+		"unlock_round": 15,
+	},
+	"storm_whip": {
+		"name": "Storm Whip", "effect": "storm",
+		"desc": "Mid range. Hits chain lightning to 2 nearby enemies.\nR (ultimate): call down a thunderclap that stuns.",
+		"swing_fx": "res://assets/sprites/player/storm_whip_fx_frames.tres",
+		"body": "res://assets/sprites/player/storm_whip_frames.tres",
+		"color": Color(0.3, 0.95, 1.0),
+		"reach": 84.0,
+		"fx_scale": 2.0,
+		"recipe": {"blueprint": "storm_blade", "needs": "leather_whip", "items": {"storm_crystal": 1, "wolf_pelt": 3, "orc_tusk": 2}},
+	},
+	"venom_whip": {
+		"name": "Venom Whip", "effect": "venom",
+		"desc": "Mid range. Hits stack poison (up to 5). At 5 it jumps to the 2 closest enemies.\nR (ultimate): poison rune for 5s.",
+		"swing_fx": "res://assets/sprites/player/venom_whip_fx_frames.tres",
+		"body": "res://assets/sprites/player/venom_whip_frames.tres",
+		"color": Color(0.55, 1.0, 0.35),
+		"reach": 84.0,
+		"fx_scale": 2.0,
+		"recipe": {"blueprint": "venom_blade", "needs": "leather_whip", "items": {"tomb_crystal": 1, "bone": 5, "slime_goo": 3, "bat_wing": 2}},
+	},
+	"flame_whip": {
+		"name": "Flame Whip", "effect": "flame",
+		"desc": "Mid range. Hits set enemies on fire.\nR (ultimate): a fire tornado that runs out in a line.",
+		"swing_fx": "res://assets/sprites/player/flame_whip_fx_frames.tres",
+		"body": "res://assets/sprites/player/flame_whip_frames.tres",
+		"color": Color(1.0, 0.55, 0.15),
+		"reach": 84.0,
+		"fx_scale": 2.0,
+		"recipe": {"blueprint": "flame_blade", "needs": "leather_whip", "items": {"fire_crystal": 1, "lava_goo": 4, "charred_skull": 3, "hellbat_wing": 2}},
 	},
 }
+## Colosseum round that earns the Leather Whip (and unlocks crafting elemental whips)
+const WHIP_ROUND := 15
+## weapons everyone owns from the start (always in your inventory)
+const STARTER_WEAPONS := ["iron_sword"]
 
 ## maps on the road map, in order. Each one unlocks after the one before it is cleared.
 const MAPS := [
@@ -119,7 +174,7 @@ const MAPS := [
 	{"id": "wasteland", "name": "Bone Wastes", "scene": "res://scenes/levels/wasteland/wasteland.tscn", "boss": "Necromancer"},
 	{"id": "colosseum", "name": "The Colosseum", "scene": "res://scenes/levels/colosseum/colosseum.tscn", "boss": "Everything", "endless": true},
 	# "after": opens once that map is cleared (instead of the one before it in this list)
-	{"id": "volcano", "name": "Ember Caldera", "scene": "res://scenes/levels/volcano/volcano.tscn", "boss": "Fire Cultist", "after": "wasteland"},
+	{"id": "volcano", "name": "Ember Caldera", "scene": "res://scenes/levels/volcano/volcano.tscn", "boss": "Black Knight", "after": "wasteland"},
 ]
 
 static var inventory: Dictionary = {}
@@ -160,8 +215,12 @@ static func ensure_loaded() -> void:
 				inventory[k] = int(inv[k])
 	blueprints = Array(data.get("blueprints", [])).filter(func(b): return BLUEPRINTS.has(b))
 	weapons = Array(data.get("weapons", ["iron_sword"])).filter(func(w): return WEAPONS.has(w))
-	if not weapons.has("iron_sword"):
-		weapons.push_front("iron_sword")
+	for w in STARTER_WEAPONS:
+		if not weapons.has(w):
+			weapons.append(w)
+	# best colosseum round, read early so earned weapons are there
+	best_round = int(data.get("best_round", best_round))
+	unlock_round_weapons(best_round, false)
 	var s = data.get("slots", null)
 	if typeof(s) == TYPE_ARRAY and s.size() == 2:
 		slots = [str(s[0]), str(s[1])]
@@ -215,7 +274,7 @@ static func save() -> void:
 static func reset() -> void:
 	inventory = {}
 	blueprints = []
-	weapons = ["iron_sword"]
+	weapons = STARTER_WEAPONS.duplicate()
 	slots = ["iron_sword", ""]
 	active_slot = 0
 	cleared = []
@@ -292,6 +351,8 @@ static func can_craft(weapon: String) -> bool:
 		return false
 	var r: Dictionary = WEAPONS[weapon].get("recipe", {})
 	if r.is_empty() or not has_blueprint(r.blueprint):
+		return false
+	if r.has("needs") and not owns(r.needs):
 		return false
 	for id in r.get("items", {}):
 		if count(id) < int(r.items[id]):
@@ -398,11 +459,28 @@ static func is_played(map_id: String) -> bool:
 	return is_cleared(map_id)
 
 
+## weapons earned by reaching a Colosseum round (the Leather Whip at WHIP_ROUND).
+## Returns the names of any it just gave you.
+static func unlock_round_weapons(round_reached: int, do_save: bool = true) -> Array:
+	var got: Array = []
+	for w in WEAPONS:
+		var r := int(WEAPONS[w].get("unlock_round", 0))
+		if r > 0 and round_reached >= r and not weapons.has(w):
+			weapons.append(w)
+			if slots.has(""):
+				slots[slots.find("")] = w
+			got.append(WEAPONS[w].name)
+	if not got.is_empty() and do_save:
+		save()
+	return got
+
+
 ## Colosseum: returns true if this run beat your best round
 static func record_run(round_reached: int, kills: int) -> bool:
 	ensure_loaded()
 	var beat := round_reached > best_round
 	best_round = maxi(best_round, round_reached)
+	unlock_round_weapons(best_round, false)
 	best_kills = maxi(best_kills, kills)
 	save()
 	return beat

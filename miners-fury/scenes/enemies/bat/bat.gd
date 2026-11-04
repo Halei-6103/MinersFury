@@ -1,6 +1,7 @@
 extends CharacterBody2D
 ## Bat: drifts around its roost, chases you when you get close,
 ## then winds up and dive-bites. Flies over rocks, but can't leave the map.
+## kind = "hellbat" (Ember Caldera): Zerie's Hellbat, a bit tougher and faster.
 
 signal died
 
@@ -15,8 +16,11 @@ var _net_target: Vector2 = Vector2.ZERO
 var _net_has_target: bool = false
 ## Toxic Storm combo: frozen, takes 30% more damage
 var paralyzed: bool = false
+## true = drops nothing when it dies (the Colosseum)
+var no_drops: bool = false
 var _dmg_carry: float = 0.0
 
+@export var kind: String = "bat"
 @export var max_health: int = 3
 @export var speed: float = 75.0
 @export var detect_range: float = 230.0
@@ -68,6 +72,12 @@ const LUNGE_FRAMES := [2, 3, 4]
 
 func _ready() -> void:
 	add_to_group("enemy")
+	if kind == "hellbat":
+		sprite.sprite_frames = load("res://assets/sprites/enemies/hellbat/hellbat_frames.tres")
+		max_health = 5
+		speed = 88.0
+		lunge_speed = 320.0
+		ichor_color = Color(0.9, 0.3, 0.1)
 	health = max_health
 	home = global_position
 	wander_target = home
@@ -359,8 +369,8 @@ func _die() -> void:
 	state = State.DEAD
 	collision_layer = 0
 	sprite.self_modulate = Color.WHITE
-	if randf() < 0.7:
-		Pickup.drop(get_parent(), global_position, "item", "bat_wing")
+	if not no_drops and randf() < 0.7:
+		Pickup.drop(get_parent(), global_position, "item", "hellbat_wing" if kind == "hellbat" else "bat_wing")
 	var dir := knockback.normalized()
 	if dir == Vector2.ZERO:
 		dir = Vector2.RIGHT

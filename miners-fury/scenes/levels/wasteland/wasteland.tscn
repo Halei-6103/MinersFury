@@ -2311,8 +2311,9 @@ tile_set = SubResource("TileSet_jl3di")
 collision_layer = 5
 
 [node name="Edge" type="CollisionPolygon2D" parent="Bounds" unique_id=969140798]
+position = Vector2(-119.202515, -16.62024)
 build_mode = 1
-polygon = PackedVector2Array(-920, -480, 920, -480, 920, 480, -920, 480)
+polygon = PackedVector2Array(-792, -478, 1048, -478, 1048, 482, -792, 482)
 
 [node name="Entities" type="Node2D" parent="." unique_id=768209214]
 y_sort_enabled = true
