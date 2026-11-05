@@ -17,7 +17,7 @@ const PoisonStatus = preload("res://scenes/effects/poison_status.gd")
 ## short gap between back-to-back dashes
 @export var roll_cooldown: float = 0.2
 ## dash charges you can store, and how long one takes to refill
-@export var dash_max: float = 2.0
+@export var dash_max: float = 3.0
 @export var dash_recharge_time: float = 1.6
 @export var acceleration: float = 1440.0
 @export var friction: float = 1620.0
@@ -42,8 +42,13 @@ const PoisonStatus = preload("res://scenes/effects/poison_status.gd")
 ## press attack/dodge slightly early and it still happens when you're able to
 @export var input_buffer_time: float = 0.18
 ## little step forward on each swing (pixels/sec burst)
-@export var attack_lunge: float = 190.0
-@export var finisher_lunge: float = 255.0
+@export var attack_lunge: float = 120.0
+@export var finisher_lunge: float = 150.0
+## every cut steps you forward toward where you're swinging (on the frame it lands)
+@export var strike_step: float = 180.0
+@export var finisher_step: float = 240.0
+## how fast the step slows down while swinging (lower = slides further)
+@export var attack_friction: float = 1000.0
 ## freeze frames (seconds): normal hit / combo finisher / killing blow / getting hurt
 @export var hit_stop_light: float = 0.09
 @export var hit_stop_heavy: float = 0.15
@@ -115,7 +120,7 @@ var roll_direction: Vector2 = Vector2.ZERO
 var roll_timer: float = 0.0
 var roll_cooldown_timer: float = 0.0
 var can_roll: bool = true
-var dash_charge: float = 2.0
+var dash_charge: float = 3.0
 
 # the swordsman sprite is drawn facing right, we flip it for left
 var facing_right: bool = true
@@ -169,6 +174,14 @@ const ParalysisWave = preload("res://scenes/effects/paralysis_wave.gd")
 const ToxicWave = preload("res://scenes/effects/toxic_wave.gd")
 const Net = preload("res://scenes/core/net.gd")
 const Sfx = preload("res://scenes/audio/sfx.gd")
+## Colosseum run upgrades (crystals + material drops). Does nothing outside a run.
+const RunState = preload("res://scenes/colosseum/run_state.gd")
+const SkullShot = preload("res://scenes/colosseum/skull_shot.gd")
+var _dmg_carry: float = 0.0
+## which way the current swing is aimed (the step forward follows it)
+var _swing_aim: Vector2 = Vector2.RIGHT
+## the numbers before any run boosts (apply_run works from these)
+var _base_stats: Dictionary = {}
 
 # ---------------------------------------------------------------- co-op
 ## true = this is a teammate's character mirrored on your screen (no input,
@@ -232,6 +245,8 @@ func _ready() -> void:
 ## swap swords: the swoosh, the crackle on the blade, and what hits do
 func set_weapon(w: String) -> void:
 	weapon = w
+	if not puppet:
+		RunState.cur = w
 	var info: Dictionary = GameState.WEAPONS.get(w, GameState.WEAPONS["iron_sword"])
 	var fx = load(info.get("swing_fx", "")) if info.has("swing_fx") else null
 	swing_fx.sprite_frames = fx if fx else _iron_fx
@@ -266,14 +281,18 @@ func set_weapon(w: String) -> void:
 # ---------------------------------------------------------------- ultimates (R)
 
 func _ult_cooldown_for(w: String) -> float:
+	var cd := 0.0
 	match GameState.WEAPONS.get(w, {}).get("effect", "none"):
 		"storm":
-			return storm_ult_cooldown
+			cd = storm_ult_cooldown
 		"venom":
-			return venom_ult_cooldown
+			cd = venom_ult_cooldown
 		"flame":
-			return flame_ult_cooldown
-	return 0.0
+			cd = flame_ult_cooldown
+	# Colosseum: Charge crystals
+	if RunState.active and cd > 0.0:
+		cd *= pow(0.85, int(RunState.m(w).base.get("charge", 0)))
+	return cd
 
 
 ## 0 = just used, 1 = ready (for the HUD). -1 = this weapon has no ultimate
@@ -338,7 +357,8 @@ func _cast_ultimate(at: Vector2) -> void:
 		if Net.online(get_tree()):
 			Net.get_node_in(get_tree()).peer_fx("thunderclap", [at, clap_radius])
 	elif is_venom():
-		VenomZone.place(get_parent(), at)
+		var zone = VenomZone.place(get_parent(), at, false, _rune_opts())
+		_rune_ult(zone, at)
 		Sfx.play(self, "venom_slam", at, 1.0, 0.05)
 		Juice.impact_flash(self, 0.12, Color(0.6, 1.0, 0.45))
 		if Net.online(get_tree()):
@@ -526,7 +546,13 @@ func _puppet_tick(delta: float) -> void:
 
 ## the element of whatever you're holding (blades and whips share them)
 func _effect() -> String:
-	return String(GameState.WEAPONS.get(weapon, {}).get("effect", "none"))
+	var eff := String(GameState.WEAPONS.get(weapon, {}).get("effect", "none"))
+	# Colosseum: a plain weapon infused by a crystal acts like that element
+	if eff == "none" and RunState.active and not puppet:
+		var inf := String(RunState.m(weapon).infused)
+		if inf != "":
+			return "flame" if inf == "fire" else inf
+	return eff
 
 func is_venom() -> bool:
 	return _effect() == "venom"
@@ -546,10 +572,26 @@ func _fire_tornado(at: Vector2) -> void:
 		flat = Vector2.RIGHT if facing_right else Vector2.LEFT
 	var d := flat.normalized()
 	var from := global_position + Vector2(d.x, d.y * 0.5) * 34.0
-	FireTornado.launch(get_tree().current_scene, from, d, tornado_distance)
+	var dist := tornado_distance * (1.0 + 0.25 * RunState.base_n("fire_tail"))
+	var opts := _tornado_opts()
+	var dirs: Array = [d]
+	if RunState.now("twin_tornado"):
+		dirs = [d.rotated(-0.35), d.rotated(0.35)]
+	for dd in dirs:
+		FireTornado.launch(get_tree().current_scene, from, dd, dist, false, opts)
+		if Net.online(get_tree()):
+			Net.get_node_in(get_tree()).peer_fx("fire_tornado", [from, dd, dist])
 	Juice.impact_flash(self, 0.15, Color(1.0, 0.6, 0.2))
-	if Net.online(get_tree()):
-		Net.get_node_in(get_tree()).peer_fx("fire_tornado", [from, d, tornado_distance])
+
+
+## Colosseum crystals that change the tornado
+func _tornado_opts() -> Dictionary:
+	return {
+		"big": RunState.now("firestorm"),
+		"boom_end": RunState.ult_mode() == "boom_tornado",
+		"toxic": RunState.ult_mode() == "toxic_tornado",
+		"scorch": RunState.now("scorched_path"),
+	}
 
 ## "12 HITS" counter on the right side of the screen
 func _build_combo_label() -> void:
@@ -824,6 +866,12 @@ func _parry(attacker: Node, from_position: Vector2) -> void:
 	# reward: a little dash back
 	dash_charge = minf(dash_charge + 0.5, dash_max)
 	_bump_combo()
+	if RunState.active:
+		RunState.bump("parries")
+		# Charred Skull drops: homing skulls off the parry
+		var sk := int(round(RunState.boon("charred_skull")))
+		for i in sk:
+			SkullShot.fire(get_parent(), global_position + Vector2(0, -30), i)
 
 func _blocked(amount: int, from_position: Vector2) -> void:
 	var dir := (from_position - global_position).normalized()
@@ -842,6 +890,7 @@ func _start_roll(input_dir: Vector2) -> void:
 	roll_cooldown_timer = roll_cooldown
 	dash_charge -= 1.0
 	combo_queued = false
+	RunState.bump("dodges")
 	# roll in whatever direction is currently held, fallback to last faced direction if standing still
 	roll_direction = input_dir if input_dir != Vector2.ZERO else last_direction
 	velocity = roll_direction * roll_speed
@@ -906,7 +955,7 @@ func _start_attack(anim_name: String) -> void:
 	_face_mouse()
 	# the sword reaches out toward the aim marker (up, down, diagonal, anywhere)
 	var aim: Vector2 = aim_indicator.last_direction
-	sword_hitbox.position = aim * float(GameState.WEAPONS.get(weapon, {}).get("reach", sword_reach)) + Vector2(0, -8)
+	sword_hitbox.position = aim * _reach() + Vector2(0, -8)
 	_strike_index = -1
 	_hit_this_strike.clear()
 	_clapped = false
@@ -915,6 +964,7 @@ func _start_attack(anim_name: String) -> void:
 	animated_sprite.play(anim_name)
 	_play_swing_fx(anim_name, aim)
 	# step into the swing
+	_swing_aim = aim
 	velocity = aim * (finisher_lunge if anim_name == "attack2" else attack_lunge)
 
 ## the pack's own sword swoosh, pulled onto its own layer, scaled up and
@@ -937,6 +987,8 @@ func _play_swing_fx(anim_name: String, aim: Vector2) -> void:
 	var fs = GameState.WEAPONS.get(weapon, {}).get("fx_scale", 0.0)
 	if fs > 0.0:
 		k = fs
+	# Bat Wings stretch the swoosh with the reach so hits never land past the art
+	k *= _reach() / _base_reach()
 	swing_fx.scale = Vector2(k, k)
 	swing_fx.visible = true
 	swing_fx.speed_scale = 1.0
@@ -945,7 +997,7 @@ func _play_swing_fx(anim_name: String, aim: Vector2) -> void:
 
 func _handle_attack(delta: float) -> void:
 	var input_dir := _get_input_dir()
-	velocity = velocity.move_toward(input_dir * speed * attack_move_factor, friction * delta)
+	velocity = velocity.move_toward(input_dir * speed * attack_move_factor, attack_friction * delta)
 	if animated_sprite.animation == "attack1" and _consume("attack"):
 		combo_queued = true
 	_check_sword_hits()
@@ -985,6 +1037,10 @@ func _check_sword_hits() -> void:
 	if idx != _strike_index:
 		_strike_index = idx
 		_hit_this_strike.clear()
+		# each cut steps you into it
+		if idx >= 0:
+			var fin: bool = idx == windows.size() - 1 and animated_sprite.animation == "attack2"
+			velocity = _swing_aim * (finisher_step if fin else strike_step)
 	if idx < 0:
 		return
 	var targets: Array = []
@@ -996,12 +1052,16 @@ func _check_sword_hits() -> void:
 		if enemy in _hit_this_strike:
 			continue
 		if enemy.is_in_group("enemy") and enemy.has_method("take_damage"):
+			# never hit something you can't see (long whips, camera shake, map edges)
+			if not _on_screen(enemy):
+				continue
 			_hit_this_strike.append(enemy)
 			var finisher: bool = idx == windows.size() - 1 and animated_sprite.animation == "attack2"
 			var was_dead: bool = _is_dead(enemy)
+			var dmg := _hit_damage(enemy)
 			# small shove on combo hits so the bat stays in reach, big launch on the finisher
-			enemy.take_damage(sword_damage, global_position, 1.3 if finisher else 0.4)
-			_on_sword_hit(enemy, finisher, was_dead)
+			enemy.take_damage(dmg, global_position, 1.3 if finisher else 0.4)
+			_on_sword_hit(enemy, finisher, was_dead, dmg)
 
 func _hit_point(e: Node2D) -> Vector2:
 	var hb = e.get_node_or_null("Hurtbox")
@@ -1011,12 +1071,19 @@ func _is_dead(e) -> bool:
 	return e.get("state") != null and e.state == e.State.DEAD
 
 ## lightning jumps from whoever you hit to the next closest enemies
-func _chain_lightning(origin: Node2D) -> void:
+## count: how many jumps (-1 = the weapon's own, with Forked Lightning)
+func _chain_lightning(origin: Node2D, count: int = -1) -> void:
 	var zapped: Array = [origin]
 	var from_pos := _hit_point(origin)
-	for i in chain_count:
+	var from_e: Node2D = origin
+	var n := count if count >= 0 else chain_count + (2 if RunState.now("forked") else 0)
+	for i in n:
 		var best: Node2D = null
-		var best_d := chain_range
+		var reach := chain_range + 30.0 * RunState.base_n("storm_arc")
+		# Hot Wire: jumps further off a burning enemy
+		if RunState.now("hot_wire") and _burning(from_e):
+			reach += 70.0
+		var best_d := reach
 		for e in get_tree().get_nodes_in_group("enemy"):
 			if e in zapped or e in _hit_this_strike or _is_dead(e) or not e.has_method("take_damage"):
 				continue
@@ -1030,14 +1097,26 @@ func _chain_lightning(origin: Node2D) -> void:
 		var to_pos := _hit_point(best)
 		LightningBolt.zap(get_parent(), from_pos, to_pos, 1.4, 0.28)
 		var was_dead: bool = _is_dead(best)
-		best.take_damage(chain_damage, from_pos, 0.25)
+		var dmg := chain_damage + RunState.base_n("storm_volt")
+		if RunState.now("conductive") and _poisoned(best):
+			dmg += 1
+		var was_burning := _burning(best)
+		best.take_damage(dmg, from_pos, 0.25)
+		RunState.add_dmg("Chain lightning", dmg)
 		# a little strike lands on them (effect pack 2)
 		FxSprite.spawn(get_parent(), "chain_strike", best.global_position, {"z": 35})
 		if not was_dead and _is_dead(best):
 			_show_ko(best, to_pos + Vector2(0, -16), Color(0.5, 0.85, 1.0), 30)
 		else:
-			Juice.damage_number(get_parent(), to_pos + Vector2(0, -14), str(chain_damage), Color(0.55, 0.85, 1.0), 22)
+			Juice.damage_number(get_parent(), to_pos + Vector2(0, -14), str(dmg), Color(0.55, 0.85, 1.0), 22)
+			if RunState.now("searing_bolts"):
+				BurnStatus.apply(best, _burn_time(3.0, best))
+			if RunState.now("neurotoxin"):
+				PoisonStatus.apply(best, 1)
+		if RunState.now("ignition") and was_burning:
+			_small_boom(best.global_position)
 		from_pos = to_pos
+		from_e = best
 
 
 ## once per enemy so co-op copies don't spam KO while the death sync catches up
@@ -1050,8 +1129,10 @@ func _show_ko(enemy: Node, at: Vector2, color: Color, size: int) -> void:
 	Juice.damage_number(get_parent(), at, "KO!", color, size)
 
 ## Storm ultimate: lightning from the sky where you aimed, hurts and stuns everything in the ring
-func _thunderclap(center: Vector2) -> void:
+func _thunderclap(center: Vector2, size: float = 1.0, echo: bool = false) -> void:
 	var aim: Vector2 = (center - global_position).normalized()
+	var radius := clap_radius * size
+	var stun_t := clap_stun + 0.4 * RunState.base_n("storm_daze")
 	# thunderclap landing in a poison rune = Toxic Storm (works on a teammate's rune too)
 	var rune: Node2D = null
 	for z in get_tree().get_nodes_in_group("venom_zone"):
@@ -1059,7 +1140,7 @@ func _thunderclap(center: Vector2) -> void:
 			rune = z
 			break
 	var tc = Thunderclap.new()
-	tc.radius = clap_radius
+	tc.radius = radius
 	get_parent().add_child(tc)
 	tc.global_position = center
 	Sfx.play(self, "storm_ult", center, 1.0, 0.04)
@@ -1073,22 +1154,28 @@ func _thunderclap(center: Vector2) -> void:
 			continue
 		var off: Vector2 = e.global_position - center
 		# the floor is iso, so the ring is an ellipse
-		if Vector2(off.x, off.y * 2.0).length() > clap_radius:
+		if Vector2(off.x, off.y * 2.0).length() > radius:
 			continue
 		var hp := _hit_point(e)
 		e.take_damage(clap_damage, center, 0.6)
+		RunState.add_dmg("Thunderclap", clap_damage)
 		LightningBolt.zap(get_parent(), center + Vector2(0, -10), hp, 0.8, 0.2)
 		Juice.damage_number(get_parent(), hp + Vector2(0, -14), str(clap_damage), Color(0.55, 0.85, 1.0), 26)
 		if not _is_dead(e) and e.has_method("stun") and e.state != e.State.STUNNED:
-			e.stun(clap_stun)
+			e.stun(stun_t)
+			if RunState.now("overheat"):
+				BurnStatus.apply(e, _burn_time(3.0, e))
 	# thunderclap on a fire tornado (yours or a teammate's): blow it up
 	for t in get_tree().get_nodes_in_group("fire_tornado"):
 		var toff: Vector2 = t.global_position - center
-		if t.can_detonate() and Vector2(toff.x, toff.y * 2.0).length() <= clap_radius + 30.0:
+		if t.can_detonate() and Vector2(toff.x, toff.y * 2.0).length() <= radius + 30.0:
 			var tat: Vector2 = t.global_position
 			t.detonate(true)
 			if Net.online(get_tree()):
 				Net.get_node_in(get_tree()).peer_fx("tornado_boom", [tat])
+	if echo:
+		return
+	_clap_extras(center)
 	if rune:
 		if GameState.has_mastery("tetrodotoxin"):
 			_toxic_storm(rune)
@@ -1125,7 +1212,10 @@ func _toxic_storm(rune: Node2D) -> void:
 
 
 ## all the feedback for landing a hit. Everything turned up.
-func _on_sword_hit(enemy: Node2D, finisher: bool, was_dead: bool = false) -> void:
+func _on_sword_hit(enemy: Node2D, finisher: bool, was_dead: bool = false, dmg: int = -1) -> void:
+	if dmg < 0:
+		dmg = sword_damage
+	RunState.add_dmg("Hits", dmg)
 	var hit_pos: Vector2 = enemy.global_position
 	var hurtbox = enemy.get_node_or_null("Hurtbox")
 	if hurtbox:
@@ -1147,12 +1237,18 @@ func _on_sword_hit(enemy: Node2D, finisher: bool, was_dead: bool = false) -> voi
 		FxSprite.spawn(get_parent(), "chain_strike", enemy.global_position, {"z": 35})
 	elif is_flame() and not kill:
 		# sets them on fire (the finisher burns longer)
-		BurnStatus.apply(enemy, 4.0 if finisher else 3.0)
+		BurnStatus.apply(enemy, _burn_time(4.0 if finisher else 3.0, enemy))
 		FxSprite.spawn(get_parent(), "knight_fireball_end", hit_pos, {"scale": 0.7, "z": 35})
 	elif is_venom() and not kill:
 		# every hit stacks poison, the finisher stacks two
-		PoisonStatus.apply(enemy, 2 if finisher else 1)
+		var stacks := 2 if finisher else 1
+		# Quick Stacks crystals: a chance for one more
+		if randf() < 0.25 * RunState.base_n("venom_quick"):
+			stacks += 1
+		PoisonStatus.apply(enemy, stacks)
 		FxSprite.spawn(get_parent(), "poison_pop", hit_pos, {"scale": 1.0, "z": 35})
+	if RunState.active and not kill and not _is_dead(enemy):
+		_run_on_hit(enemy)
 	# exit wound: everything blows out the BACK of the target
 	var ichor: Color = enemy.get("ichor_color") if enemy.get("ichor_color") != null else Color(0.5, 0.06, 0.32)
 	Juice.spark(get_parent(), hit_pos, dir, heavy, ichor)
@@ -1164,13 +1260,13 @@ func _on_sword_hit(enemy: Node2D, finisher: bool, was_dead: bool = false) -> voi
 		Juice.zoom_punch(self, 0.12)
 		Juice.impact_flash(self, 0.45)
 	elif finisher:
-		Juice.damage_number(get_parent(), hit_pos + Vector2(0, -16), str(sword_damage) + "!", Color(1, 0.6, 0.15), 32)
+		Juice.damage_number(get_parent(), hit_pos + Vector2(0, -16), str(dmg) + "!", Color(1, 0.6, 0.15), 32)
 		Juice.hit_stop(self, hit_stop_heavy)
 		Juice.shake(self, 0.75, dir)
 		Juice.zoom_punch(self, 0.07)
 		Juice.impact_flash(self, 0.18)
 	else:
-		Juice.damage_number(get_parent(), hit_pos + Vector2(0, -14), str(sword_damage), Color(1, 0.92, 0.35), 26)
+		Juice.damage_number(get_parent(), hit_pos + Vector2(0, -14), str(dmg), Color(1, 0.92, 0.35), 26)
 		Juice.hit_stop(self, hit_stop_light)
 		Juice.shake(self, 0.5, dir)
 		Juice.zoom_punch(self, 0.03)
@@ -1219,6 +1315,8 @@ func take_damage(amount: int, from_position: Vector2, attacker: Node = null) -> 
 		_end_block()
 	health = max(health - amount, 0)
 	health_changed.emit(health, max_health)
+	if RunState.active:
+		_run_on_hurt(amount, attacker)
 	knockback = (global_position - from_position).normalized() * knockback_strength
 	# feel the hit
 	Juice.hit_stop(self, hit_stop_hurt)
@@ -1427,3 +1525,203 @@ func _play_anim(anim_name: String, anim_speed: float, backwards: bool) -> void:
 		animated_sprite.speed_scale = -anim_speed if backwards else anim_speed
 		if animated_sprite.animation != anim_name or not animated_sprite.is_playing():
 			animated_sprite.play(anim_name)
+
+
+# ---------------------------------------------------------------- Colosseum run upgrades
+# (crystals + material drops; see scenes/colosseum/run_data.gd for the list)
+
+## material drops that change your numbers. Called when a run starts and on every pickup
+func apply_run() -> void:
+	if _base_stats.is_empty():
+		_base_stats = {"speed": speed, "dash": dash_recharge_time, "parry": parry_window}
+	speed = _base_stats.speed * (1.0 + 0.08 * RunState.boon("wolf_pelt"))
+	dash_recharge_time = _base_stats.dash * pow(0.88, RunState.boon("hellbat_wing"))
+	parry_window = _base_stats.parry + 0.05 * RunState.boon("bone")
+
+
+func _base_reach() -> float:
+	return float(GameState.WEAPONS.get(weapon, {}).get("reach", sword_reach))
+
+
+## Bat Wings add reach, never more than double the weapon's own
+func _reach() -> float:
+	var b := _base_reach()
+	return b + minf(8.0 * RunState.boon("bat_wing"), b)
+
+
+## swords 1.5, whips 1 (GameState.WEAPONS "damage"), plus Orc Tusks, Static, Corrode.
+## Halves carry over to the next hit.
+func _hit_damage(enemy: Node) -> int:
+	var d := float(GameState.WEAPONS.get(weapon, {}).get("damage", sword_damage))
+	if RunState.active:
+		d += 0.5 * RunState.boon("orc_tusk")
+		if RunState.now("static") and enemy.get("state") != null and enemy.state == enemy.State.STUNNED:
+			d += 1.0
+		if RunState.now("corrode") and _poisoned(enemy):
+			d += 1.0
+	d += _dmg_carry
+	var n := int(floor(d))
+	_dmg_carry = d - n
+	return maxi(n, 1)
+
+
+func _on_screen(e: Node2D) -> bool:
+	var r := get_viewport().get_visible_rect().grow(8.0)
+	return r.has_point(get_viewport().get_canvas_transform() * e.global_position)
+
+
+func _burning(e: Node) -> bool:
+	if e == null or not is_instance_valid(e):
+		return false
+	var b = e.get_node_or_null("Burn")
+	return b != null and b.left > 0.0
+
+
+func _poisoned(e: Node) -> bool:
+	if e == null or not is_instance_valid(e):
+		return false
+	var po = e.get_node_or_null("Poison")
+	return po != null and po.stacks > 0
+
+
+## how long a burn lasts with Long Burn and Fever
+func _burn_time(t: float, e: Node) -> float:
+	t += 1.5 * RunState.base_n("fire_long")
+	if RunState.now("fever") and _poisoned(e):
+		t *= 2.0
+	return t
+
+
+## everything a run adds to a normal hit
+func _run_on_hit(enemy: Node2D) -> void:
+	if is_flame():
+		# Arc Flame: the burn hops to 2 more
+		if RunState.now("arc_flame"):
+			_hop_burn(enemy)
+		if RunState.now("toxic_smoke"):
+			PoisonStatus.apply(enemy, 1)
+	# base crystals of another element: a chance to do that element too
+	if randf() < RunState.splash_chance("fire"):
+		BurnStatus.apply(enemy, _burn_time(3.0, enemy))
+	if randf() < RunState.splash_chance("storm"):
+		_chain_lightning(enemy, 1)
+	if randf() < RunState.splash_chance("venom"):
+		PoisonStatus.apply(enemy, 1)
+	# Overcharge: every 5th hit, lightning from the sky
+	if RunState.now("overcharge"):
+		RunState.hit_count += 1
+		if RunState.hit_count >= 5:
+			RunState.hit_count = 0
+			_sky_strike(enemy, 3, "Overcharge")
+
+
+func _hop_burn(from: Node2D) -> void:
+	var near: Array = []
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if e == from or _is_dead(e) or not e.has_method("take_damage"):
+			continue
+		var d: float = from.global_position.distance_to(e.global_position)
+		if d < 130.0:
+			near.append([d, e])
+	near.sort_custom(func(a, b): return a[0] < b[0])
+	for i in mini(2, near.size()):
+		var e: Node2D = near[i][1]
+		LightningBolt.zap(get_parent(), _hit_point(from), _hit_point(e), 1.0, 0.2)
+		BurnStatus.apply(e, _burn_time(3.0, e))
+		FxSprite.spawn(get_parent(), "knight_fireball_end", _hit_point(e), {"scale": 0.6, "z": 35})
+
+
+## a lightning strike from the sky (Overcharge, Heat Lightning)
+func _sky_strike(e: Node2D, dmg: int, source: String) -> void:
+	if e == null or not is_instance_valid(e) or _is_dead(e):
+		return
+	FxSprite.spawn(get_parent(), "storm_strike", e.global_position, {"z": 36, "scale": 0.7})
+	e.take_damage(dmg, e.global_position + Vector2(0, -10), 0.3)
+	RunState.add_dmg(source, dmg)
+	Sfx.play(self, "storm_zap", e.global_position, -4.0)
+	Juice.damage_number(get_parent(), _hit_point(e) + Vector2(0, -24), str(dmg), Color(0.55, 0.85, 1.0), 26)
+
+
+## Ignition: a small burst of fire around a burning enemy hit by lightning
+func _small_boom(at: Vector2) -> void:
+	FxSprite.spawn(get_parent(), "knight_fireball_end", at + Vector2(0, -16), {"scale": 1.3, "z": 36})
+	Sfx.play(self, "fire_impact", at, -6.0, 0.1)
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if _is_dead(e) or not e.has_method("take_damage"):
+			continue
+		var off: Vector2 = e.global_position - at
+		if Vector2(off.x, off.y * 2.0).length() <= 60.0:
+			e.take_damage(2, at, 0.3)
+			RunState.add_dmg("Ignition", 2)
+
+
+## crystals that change the thunderclap
+func _clap_extras(center: Vector2) -> void:
+	if RunState.now("double_clap"):
+		get_tree().create_timer(0.35, false).timeout.connect(func() -> void:
+			if is_inside_tree():
+				_thunderclap(center, 1.4, true))
+	if RunState.now("toxic_thunder"):
+		VenomZone.place(get_parent(), center, false, _rune_opts())
+	match RunState.ult_mode():
+		"boom_clap":
+			# a fire tornado drops into the clap and goes up
+			var t = FireTornado.launch(get_tree().current_scene, center, Vector2.RIGHT, 0.0, false, {})
+			get_tree().create_timer(0.3, false).timeout.connect(func() -> void:
+				if is_instance_valid(t):
+					t.detonate(true))
+		"tetro_clap":
+			# the crystal teaches the combo for this run, mastery or not
+			var z = VenomZone.place(get_parent(), center, false, _rune_opts())
+			get_tree().create_timer(0.25, false).timeout.connect(func() -> void:
+				if is_instance_valid(z) and is_inside_tree():
+					_toxic_storm(z))
+
+
+## crystals that change the poison rune
+func _rune_opts() -> Dictionary:
+	var big := RunState.now("big_rune")
+	return {
+		"radius_mult": 1.4 if big else 1.0,
+		"extra_life": (2.0 if big else 0.0) + 1.5 * RunState.base_n("venom_rune"),
+		"burns": RunState.now("fever_rune"),
+	}
+
+
+func _rune_ult(zone: Node2D, at: Vector2) -> void:
+	match RunState.ult_mode():
+		"tornado_rune":
+			var to := at - global_position
+			var flat := Vector2(to.x, to.y * 2.0)
+			if flat.length() < 1.0:
+				flat = Vector2.RIGHT if facing_right else Vector2.LEFT
+			var d := flat.normalized()
+			get_tree().create_timer(0.45, false).timeout.connect(func() -> void:
+				if is_inside_tree():
+					FireTornado.launch(get_tree().current_scene, at, d, tornado_distance * 0.8, false, {"toxic": true}))
+		"tetro_rune":
+			get_tree().create_timer(0.6, false).timeout.connect(func() -> void:
+				if is_instance_valid(zone) and is_inside_tree():
+					_toxic_storm(zone))
+
+
+## getting hurt during a run: stats, Lava Goo, saved Slime Goo heals
+func _run_on_hurt(amount: int, attacker: Node) -> void:
+	var by := "Something"
+	if attacker and is_instance_valid(attacker):
+		if attacker.get("hazard_name") != null:
+			by = str(attacker.hazard_name)
+		elif attacker.get("display_name") != null and str(attacker.display_name) != "":
+			by = str(attacker.display_name)
+		elif attacker.get("kind") != null:
+			by = str(attacker.kind).capitalize()
+	RunState.add_hurt(by, amount)
+	var lava := RunState.boon("lava_goo")
+	if lava > 0.0 and attacker and is_instance_valid(attacker) and attacker.is_in_group("enemy"):
+		BurnStatus.apply(attacker, 2.0 + lava)
+	if RunState.saved_heal > 0 and health > 0:
+		RunState.saved_heal -= 1
+		get_tree().create_timer(0.6, false).timeout.connect(func() -> void:
+			if state != State.DEAD:
+				heal(1)
+				Juice.damage_number(get_parent(), global_position + Vector2(0, -50), "+1", Color(0.5, 1, 0.5), 22))

@@ -11,6 +11,15 @@ const UIK = preload("res://scenes/ui/ui_kit.gd")
 const FxSprite = preload("res://scenes/effects/fx_sprite.gd")
 const PufferBoss = preload("res://scenes/enemies/pufferfish/puffer_boss.gd")
 const Sfx = preload("res://scenes/audio/sfx.gd")
+## the roguelike side: crystals after boss rounds, material drops every 3 rounds
+const RunState = preload("res://scenes/colosseum/run_state.gd")
+const RunData = preload("res://scenes/colosseum/run_data.gd")
+const CrystalPicker = preload("res://scenes/colosseum/crystal_picker.gd")
+const BoonPicker = preload("res://scenes/colosseum/boon_picker.gd")
+## pick a material boon every this many rounds
+const DROP_EVERY := 3
+## host: players still picking their crystal
+var _picks_left: int = 0
 
 # ---------------------------------------------------------------- TUNING
 ## monster health: +10% per round (round 10 = 1.9x, round 20 = 2.9x)
@@ -61,6 +70,8 @@ func _ready() -> void:
 	level_id = "colosseum"
 	cfg = {"boss": "", "boss_title": "", "shard": ""}
 	rounds = []
+	# a fresh run: no crystals, no drops (each player keeps their own)
+	RunState.reset()
 	TransferBoard.place_player(self)
 	Music.ensure(self)
 	GameUI.ensure(self)
@@ -80,6 +91,9 @@ func _ready() -> void:
 			p.died.connect(func() -> void: _down_me = true)
 		else:
 			p.died.connect(_on_player_died)
+	if p:
+		p.set_weapon(p.weapon)
+		p.apply_run()
 	_light_braziers()
 	_hide_board_art()
 	round_info.text = ""
@@ -92,6 +106,10 @@ func _ready() -> void:
 
 func _coop() -> bool:
 	return Net.online(get_tree())
+
+
+func _exit_tree() -> void:
+	RunState.active = false
 
 
 ## the arena is built from the Pixel Crawler desert pack: the exit is the stairs in
@@ -351,8 +369,57 @@ func _round_clear() -> void:
 	# teammates get the same heal (a full heal on boss rounds) and their loot pulled in
 	_net().scene_call("_net_heal", [999 if full else HEAL_BETWEEN])
 	_net().scene_call("_pull_loot", [1.2])
+	# rewards: every player picks their own crystal / boon
+	var picks := (1 if round_no % 5 == 0 else 0) + (1 if round_no % DROP_EVERY == 0 else 0)
+	var crystal := picks > 0
+	if crystal:
+		_picks_left = picks * (_net().player_count() if _coop() else 1)
+	_net().scene_call("_run_rewards", [round_no])
+	_run_rewards(round_no)
 	await get_tree().create_timer(BREAK_TIME, false).timeout
+	# wait for everyone to pick their crystal (not forever in co-op)
+	var waited := 0.0
+	while crystal and _picks_left > 0 and not _dead and waited < 60.0:
+		await get_tree().create_timer(0.25, false).timeout
+		waited += 0.25
 	_next_round()
+
+
+## every player's game: this round's crystal, then the boon pick
+func _run_rewards(r: int) -> void:
+	await get_tree().create_timer(0.9, false).timeout
+	if _dead:
+		if r % 5 == 0:
+			_crystal_done()
+		if r % DROP_EVERY == 0:
+			_crystal_done()
+		return
+	if r % 5 == 0:
+		var attune := r % 10 == 0
+		if attune:
+			RunState.rerolls += 1
+		_banner("CRYSTAL!", "The boss left something behind.", Color(1, 0.85, 0.4), 0.9, 0.7)
+		await get_tree().create_timer(0.8, false).timeout
+		var waiting := [true]
+		CrystalPicker.open(self, "attune" if attune else "base", func() -> void:
+			waiting[0] = false
+			_crystal_done())
+		while waiting[0] and is_inside_tree():
+			await get_tree().process_frame
+	if r % DROP_EVERY == 0:
+		BoonPicker.open(self, _crystal_done)
+
+
+func _crystal_done() -> void:
+	if _net_client():
+		_net().host_call("_pick_done", [])
+	else:
+		_pick_done(1)
+
+
+## host: one player finished their crystal
+func _pick_done(_peer: int) -> void:
+	_picks_left = maxi(_picks_left - 1, 0)
 
 
 # ---------------------------------------------------------------- death card / team wipe
@@ -453,6 +520,7 @@ func _show_card(survived: int, best_before: int, new_best: bool, team_wipe: bool
 		h.add_child(UIK.label(row[1], 19, UIK.GOLD))
 		stats.add_child(h)
 	v.add_child(stats)
+	v.add_child(_run_summary())
 	var btns := HBoxContainer.new()
 	btns.add_theme_constant_override("separation", 10)
 	var again := UIK.button("FIGHT AGAIN", true, UIK.GOOD, 17)
@@ -475,6 +543,67 @@ func _show_card(survived: int, best_before: int, new_best: bool, team_wipe: bool
 	var tw := panel.create_tween()
 	tw.tween_property(panel, "modulate:a", 1.0, 0.15)
 	tw.parallel().tween_property(panel, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## death card: where your damage came from, what hurt you, and one tip
+func _run_summary() -> VBoxContainer:
+	var sec := UIK.section("YOUR BUILD")
+	var st: Dictionary = RunState.stats
+	var dw: Dictionary = st.get("dmg_weapon", {})
+	var best_w := RunState.top(dw)
+	var best_s := RunState.top(st.get("dmg_source", {}))
+	var hurt := RunState.top(st.get("hurt_by", {}))
+	var rows: Array = []
+	if best_w[0] != "":
+		rows.append(["Best weapon", "%s (%d dmg)" % [GameState.WEAPONS.get(best_w[0], {}).get("name", best_w[0]), best_w[1]]])
+	if best_s[0] != "":
+		rows.append(["Most damage from", "%s (%d)" % [best_s[0], best_s[1]]])
+	if hurt[0] != "":
+		rows.append(["Hurt you most", hurt[0]])
+	rows.append(["Parries / dodges", "%d / %d" % [int(st.get("parries", 0)), int(st.get("dodges", 0))]])
+	for row in rows:
+		var h := HBoxContainer.new()
+		h.add_child(UIK.label(row[0], 15))
+		h.add_child(UIK.spacer())
+		h.add_child(UIK.label(row[1], 15, UIK.GOLD))
+		sec.add_child(h)
+	var tip := UIK.label("Tip: " + _tip(), 14, UIK.GOOD)
+	tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tip.custom_minimum_size.x = 420
+	sec.add_child(tip)
+	return sec
+
+
+static func _tip() -> String:
+	var st: Dictionary = RunState.stats
+	var hurt_by: Dictionary = st.get("hurt_by", {})
+	var total := 0
+	for k in hurt_by:
+		total += int(hurt_by[k])
+	var hurt := RunState.top(hurt_by)
+	if total > 0 and float(hurt[1]) / total >= 0.4:
+		match String(hurt[0]):
+			"Ghostfire beams":
+				return "Ghostfire beams hit you a lot. Step off the red line before it locks in."
+			"Lava":
+				return "The lava got you a lot. After the Black Knight slams, get off the glowing circles."
+			"Black Knight fireballs":
+				return "Fireballs hit you a lot. Dodge through them sideways, or block them."
+		return "%s did most of your damage. Try parrying it: right click just before the hit." % hurt[0]
+	var dw: Dictionary = st.get("dmg_weapon", {})
+	var hands: Array = GameState.slots.filter(func(w): return w != "")
+	if hands.size() == 2:
+		var all := 0
+		for w in dw:
+			all += int(dw[w])
+		for w in hands:
+			if all > 50 and float(dw.get(w, 0)) / all < 0.15:
+				return "Your %s barely got used. Swap to it more with Q." % GameState.WEAPONS[w].name
+	if int(st.get("parries", 0)) == 0:
+		return "You never parried. Right click just before a hit lands to stun the attacker."
+	if int(st.get("hits_taken", 0)) > int(st.get("dodges", 0)) * 2:
+		return "You took more hits than you dodged. Space to dodge through attacks."
+	return "Nice run. Try mixing crystals into your other weapon next time."
 
 
 func _leave(scene: String, spawn: String) -> void:

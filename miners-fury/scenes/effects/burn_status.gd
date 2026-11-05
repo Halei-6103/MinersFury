@@ -5,8 +5,15 @@ extends Node2D
 
 const TICK := 1.0
 const COLOR := Color(1.0, 0.55, 0.15)
+const RunState = preload("res://scenes/colosseum/run_state.gd")
+const PoisonStatus = preload("res://scenes/effects/poison_status.gd")
+const FxSprite = preload("res://scenes/effects/fx_sprite.gd")
 
 var left: float = 0.0
+## Colosseum: Hotter crystals (+1 per tick each)
+var bonus: int = 0
+var _ran_out: bool = false
+var _death_done: bool = false
 var _tick: float = TICK
 var _embers: Array = []   # [pos, vel, life]
 var _spawn: float = 0.0
@@ -23,6 +30,8 @@ static func apply(enemy: Node, seconds: float = 3.0) -> void:
 		b.name = "Burn"
 		enemy.add_child(b)
 	b.left = maxf(b.left, seconds)
+	b.bonus = maxi(b.bonus, RunState.base_n("fire_hot"))
+	b._ran_out = false
 
 
 func _ready() -> void:
@@ -35,14 +44,24 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var e := get_parent()
 	if e.get("state") != null and e.state == e.State.DEAD:
+		if left > 0.0:
+			_on_death(e)
 		queue_free()
 		return
 	left -= delta
 	_tick -= delta
 	if _tick <= 0.0:
 		_tick = TICK
-		if e.has_method("dot_damage"):
-			e.dot_damage(1, COLOR)
+		if left > 0.0 and e.has_method("dot_damage"):
+			e.dot_damage(1 + bonus, COLOR)
+			RunState.add_dmg("Burn", 1 + bonus)
+	if left <= 0.0 and not _ran_out:
+		_ran_out = true
+		# Heat Lightning: when the burn runs out, lightning finds it
+		if RunState.now("heat_lightning"):
+			var p = get_tree().get_first_node_in_group("player")
+			if p and p.has_method("_sky_strike"):
+				p._sky_strike(e, 2, "Heat Lightning")
 	if left <= 0.0 and _embers.is_empty():
 		queue_free()
 		return
@@ -56,6 +75,31 @@ func _process(delta: float) -> void:
 		m[0] += m[1] * delta
 	_embers = _embers.filter(func(m): return m[2] > 0.0)
 	queue_redraw()
+
+
+## a burning enemy died (Colosseum crystals)
+func _on_death(e: Node2D) -> void:
+	if _death_done:
+		return
+	_death_done = true
+	var lvl := e.get_parent()
+	# Wildfire: the fire jumps to anyone close
+	if RunState.now("wildfire"):
+		FxSprite.spawn(lvl, "knight_fireball_end", e.global_position + Vector2(0, -16), {"scale": 1.4, "z": 36})
+		for o in get_tree().get_nodes_in_group("enemy"):
+			if o == e or (o.get("state") != null and o.state == o.State.DEAD):
+				continue
+			if o.global_position.distance_to(e.global_position) < 120.0:
+				apply(o, 3.0)
+	# Fumes: a poison cloud where it fell
+	if RunState.now("fumes"):
+		FxSprite.spawn(lvl, "poison_cloud", e.global_position, {"scale": 2.0, "z": 30})
+		for o in get_tree().get_nodes_in_group("enemy"):
+			if o == e or (o.get("state") != null and o.state == o.State.DEAD):
+				continue
+			var off: Vector2 = o.global_position - e.global_position
+			if Vector2(off.x, off.y * 2.0).length() < 100.0:
+				PoisonStatus.apply(o, 2)
 
 
 func _draw() -> void:

@@ -18,6 +18,8 @@ const PARALYSIS := 1.6
 const CLAP_R := 70.0
 const HALF_WIDTH := 66.0
 
+## what the Colosseum death card calls this
+var hazard_name := "Pufferfish waves"
 var caster_pos := Vector2.ZERO
 var _side := Vector2.RIGHT       # flat direction the waves travel (and its opposite)
 var _t: float = 0.0
@@ -85,7 +87,7 @@ func _fire() -> void:
 	if p and p.state != p.State.DEAD:
 		var off: Vector2 = p.global_position - at
 		if Vector2(off.x, off.y * 2.0).length() < CLAP_R and not p.is_untargetable():
-			p.take_damage(1, at, null)
+			p.take_damage(1, at, self)
 	Juice.impact_flash(self, 0.3, Color(0.6, 1.0, 0.8))
 	Juice.shake(self, 0.9)
 	if is_instance_valid(_rune):

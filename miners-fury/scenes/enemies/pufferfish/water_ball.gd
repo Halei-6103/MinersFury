@@ -12,6 +12,8 @@ const RANGE := 760.0
 const HIT_R := 18.0
 const ART_SCALE := 1.2
 
+## what the Colosseum death card calls this
+var hazard_name := "Pufferfish spit"
 var dir := Vector2.RIGHT
 var damage: int = 1
 ## how high off the floor the ball flies (art only, hits are checked on the floor)
@@ -67,7 +69,7 @@ func _process(delta: float) -> void:
 		var off: Vector2 = p.global_position - global_position
 		if Vector2(off.x, off.y * 2.0).length() < HIT_R + 12.0:
 			if not (p.has_method("is_untargetable") and p.is_untargetable()):
-				p.take_damage(damage, global_position - dir * 20.0, null)
+				p.take_damage(damage, global_position - dir * 20.0, self)
 				_splash()
 				return
 	if _travelled > RANGE:

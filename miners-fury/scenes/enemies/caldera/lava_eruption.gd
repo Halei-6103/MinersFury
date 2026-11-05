@@ -12,6 +12,8 @@ const RADIUS := 38.0        # flat radius that burns
 const BURN_TIME := 0.35     # the pillar hurts for this long after it bursts
 const ART_SCALE := 2.0
 
+## what the Colosseum death card calls this
+var hazard_name := "Lava"
 var warn: float = 0.9
 var damage: int = 1
 var _t: float = 0.0
@@ -48,7 +50,7 @@ func _process(delta: float) -> void:
 			if Vector2(off.x, off.y * 2.0).length() < RADIUS:
 				if not (p.has_method("is_untargetable") and p.is_untargetable()):
 					_hit = true
-					p.take_damage(damage, global_position, null)
+					p.take_damage(damage, global_position, self)
 	if _t > warn + 1.2:
 		queue_free()
 	queue_redraw()

@@ -6,6 +6,9 @@ extends Node2D
 @export var outline_color: Color = Color(0.1, 0.08, 0.08, 0.9)  # dark edge so it reads on light ground too
 @export var line_width: float = 1.5
 @export var deadzone_radius: float = 15.0  # ignore mouse input inside this range
+## the arrow next to the player. Off now that the mouse is a + (it still tracks
+## your aim: swings and ultimates read last_direction)
+@export var show_arrow: bool = false
 
 var last_direction: Vector2 = Vector2.RIGHT
 
@@ -22,6 +25,8 @@ func _process(_delta):
 	queue_redraw()
 
 func _draw():
+	if not show_arrow:
+		return
 	var tip = Vector2(arrow_size, 0)
 	var left = Vector2(-arrow_size * 0.6, -arrow_size * 0.6)
 	var right = Vector2(-arrow_size * 0.6, arrow_size * 0.6)

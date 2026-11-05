@@ -15,6 +15,10 @@ const PULSE := 0.6
 const ART_SCALE := 1.5
 
 var _t: float = 0.0
+## Colosseum crystals: Big Rune, Lingering Rune, Fever Rune
+var radius_mult: float = 1.0
+var extra_life: float = 0.0
+var burns: bool = false
 var _pulse: float = 0.0
 var _rune: AnimatedSprite2D
 var _ending: bool = false
@@ -22,9 +26,12 @@ var _ending: bool = false
 var remote: bool = false
 
 
-static func place(parent: Node, at: Vector2, is_remote: bool = false) -> Node2D:
+static func place(parent: Node, at: Vector2, is_remote: bool = false, opts: Dictionary = {}) -> Node2D:
 	var z = load("res://scenes/effects/venom_zone.gd").new()
 	z.remote = is_remote
+	z.radius_mult = float(opts.get("radius_mult", 1.0))
+	z.extra_life = float(opts.get("extra_life", 0.0))
+	z.burns = bool(opts.get("burns", false))
 	# lives on the floor layer: under every character, over the ground art
 	var ground = parent.get_tree().current_scene.get_node_or_null("Ground")
 	(ground if ground else parent).add_child(z)
@@ -52,14 +59,14 @@ func contains(pos: Vector2) -> bool:
 	if _ending:
 		return false
 	var off := pos - global_position
-	return Vector2(off.x, off.y * 2.0).length() <= RADIUS
+	return Vector2(off.x, off.y * 2.0).length() <= RADIUS * radius_mult
 
 
 func _ready() -> void:
 	add_to_group("venom_zone")
 	_rune = AnimatedSprite2D.new()
 	_rune.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_rune.scale = Vector2.ONE * ART_SCALE
+	_rune.scale = Vector2.ONE * ART_SCALE * radius_mult
 	add_child(_rune)
 	_rune.animation_finished.connect(_on_anim_done)
 	_play("venom_zone_start", false)
@@ -83,7 +90,7 @@ func _process(delta: float) -> void:
 	_t += delta
 	if _ending:
 		return
-	if _t >= LIFE:
+	if _t >= LIFE + extra_life:
 		_ending = true
 		_play("venom_zone_end", false)
 		return
@@ -97,6 +104,8 @@ func _process(delta: float) -> void:
 					continue
 				if contains(e.global_position):
 					PoisonStatus.apply(e, 1)
+					if burns:
+						load("res://scenes/effects/burn_status.gd").apply(e, 1.5)
 	queue_redraw()
 
 
@@ -106,5 +115,5 @@ func _draw() -> void:
 	# faint fill so you can see exactly where it bites
 	var k := 0.5 + 0.5 * sin(_t * 5.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1, 0.5))
-	draw_circle(Vector2.ZERO, RADIUS, Color(0.35, 0.8, 0.2, 0.08 + 0.05 * k))
+	draw_circle(Vector2.ZERO, RADIUS * radius_mult, Color(0.35, 0.8, 0.2, 0.08 + 0.05 * k))
 	draw_set_transform(Vector2.ZERO)

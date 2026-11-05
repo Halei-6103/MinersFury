@@ -9,6 +9,8 @@ const Sfx = preload("res://scenes/audio/sfx.gd")
 const HIT_TIME := 0.25      # the beam hurts for this long
 const HALF_W := 14.0        # flat half thickness that hits
 
+## what the Colosseum death card calls this
+var hazard_name := "Ghostfire beams"
 var dir := Vector2.RIGHT
 var damage: int = 1
 var length: float = 220.0
@@ -49,6 +51,6 @@ func _process(delta: float) -> void:
 				var side: Vector2 = off - dir * along
 				if Vector2(side.x, side.y * 2.0).length() < HALF_W * 2.0:
 					_hit = true
-					p.take_damage(damage, global_position, null)
+					p.take_damage(damage, global_position, self)
 	if _t > HIT_TIME + 0.1:
 		queue_free()

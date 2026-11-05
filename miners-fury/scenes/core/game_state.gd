@@ -87,6 +87,8 @@ const WEAPONS := {
 	"iron_sword": {
 		"name": "Iron Sword", "effect": "none",
 		"desc": "Old faithful. Gets the job done.",
+		# swords hit harder than whips (1.5 = 1, 2, 1, 2... the half carries over)
+		"damage": 1.5,
 		"swing_fx": "res://assets/sprites/player/swing_fx_frames.tres",
 		"body": "res://assets/sprites/player/swordsman_frames.tres",
 		"color": Color(0.85, 0.85, 0.9),
@@ -94,6 +96,8 @@ const WEAPONS := {
 	"storm_blade": {
 		"name": "Storm Blade", "effect": "storm",
 		"desc": "Hits chain lightning to 2 nearby enemies.\nR (ultimate): call down a thunderclap that stuns.",
+		# swords hit harder than whips (1.5 = 1, 2, 1, 2... the half carries over)
+		"damage": 1.5,
 		"swing_fx": "res://assets/sprites/player/storm_fx_frames.tres",
 		"body": "res://assets/sprites/player/storm_swordsman_frames.tres",
 		"color": Color(0.3, 0.95, 1.0),
@@ -102,6 +106,8 @@ const WEAPONS := {
 	"venom_blade": {
 		"name": "Venom Blade", "effect": "venom",
 		"desc": "Hits stack poison (up to 5). At 5 it jumps to the 2 closest enemies.\nR (ultimate): poison rune for 5s. Stacks keep growing, poison hurts double.",
+		# swords hit harder than whips (1.5 = 1, 2, 1, 2... the half carries over)
+		"damage": 1.5,
 		"swing_fx": "res://assets/sprites/player/venom_fx_frames.tres",
 		"body": "res://assets/sprites/player/venom_swordsman_frames.tres",
 		"color": Color(0.55, 1.0, 0.35),
@@ -110,6 +116,8 @@ const WEAPONS := {
 	"flame_blade": {
 		"name": "Flame Blade", "effect": "flame",
 		"desc": "Hits set enemies on fire (1 damage a second for 3s).\nR (ultimate): a fire tornado that runs out in a line, burning everything it passes.",
+		# swords hit harder than whips (1.5 = 1, 2, 1, 2... the half carries over)
+		"damage": 1.5,
 		"swing_fx": "res://assets/sprites/player/flame_fx_frames.tres",
 		"body": "res://assets/sprites/player/flame_swordsman_frames.tres",
 		"color": Color(1.0, 0.55, 0.15),
@@ -192,6 +200,9 @@ static var masteries: Array = []
 static var tips_seen: Array = []
 static var best_round: int = 0
 static var best_kills: int = 0
+## every item id you've ever picked up, and how many in total (Colosseum boons
+## unlock from these: found once = it can drop in the arena, 25 = stronger)
+static var lifetime: Dictionary = {}
 static var _loaded: bool = false
 
 
@@ -240,6 +251,19 @@ static func ensure_loaded() -> void:
 	tips_seen = Array(data.get("tips_seen", []))
 	best_round = int(data.get("best_round", 0))
 	best_kills = int(data.get("best_kills", 0))
+	lifetime = {}
+	var lt = data.get("lifetime", {})
+	if typeof(lt) == TYPE_DICTIONARY:
+		for k in lt:
+			if ITEMS.has(k):
+				lifetime[k] = int(lt[k])
+	# older saves: what you're carrying, and what went into weapons you built, counts as found
+	for k in inventory:
+		lifetime[k] = maxi(int(lifetime.get(k, 0)), int(inventory[k]))
+	for w in weapons:
+		var r: Dictionary = WEAPONS.get(w, {}).get("recipe", {})
+		for k in r.get("items", {}):
+			lifetime[k] = maxi(int(lifetime.get(k, 0)), int(r.items[k]))
 	var st = data.get("settings", {})
 	if typeof(st) == TYPE_DICTIONARY:
 		for k in st:
@@ -266,6 +290,7 @@ static func save() -> void:
 		"tips_seen": tips_seen,
 		"best_round": best_round,
 		"best_kills": best_kills,
+		"lifetime": lifetime,
 		"settings": settings,
 	}, "\t"))
 
@@ -282,6 +307,7 @@ static func reset() -> void:
 	best_kills = 0
 	masteries = []
 	tips_seen = []
+	lifetime = {}
 	_loaded = true
 	save()
 
@@ -296,7 +322,14 @@ static func count(id: String) -> int:
 static func add_item(id: String, n: int = 1) -> void:
 	ensure_loaded()
 	inventory[id] = count(id) + n
+	lifetime[id] = int(lifetime.get(id, 0)) + n
 	save()
+
+
+## have you ever picked one of these up?
+static func found(id: String) -> bool:
+	ensure_loaded()
+	return int(lifetime.get(id, 0)) > 0
 
 
 static func remove_item(id: String, n: int = 1) -> bool:

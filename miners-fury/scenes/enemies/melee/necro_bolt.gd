@@ -11,6 +11,8 @@ const WARN := 0.85
 ## hit radius on the ground (iso ellipse)
 const RADIUS := 38.0
 
+## what the Colosseum death card calls this
+var hazard_name := "Necromancer bolts"
 var damage: int = 2
 var _t: float = 0.0
 var _fired: bool = false
@@ -54,7 +56,7 @@ func _strike() -> void:
 			continue
 		var off: Vector2 = p.global_position - global_position
 		if Vector2(off.x, off.y * 2.0).length() <= RADIUS * 1.2:
-			p.take_damage(damage, global_position, null)
+			p.take_damage(damage, global_position, self)
 
 
 func _draw() -> void:

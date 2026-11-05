@@ -146,9 +146,43 @@ static func add_settings_controls(parent: VBoxContainer) -> void:
 	parent.add_child(display)
 
 
+var _cursor: int = -1
+static var _cursor_made: bool = false
+
+
+## the in-game mouse: a small black + with a thin light edge so it still shows on
+## dark ground (the Caldera). Drawn in code like the HUD shapes, no image file.
+static func _make_cursor() -> void:
+	if _cursor_made:
+		return
+	_cursor_made = true
+	const N := 19
+	const ARM := 1   # half thickness: 3 px wide
+	var img := Image.create(N, N, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var c := N / 2
+	var edge := Color(1, 1, 1, 0.85)
+	var ink := Color(0, 0, 0, 1)
+	# light edge first (one pixel bigger all round), then the black on top
+	for pass_ in 2:
+		var grow := 1 if pass_ == 0 else 0
+		var col := edge if pass_ == 0 else ink
+		for i in range(1 - grow, N - 1 + grow):
+			for w in range(-ARM - grow, ARM + grow + 1):
+				img.set_pixel(i, c + w, col)
+				img.set_pixel(c + w, i, col)
+	var tex := ImageTexture.create_from_image(img)
+	Input.set_custom_mouse_cursor(tex, Input.CURSOR_CROSS, Vector2(c, c))
+
+
 func _ready() -> void:
 	layer = 80
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# red arrows at the screen edge pointing at monsters you can't see
+	var arrows = load("res://scenes/ui/offscreen_arrows.gd").new()
+	arrows.name = "OffscreenArrows"
+	add_child(arrows)
+
 	_ensure_actions()
 	# hidden recording tools (Shift+2). Lives on the root so hiding the UI can't hide it
 	if get_tree().root.get_node_or_null("TrailerMode") == null:
@@ -158,6 +192,13 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# while playing the mouse is a small black + (drawn in code, see _make_cursor).
+	# Title screen and menus keep the normal arrow (buttons always show the arrow)
+	var want := Input.CURSOR_ARROW if _no_player() else Input.CURSOR_CROSS
+	if want != _cursor:
+		_cursor = want
+		_make_cursor()
+		Input.set_default_cursor_shape(want)
 	# tutorial tips: look for new ones twice a second (not while a menu is open)
 	if _tips == null:
 		_tips = load("res://scenes/ui/tips.gd").new()
@@ -360,6 +401,10 @@ func open_pause() -> void:
 # ---------------------------------------------------------------- inventory
 
 func open_inventory() -> void:
+	# in a Colosseum run, Tab shows the run instead (your hands are locked in)
+	if load("res://scenes/colosseum/run_state.gd").active:
+		open_run_page()
+		return
 	var v := _open("inventory")
 	var head := HBoxContainer.new()
 	head.add_child(UI.label("INVENTORY", 28))
@@ -449,3 +494,120 @@ func _put_in_hand(i: int, w: String) -> void:
 	if p and p.has_method("set_weapon"):
 		p.set_weapon(GameState.equipped())
 	open_inventory()
+
+
+# ---------------------------------------------------------------- Colosseum run page (Tab)
+
+func open_run_page() -> void:
+	var RS = load("res://scenes/colosseum/run_state.gd")
+	var RD = load("res://scenes/colosseum/run_data.gd")
+	var v := _open("inventory")
+	var head := HBoxContainer.new()
+	head.add_child(UI.label("THIS RUN", 28))
+	head.add_child(UI.spacer())
+	head.add_child(UI.label("Rerolls: %d    Saved heals: %d    [Tab] close" % [RS.rerolls, RS.saved_heal], 13, UI.DIM))
+	v.add_child(head)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(0, maxf(get_viewport().get_visible_rect().size.y - 200.0, 240.0))
+	v.add_child(scroll)
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 22)
+	cols.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(cols)
+
+	# left: both hands and what's in them
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 12)
+	left.custom_minimum_size.x = 400
+	cols.add_child(left)
+	var hands := UI.section("YOUR WEAPONS")
+	left.add_child(hands)
+	for w in GameState.slots:
+		if w == "":
+			continue
+		var info: Dictionary = GameState.WEAPONS[w]
+		var mm: Dictionary = RS.m(w)
+		var card := UI.card(info.color.darkened(0.35))
+		var cv := VBoxContainer.new()
+		cv.add_theme_constant_override("separation", 4)
+		card.add_child(cv)
+		var top := HBoxContainer.new()
+		top.add_child(UI.label(info.name, 18, info.color))
+		top.add_child(UI.spacer())
+		var el: String = RS.element(w)
+		if el != "":
+			top.add_child(UI.label(RD.EL_NAME[el], 13, RD.EL_COLOR[el]))
+		cv.add_child(top)
+		var any := false
+		if String(mm.ult) != "":
+			any = true
+			cv.add_child(UI.label("Ultimate: " + RD.att_name(mm.ult), 14, UI.GOLD))
+		for id in mm.att:
+			if id == mm.ult:
+				continue
+			any = true
+			var l := UI.label("%s: %s" % [RD.att_name(id), RD.att_desc(id)], 13)
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			l.custom_minimum_size.x = 360
+			cv.add_child(l)
+		for b in mm.base:
+			any = true
+			cv.add_child(UI.label("%s x%d: %s" % [RD.BASE_INFO[b].name, int(mm.base[b]), RD.BASE_INFO[b].desc], 13, UI.DIM))
+		for e in mm.splash:
+			any = true
+			cv.add_child(UI.label("%s splash: %d%% chance on hit" % [RD.EL_NAME[e], int(round(int(mm.splash[e]) * RD.SPLASH[e].chance * 100.0))], 13, RD.EL_COLOR[e]))
+		if not any:
+			cv.add_child(UI.label("No crystals yet. Boss rounds drop them.", 13, UI.DIM))
+		hands.add_child(card)
+
+	var drops := UI.section("MATERIAL BOONS")
+	var got := false
+	for mat in RD.BOONS:
+		var n := int(RS.boons.get(mat, 0))
+		if n <= 0:
+			continue
+		got = true
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		row.add_child(UI.icon(GameState.ITEMS[mat].icon, int(GameState.ITEMS[mat].get("frames", 1)), 1.4))
+		var tier: bool = int(GameState.lifetime.get(mat, 0)) >= RD.TIER_AT
+		row.add_child(UI.label("%s x%d%s" % [RD.BOONS[mat].name, n, "  (x1.5)" if tier else ""], 14, GameState.ITEMS[mat].color))
+		row.add_child(UI.label(RD.BOONS[mat].desc, 13, UI.DIM))
+		drops.add_child(row)
+	if not got:
+		drops.add_child(UI.label("Every 3 rounds you pick 1 of 3.\nOnly materials you've found on the maps show up.", 13, UI.DIM))
+	left.add_child(drops)
+
+	# right: live stats
+	var right := UI.section("STATS")
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cols.add_child(right)
+	var st: Dictionary = RS.stats
+	right.add_child(UI.label("Damage by weapon", 15, UI.GOLD))
+	var dw: Dictionary = st.get("dmg_weapon", {})
+	if dw.is_empty():
+		right.add_child(UI.label("Nothing yet.", 13, UI.DIM))
+	for w in dw:
+		right.add_child(_stat_row(String(GameState.WEAPONS.get(w, {}).get("name", w)), str(dw[w])))
+	right.add_child(UI.label("Damage by source", 15, UI.GOLD))
+	var ds: Dictionary = st.get("dmg_source", {})
+	var keys: Array = ds.keys()
+	keys.sort_custom(func(a, b): return int(ds[a]) > int(ds[b]))
+	for k in keys.slice(0, 8):
+		right.add_child(_stat_row(String(k), str(ds[k])))
+	right.add_child(UI.label("Defense", 15, UI.GOLD))
+	right.add_child(_stat_row("Hits taken", str(int(st.get("hits_taken", 0)))))
+	right.add_child(_stat_row("Parries", str(int(st.get("parries", 0)))))
+	right.add_child(_stat_row("Dodges", str(int(st.get("dodges", 0)))))
+	var hurt = RS.top(st.get("hurt_by", {}))
+	if String(hurt[0]) != "":
+		right.add_child(_stat_row("Hurt you most", "%s (%d)" % [hurt[0], hurt[1]]))
+
+
+func _stat_row(a: String, b: String) -> HBoxContainer:
+	var h := HBoxContainer.new()
+	h.add_child(UI.label(a, 14))
+	h.add_child(UI.spacer())
+	h.add_child(UI.label(b, 14, UI.GOLD))
+	return h

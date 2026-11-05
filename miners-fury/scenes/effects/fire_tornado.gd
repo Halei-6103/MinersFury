@@ -36,6 +36,13 @@ var dir := Vector2.RIGHT      # flat (floor) direction
 var distance: float = 420.0
 var remote: bool = false
 var toxic: bool = false
+## Colosseum crystals: Firestorm (big), Exploding Tornado (boom_end), Scorched Path
+var big: bool = false
+var boom_end: bool = false
+var scorch: bool = false
+var _scorch_at: float = 0.0
+const RunState = preload("res://scenes/colosseum/run_state.gd")
+const FirePatch = preload("res://scenes/colosseum/fire_patch.gd")
 var _t: float = 0.0
 var _travelled: float = 0.0
 var _hit: Array = []
@@ -43,11 +50,15 @@ var _spr: AnimatedSprite2D
 var _phase: String = "coming"
 
 
-static func launch(level: Node, from: Vector2, flat_dir: Vector2, dist: float, is_remote: bool = false) -> Node2D:
+static func launch(level: Node, from: Vector2, flat_dir: Vector2, dist: float, is_remote: bool = false, opts: Dictionary = {}) -> Node2D:
 	var t = load("res://scenes/effects/fire_tornado.gd").new()
 	t.dir = flat_dir.normalized() if flat_dir.length() > 0.01 else Vector2.RIGHT
 	t.distance = dist
 	t.remote = is_remote
+	t.big = bool(opts.get("big", false))
+	t.boom_end = bool(opts.get("boom_end", false))
+	t.scorch = bool(opts.get("scorch", false))
+	t.toxic = bool(opts.get("toxic", false))
 	var ents = level.get_node_or_null("Entities")
 	t.position = from
 	(ents if ents else level).add_child(t)
@@ -59,7 +70,7 @@ func _ready() -> void:
 	add_to_group("fire_tornado")
 	_spr = AnimatedSprite2D.new()
 	_spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_spr.scale = Vector2.ONE * ART_SCALE
+	_spr.scale = Vector2.ONE * ART_SCALE * (1.6 if big else 1.0)
 	add_child(_spr)
 	_spr.animation_finished.connect(_on_anim_done)
 	_play("tornado_coming", false)
@@ -95,14 +106,25 @@ func _process(delta: float) -> void:
 	if _phase == "fade" or _phase == "boom":
 		return
 	if _t > SPIN_UP:
-		var step := SPEED * delta * clampf((_t - SPIN_UP) / 0.25, 0.2, 1.0)
+		var step := SPEED * (0.65 if big else 1.0) * delta * clampf((_t - SPIN_UP) / 0.25, 0.2, 1.0)
 		_travelled += step
 		global_position += Vector2(dir.x, dir.y * 0.5) * step
+		# Scorched Path: a burning patch every so often
+		if scorch and not remote and _travelled - _scorch_at > 44.0:
+			_scorch_at = _travelled
+			FirePatch.drop(get_parent(), global_position)
 		if _travelled >= distance:
+			# Exploding Tornado crystal: goes up at the end of its run
+			if boom_end and not remote:
+				detonate(true)
+				return
 			_phase = "fade"
 			Sfx.stop_loop(self)
 			_play("toxic_tornado_fade" if toxic else "tornado_fade", false)
 			return
+		# Firestorm: drags enemies in
+		if big and not remote:
+			_pull(delta)
 	if not toxic:
 		_check_rune()
 	if not remote:
@@ -142,9 +164,10 @@ func _burn_things() -> void:
 		if e.get("state") != null and e.state == e.State.DEAD:
 			continue
 		var off: Vector2 = e.global_position - global_position
-		if Vector2(off.x, off.y * 2.0).length() > HIT_R:
+		if Vector2(off.x, off.y * 2.0).length() > HIT_R * (1.6 if big else 1.0):
 			continue
 		_hit.append(e)
+		RunState.add_dmg("Tornado", DAMAGE)
 		if toxic:
 			# poisoned already? max it out and spread it to 4. Otherwise poison it
 			var poison = e.get_node_or_null("Poison")
@@ -199,12 +222,26 @@ func detonate(deal: bool) -> void:
 			if Vector2(off.x, off.y * 2.0).length() > BOOM_R:
 				continue
 			e.take_damage(BOOM_DAMAGE, at, 1.5)
+			RunState.add_dmg("Explosions", BOOM_DAMAGE)
 			BurnStatus.apply(e, BOOM_BURN)
 			if e.get("state") != null and e.state != e.State.DEAD and e.has_method("stun"):
 				e.stun(BOOM_STUN)
 			LightningBolt.zap(lvl, at + Vector2(0, -30), e.global_position + Vector2(0, -20), 0.9, 0.25)
 			Juice.damage_number(lvl, e.global_position + Vector2(0, -56), str(BOOM_DAMAGE) + "!", Color(1.0, 0.7, 0.25), 32)
 	get_tree().create_timer(0.1, false).timeout.connect(queue_free)
+
+
+func _pull(delta: float) -> void:
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if not is_instance_valid(e) or (e.get("state") != null and e.state == e.State.DEAD):
+			continue
+		var c = e.get("cfg")
+		if typeof(c) == TYPE_DICTIONARY and c.get("boss", false):
+			continue
+		var off: Vector2 = global_position - e.global_position
+		var flat := Vector2(off.x, off.y * 2.0)
+		if flat.length() < HIT_R * 3.5 and flat.length() > 6.0:
+			e.global_position += off.normalized() * 70.0 * delta
 
 
 ## a warm glow on the floor under it (green when toxic)

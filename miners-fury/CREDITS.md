@@ -28,5 +28,5 @@ Who made the assets in this game. Keep this up to date when you add a pack.
 - Fire sounds: `fire_explosion`, `fire_impact_1-3`, `fireball_1-3`, `flame_hit_1-3`, `flame_hum`, `flame_wall` (made in code).
 - Pufferfish and bat sprites.
 - Item, crystal and blueprint icons (wolf pelt, orc tusk, bat wing, slime goo, bone, the shards, blueprints).
-- Stand-in HUD shapes (bars, rings, sword icons): drawn in code until your own HUD art goes in `assets/sprites/ui/`.
+- Stand-in HUD shapes (bars, rings, sword icons, the + mouse cursor, the red off-screen enemy arrows): drawn in code until your own HUD art goes in `assets/sprites/ui/`.
 - Unused leftovers you can delete: the old cultists (`scenes/enemies/cultist/`, `assets/sprites/enemies/twisted_cultist`, `assassin_cultist`, `big_cultist`, `fire_cultist`, `assets/sprites/fx/cult_fireball.png`, `cult_fire_impact.png`, `assets/sprites/items/ember.png`, `cultist_cloth.png`), `assets/sprites/volcano/`, `assets/sprites/colosseum/brazier.png`, and the old `hub`, `forest`, `wasteland` sprite folders.

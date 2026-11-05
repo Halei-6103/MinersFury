@@ -13,6 +13,8 @@ const RANGE := 780.0
 const HIT_R := 30.0
 const ART_SCALE := 1.6
 
+## what the Colosseum death card calls this
+var hazard_name := "Black Knight fireballs"
 var dir := Vector2.RIGHT
 var damage: int = 1
 var height: float = 40.0
@@ -58,7 +60,7 @@ func _process(delta: float) -> void:
 		var off: Vector2 = p.global_position - global_position
 		if Vector2(off.x, off.y * 2.0).length() < HIT_R:
 			if not (p.has_method("is_untargetable") and p.is_untargetable()):
-				p.take_damage(damage, global_position - dir * 20.0, null)
+				p.take_damage(damage, global_position - dir * 20.0, self)
 				_burst()
 				return
 	if _travelled > RANGE:
